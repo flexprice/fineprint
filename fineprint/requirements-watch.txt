@@ -1,0 +1,5 @@
+# Minimal deps to run `python -m fineprint.watch` (the eval reuses the harness).
+# Slack + Vercel + OpenRouter catalog calls are pure stdlib (urllib) — nothing extra needed there.
+openai==2.44.0          # provider calls via OpenRouter (used by fineprint/providers.py)
+python-dotenv==1.0.1    # loads repo .env (OPENROUTER_API_KEY, etc.)
+openpyxl==3.1.5         # reads the private ground-truth workbook (fineprint/scoring.py)

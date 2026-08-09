@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/* ── FinePrint — Vercel-inspired system. Light is the default; clean, architectural,
+   black ink on near-white, Geist, one blue accent, subtle stacked shadows, no texture. ── */
+:root {
+  --bg: #ffffff;
+  --surface: #fafafa;
+  --surface-2: #f4f4f4;
+  --line: #ebebeb;
+  --line-2: #e2e2e2;
+  --text: #171717;
+  --muted: #585858;
+  --faint: #8f8f8f;
+  --primary: #171717;
+  --primary-hover: #383838;
+  --primary-strong: #111111;
+  --on-primary: #ffffff;
+  --accent: #0070f3;
+  --accent-hover: #0761d1;
+  --success: #16a34a;
+  --warning: #c2760c;
+  --danger: #e5484d;
+  --shadow-card: 0 1px 1px rgba(0,0,0,.02), 0 2px 4px rgba(0,0,0,.04), inset 0 0 0 1px rgba(0,0,0,.05);
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #141414;
+  --line: #242424;
+  --line-2: #343434;
+  --text: #ededed;
+  --muted: #a1a1a1;
+  --faint: #6e6e6e;
+  --primary: #ededed;
+  --primary-hover: #ffffff;
+  --primary-strong: #ededed;
+  --on-primary: #000000;
+  --accent: #3291ff;
+  --accent-hover: #61a8ff;
+  --success: #3ecf6b;
+  --warning: #f5a623;
+  --danger: #ff6166;
+  --shadow-card: 0 0 0 1px rgba(255,255,255,.07);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* { border-color: var(--line); }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.bg-grid { background: var(--bg); }         /* flat — no texture */
+.tnum { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); }
+
+/* ── Type — Geist, tight negative tracking on display ────────────────────── */
+.eyebrow { font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+.display { font-weight: 700; letter-spacing: -0.03em; line-height: 1.04; color: var(--text); text-wrap: balance; }
+.h2 { font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; color: var(--text); }
+
+/* ── Grainient — grainy multicolor gradient surface (lean CSS, no WebGL) ────── */
+.grainient {
+  color: #fff;
+  background-color: #0c463d;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(115% 115% at 12% 16%, #10B981 0%, rgba(16,185,129,0) 46%),
+    radial-gradient(115% 115% at 88% 20%, #EAB308 0%, rgba(234,179,8,0) 44%),
+    radial-gradient(125% 125% at 60% 94%, #06B6D4 0%, rgba(6,182,212,0) 52%);
+  background-size: 120px 120px, cover, cover, cover;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: overlay, normal, normal, normal;
+  border: none;
+}
+.grainient :where(.text-muted, .text-faint) { color: rgba(255,255,255,.82); }
+
+/* ── Surfaces ────────────────────────────────────────────────────────────── */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.panel { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-card); }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: .45rem; font-size: 14px; font-weight: 500;
+  border-radius: 8px; padding: 8px 15px; border: 1px solid transparent; transition: .13s ease; cursor: pointer; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-ghost { color: var(--text); border-color: var(--line-2); background: var(--bg); }
+.btn-ghost:hover { border-color: var(--faint); }
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 8px; color: var(--muted); }
+.badge-new { color: #fff; background: var(--accent); border-color: transparent; }
+
+/* Flexprice wordmark — follows the site theme (data-theme; light by default). Navy on light, cream on dark. */
+.fp-logo-light { display: inline-block; }
+.fp-logo-dark { display: none; }
+:root[data-theme="dark"] .fp-logo-light { display: none; }
+:root[data-theme="dark"] .fp-logo-dark { display: inline-block; }
+
+.ulink { color: var(--accent); font-weight: 500; }
+.ulink:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 5px; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* ── Motion — subtle, Vercel-restrained ──────────────────────────────────── */
+@keyframes fp-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes fp-pop { from { opacity: 0; transform: translateY(7px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes fp-draw { from { stroke-dashoffset: var(--len, 600); } to { stroke-dashoffset: 0; } }
+@keyframes fp-pulse { 0%,100% { opacity: .18; transform: scale(1); } 50% { opacity: .05; transform: scale(1.9); } }
+.fp-up { animation: fp-up .6s cubic-bezier(.2,.65,.2,1) both; }
+.fp-hero-glow { background: radial-gradient(60% 60% at 70% 20%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}

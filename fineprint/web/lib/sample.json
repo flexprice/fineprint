@@ -1,0 +1,160 @@
+{
+ "image": "/sample-contract.png",
+ "source": "Web Hosting Agreement (public SEC exhibit, CUAD CC BY 4.0)",
+ "fields": [
+  {
+   "field": "start_date",
+   "value": "1997-09-09",
+   "confidence": "NEEDS_REVIEW",
+   "category": "Identity",
+   "boxes": [
+    [
+     0.3816,
+     0.3402,
+     0.432,
+     0.35
+    ],
+    [
+     0.3816,
+     0.3874,
+     0.4332,
+     0.3972
+    ]
+   ]
+  },
+  {
+   "field": "currency",
+   "value": "USD",
+   "confidence": "HIGH",
+   "category": "Identity",
+   "boxes": [
+    [
+     0.0189,
+     0.1674,
+     0.5882,
+     0.1772
+    ],
+    [
+     0.0176,
+     0.2565,
+     0.5516,
+     0.2894
+    ]
+   ]
+  },
+  {
+   "field": "llm_usage_fee.amount",
+   "value": "0.01",
+   "confidence": "HIGH",
+   "category": "LLM Usage",
+   "boxes": [
+    [
+     0.0189,
+     0.1674,
+     0.5882,
+     0.1772
+    ],
+    [
+     0.0176,
+     0.1728,
+     0.5932,
+     0.195
+    ]
+   ]
+  },
+  {
+   "field": "llm_usage_fee.timing",
+   "value": "arrear",
+   "confidence": "HIGH",
+   "category": "LLM Usage",
+   "boxes": [
+    [
+     0.0189,
+     0.1932,
+     0.5428,
+     0.2048
+    ]
+   ]
+  },
+  {
+   "field": "override_other",
+   "value": "After 400,000 accesses, rate changes to 0.005 per access",
+   "confidence": "HIGH",
+   "category": "Override",
+   "boxes": [
+    [
+     0.0189,
+     0.1674,
+     0.5882,
+     0.1772
+    ],
+    [
+     0.0176,
+     0.1728,
+     0.5932,
+     0.195
+    ]
+   ]
+  },
+  {
+   "field": "commitment.overage_factor",
+   "value": "0.0",
+   "confidence": "NEEDS_REVIEW",
+   "category": "Commitment",
+   "boxes": [
+    [
+     0.0189,
+     0.1674,
+     0.5882,
+     0.1772
+    ],
+    [
+     0.0176,
+     0.1728,
+     0.5932,
+     0.195
+    ]
+   ]
+  },
+  {
+   "field": "payment_terms",
+   "value": "Weekly remittance by Wednesday for accesses used during the prior Monday-Sunday week",
+   "confidence": "HIGH",
+   "category": "Terms",
+   "boxes": [
+    [
+     0.0176,
+     0.1728,
+     0.5932,
+     0.195
+    ],
+    [
+     0.0189,
+     0.1932,
+     0.5428,
+     0.2048
+    ]
+   ]
+  },
+  {
+   "field": "customer.name",
+   "value": "Horst Entertainment Inc.",
+   "confidence": "HIGH",
+   "category": "Customer",
+   "boxes": [
+    [
+     0.0189,
+     0.1202,
+     0.4055,
+     0.1309
+    ],
+    [
+     0.0239,
+     0.4052,
+     0.2065,
+     0.4141
+    ]
+   ]
+  }
+ ]
+}

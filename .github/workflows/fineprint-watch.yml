@@ -1,0 +1,94 @@
+# FinePrint autopilot — scheduled poll for newly-shipped models.
+#
+# This is the PORTABLE alternative scheduler. The core is `python -m fineprint.watch`; this
+# workflow is just a thin cron wrapper. See fineprint/AUTOMATION.md for the recommended primary
+# host (Modal) and why (the eval needs the PRIVATE contract corpus + ground truth, which must be
+# provisioned on whatever host runs this — GitHub Actions can do it, but you must supply that
+# private data at runtime; see the "Provision private data" step below).
+#
+# Secrets to set in the repo (Settings → Secrets and variables → Actions):
+#   OPENROUTER_API_KEY        required — provider calls
+#   OPENAI_API_KEY            if any curated model routes direct to OpenAI (harness supports both)
+#   SLACK_WEBHOOK_URL         optional — Slack announcements
+#   VERCEL_DEPLOY_HOOK_URL    optional — redeploy the leaderboard after a new result
+#   FINEPRINT_SITE_URL        optional — base URL used in Slack links
+#   FINEPRINT_CORPUS_*        however you choose to fetch the private corpus (see below)
+
+name: fineprint-watch
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"     # every 6 hours; a zero-new poll is ~free (one catalog GET)
+  workflow_dispatch:           # manual "run now" button
+    inputs:
+      dry_run:
+        description: "List new models but do not evaluate"
+        type: boolean
+        default: false
+
+# Never run two polls at once (avoids double-benchmarking the same new model).
+concurrency:
+  group: fineprint-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r fineprint/requirements-watch.txt
+
+      # --- Persist the 'seen' set across runs so we don't re-detect the same models. ---
+      # data/seen_models.json is gitignored; cache keeps it between scheduled runs.
+      - name: Restore watch state
+        uses: actions/cache@v4
+        with:
+          path: fineprint/data/seen_models.json
+          key: fineprint-seen-${{ github.run_id }}
+          restore-keys: fineprint-seen-
+
+      # --- Provision the PRIVATE corpus + ground truth the eval needs. ---
+      # The labeled contract set is NOT in git. Fetch it here from your own private store
+      # (S3/GCS/a private release asset) into the paths fineprint/config.py expects:
+      #   fineprint/data/ocr/*.pkl  and  the ground-truth workbook (FINEPRINT_GROUND_TRUTH).
+      # Example (uncomment + adapt):
+      # - name: Provision private data
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #   run: |
+      #     aws s3 sync s3://your-private-bucket/fineprint/ocr fineprint/data/ocr
+      #     aws s3 cp  s3://your-private-bucket/fineprint/ground_truth.xlsx /tmp/gt.xlsx
+
+      - name: Poll for new models
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+          FINEPRINT_SITE_URL: ${{ secrets.FINEPRINT_SITE_URL }}
+          # FINEPRINT_GROUND_TRUTH: /tmp/gt.xlsx   # if you fetched it to a custom path
+          FINEPRINT_WATCH_PROVIDERS: "openai,anthropic,google,x-ai,meta-llama,mistralai,deepseek,qwen"
+          FINEPRINT_N_RUNS: "5"
+          FINEPRINT_WATCH_MAX_NEW: "4"
+          FINEPRINT_WATCH_TIMEOUT: "1800"
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python -m fineprint.watch --dry-run
+          else
+            python -m fineprint.watch
+          fi
+
+      - name: Save watch state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: fineprint/data/seen_models.json
+          key: fineprint-seen-${{ github.run_id }}

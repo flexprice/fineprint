@@ -1,0 +1,217 @@
+{
+  "gpt-5.6-luna": {
+    "price_in": 0.1,
+    "price_out": 0.6,
+    "source": "openrouter"
+  },
+  "gpt-5.6-terra": {
+    "price_in": 1.0,
+    "price_out": 6.0,
+    "source": "openrouter"
+  },
+  "gpt-5.6-sol": {
+    "price_in": 5.0,
+    "price_out": 30.0,
+    "source": "openrouter"
+  },
+  "gpt-5.5": {
+    "price_in": 5.0,
+    "price_out": 30.0,
+    "source": "openrouter"
+  },
+  "gpt-5.4-mini": {
+    "price_in": 0.75,
+    "price_out": 4.5,
+    "source": "openrouter"
+  },
+  "gpt-5.4-nano": {
+    "price_in": 0.2,
+    "price_out": 1.25,
+    "source": "openrouter"
+  },
+  "claude-opus-5": {
+    "price_in": 5.0,
+    "price_out": 25.0,
+    "source": "openrouter"
+  },
+  "claude-sonnet-5": {
+    "price_in": 2.0,
+    "price_out": 10.0,
+    "source": "openrouter"
+  },
+  "claude-fable-5": {
+    "price_in": 10.0,
+    "price_out": 50.0,
+    "source": "openrouter"
+  },
+  "claude-opus-4.8": {
+    "price_in": 5.0,
+    "price_out": 25.0,
+    "source": "openrouter"
+  },
+  "gemini-3.6-flash": {
+    "price_in": 1.5,
+    "price_out": 7.5,
+    "source": "openrouter"
+  },
+  "gemini-3.5-flash": {
+    "price_in": 1.5,
+    "price_out": 9.0,
+    "source": "openrouter"
+  },
+  "gemini-3.5-flash-lite": {
+    "price_in": 0.3,
+    "price_out": 2.5,
+    "source": "openrouter"
+  },
+  "llama-4-maverick": {
+    "price_in": 0.2,
+    "price_out": 0.8,
+    "source": "openrouter"
+  },
+  "llama-4-scout": {
+    "price_in": 0.1,
+    "price_out": 0.3,
+    "source": "openrouter"
+  },
+  "llama-3.3-70b-instruct": {
+    "price_in": 0.1,
+    "price_out": 0.32,
+    "source": "openrouter"
+  },
+  "mistral-medium-3-5": {
+    "price_in": 1.5,
+    "price_out": 7.5,
+    "source": "openrouter"
+  },
+  "mistral-large-2512": {
+    "price_in": 0.5,
+    "price_out": 1.5,
+    "source": "openrouter"
+  },
+  "mistral-small-2603": {
+    "price_in": 0.15,
+    "price_out": 0.6,
+    "source": "openrouter"
+  },
+  "ministral-14b-2512": {
+    "price_in": 0.2,
+    "price_out": 0.2,
+    "source": "openrouter"
+  },
+  "deepseek-v4-pro": {
+    "price_in": 0.435,
+    "price_out": 0.87,
+    "source": "openrouter"
+  },
+  "deepseek-v4-flash": {
+    "price_in": 0.14,
+    "price_out": 0.28,
+    "source": "openrouter"
+  },
+  "deepseek-v3.2": {
+    "price_in": 0.269,
+    "price_out": 0.4,
+    "source": "openrouter"
+  },
+  "deepseek-r1-0528": {
+    "price_in": 0.5,
+    "price_out": 2.15,
+    "source": "openrouter"
+  },
+  "grok-4.5": {
+    "price_in": 2.0,
+    "price_out": 6.0,
+    "source": "openrouter"
+  },
+  "grok-4.3": {
+    "price_in": 1.25,
+    "price_out": 2.5,
+    "source": "openrouter"
+  },
+  "grok-4.20": {
+    "price_in": 1.25,
+    "price_out": 2.5,
+    "source": "openrouter"
+  },
+  "qwen3.8-max": {
+    "price_in": 2.0,
+    "price_out": 6.0,
+    "source": "openrouter"
+  },
+  "qwen3.7-max": {
+    "price_in": 1.475,
+    "price_out": 4.425,
+    "source": "openrouter"
+  },
+  "qwen3.7-plus": {
+    "price_in": 0.32,
+    "price_out": 1.28,
+    "source": "openrouter"
+  },
+  "qwen3.7-flash": {
+    "price_in": 0.03,
+    "price_out": 0.13,
+    "source": "openrouter"
+  },
+  "command-a": {
+    "price_in": 2.5,
+    "price_out": 10.0,
+    "source": "openrouter"
+  },
+  "command-r-plus-08-2024": {
+    "price_in": 2.5,
+    "price_out": 10.0,
+    "source": "openrouter"
+  },
+  "sonar-pro": {
+    "price_in": 3.0,
+    "price_out": 15.0,
+    "source": "openrouter"
+  },
+  "sonar-reasoning-pro": {
+    "price_in": 2.0,
+    "price_out": 8.0,
+    "source": "openrouter"
+  },
+  "kimi-k3": {
+    "price_in": 3.0,
+    "price_out": 15.0,
+    "source": "openrouter"
+  },
+  "kimi-k2.6": {
+    "price_in": 0.5795,
+    "price_out": 2.44,
+    "source": "openrouter"
+  },
+  "glm-5.2": {
+    "price_in": 0.07,
+    "price_out": 0.22,
+    "source": "openrouter"
+  },
+  "glm-5.1": {
+    "price_in": 0.952,
+    "price_out": 2.992,
+    "source": "openrouter"
+  },
+  "nova-premier-v1": {
+    "price_in": 2.5,
+    "price_out": 12.5,
+    "source": "openrouter"
+  },
+  "nova-2-lite-v1": {
+    "price_in": 0.3,
+    "price_out": 2.5,
+    "source": "openrouter"
+  },
+  "minimax-m3": {
+    "price_in": 0.3,
+    "price_out": 1.2,
+    "source": "openrouter"
+  },
+  "nemotron-3-super-120b-a12b": {
+    "price_in": 0.3,
+    "price_out": 0.9,
+    "source": "openrouter"
+  }
+}

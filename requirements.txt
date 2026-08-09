@@ -1,0 +1,9 @@
+# ── FinePrint benchmark harness ──────────────────────────────────────────────
+openai>=1.40          # OpenAI + OpenRouter (OpenAI-compatible) model calls
+python-dotenv>=1.0    # load secrets from .env
+openpyxl>=3.1         # read the ground-truth workbook
+
+# ── OCR (corpus prep only) ───────────────────────────────────────────────────
+# Needed only to turn raw contract PDFs into the Document pickles the harness scores.
+# The eval / scoring path does NOT require this.
+datalab-sdk>=0.1

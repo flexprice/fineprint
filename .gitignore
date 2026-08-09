@@ -1,0 +1,43 @@
+# ── secrets (never commit) ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# ── private benchmark data (bring your own — keeping it private is the point) ──
+*.pkl
+.ocr_cache/
+data/ground_truth.xlsx
+fineprint/data/ocr/
+fineprint/data/ground_truth.xlsx
+fineprint/results/
+fineprint/roster.json
+fineprint/data/seen_models.json
+fineprint/corpus/raw/
+fineprint/corpus/manifest.json
+
+# ── node / next.js (fineprint/web) ───────────────────────────────────────────
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+.vercel/
+npm-debug.log*
+yarn-error.log*
+
+# ── os / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+*.log
+.idea/
+.vscode/
