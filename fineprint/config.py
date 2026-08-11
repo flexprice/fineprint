@@ -27,11 +27,12 @@ MAX_WORKERS = int(os.environ.get("FINEPRINT_WORKERS", "6"))
 OCR_DIR = Path(os.environ.get("FINEPRINT_OCR_DIR", HERE / "data" / "ocr"))
 RESULTS = Path(os.environ.get("FINEPRINT_RESULTS", HERE / "results" / "runs.json"))
 AUDIT_DIR = HERE / "results" / "audit"                       # private per-field dumps (gitignored)
-ROSTER_FILE = HERE / "roster.json"                            # ad-hoc models added via `fineprint.eval`
+ROSTER_FILE = Path(os.environ.get("FINEPRINT_ROSTER", HERE / "roster.json"))   # ad-hoc models
 OVERRIDES_DIR = REPO / "overrides"
 GROUND_TRUTH = Path(os.environ.get(
     "FINEPRINT_GROUND_TRUTH", REPO / "data" / "ground_truth.xlsx"))   # bring your own labeled workbook
-WEB_DATA = HERE / "web" / "lib" / "data.json"                # anonymized aggregates — published
+WEB_DATA = Path(os.environ.get(                              # anonymized aggregates — published
+    "FINEPRINT_WEB_DATA", HERE / "web" / "lib" / "data.json"))
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
@@ -47,6 +48,13 @@ SEED_CONTRACTS = [
     ("Contract 5", "contract-5"),
     ("Contract 6", "contract-6"),
 ]
+
+# Private deployments point FINEPRINT_SEED_CONTRACTS at a JSON file of [display, folder] pairs
+# (kept in the private bucket, synced at boot — never in the repo) so real contract identities
+# stay out of the public code. Display labels are still anonymized (Doc A…) before publishing.
+_seed_override = os.environ.get("FINEPRINT_SEED_CONTRACTS")
+if _seed_override and Path(_seed_override).exists():
+    SEED_CONTRACTS = [tuple(x) for x in json.loads(Path(_seed_override).read_text())]
 
 # ── lab → logo brand (see web/components/provider-icon.tsx) ──────────────────
 BRAND = {

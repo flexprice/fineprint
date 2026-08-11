@@ -1,0 +1,10 @@
+# FinePrint service (Cloud Run). Harness core + web API + GCS state.
+# datalab-sdk is intentionally omitted: the service scores pre-OCR'd documents and the OCR
+# import is lazy, so the OCR SDK isn't needed at runtime.
+openai>=1.40
+python-dotenv>=1.0
+openpyxl>=3.1
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.0
+google-cloud-storage>=2.16

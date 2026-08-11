@@ -41,3 +41,7 @@ yarn-error.log*
 *.log
 .idea/
 .vscode/
+
+# deploy: never commit private seed mapping
+deploy/private/
+fineprint/seed_contracts.json
