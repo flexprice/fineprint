@@ -38,9 +38,10 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "▸ project=$PROJECT region=$REGION bucket=gs://$BUCKET service=$SERVICE"
 
-echo "▸ enabling APIs"
+echo "▸ enabling APIs (non-fatal: most are already on; enable needs Cloud ToS acceptance)"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
-  secretmanager.googleapis.com cloudscheduler.googleapis.com storage.googleapis.com --project "$PROJECT"
+  secretmanager.googleapis.com cloudscheduler.googleapis.com storage.googleapis.com --project "$PROJECT" \
+  || echo "  (enable skipped — proceeding with already-enabled APIs)"
 
 echo "▸ bucket"
 gcloud storage buckets create "gs://$BUCKET" --project "$PROJECT" --location "$REGION" \
@@ -86,28 +87,29 @@ SECRETS="OPENROUTER_API_KEY=fineprint-openrouter-key:latest,FINEPRINT_API_TOKEN=
 gcloud run deploy "$SERVICE" --source "$here" --project "$PROJECT" --region "$REGION" \
   --service-account "$SA_EMAIL" \
   --cpu 2 --memory 2Gi --timeout 3600 --concurrency 1 --max-instances 1 --min-instances 0 \
-  --no-cpu-throttling --allow-unauthenticated \
+  --allow-unauthenticated \
   --set-env-vars "$ENVS" --set-secrets "$SECRETS"
 
 URL="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)')"
 echo "▸ service URL: $URL"
 
 echo "▸ hourly Cloud Scheduler → POST $URL/watch"
-gcloud scheduler jobs create http fineprint-watch --project "$PROJECT" --location "$REGION" \
-  --schedule "0 * * * *" --uri "$URL/watch" --http-method POST \
-  --headers "Authorization=Bearer $FINEPRINT_API_TOKEN" \
-  --attempt-deadline 1800s --max-retry-attempts 0 2>/dev/null \
+{ gcloud scheduler jobs create http fineprint-watch --project "$PROJECT" --location "$REGION" \
+    --schedule "0 * * * *" --uri "$URL/watch" --http-method POST \
+    --headers "X-FinePrint-Token=$FINEPRINT_API_TOKEN" \
+    --attempt-deadline 1800s --max-retry-attempts 0 2>/dev/null \
   || gcloud scheduler jobs update http fineprint-watch --project "$PROJECT" --location "$REGION" \
        --schedule "0 * * * *" --uri "$URL/watch" --http-method POST \
-       --headers "Authorization=Bearer $FINEPRINT_API_TOKEN" --attempt-deadline 1800s
+       --headers "X-FinePrint-Token=$FINEPRINT_API_TOKEN" --attempt-deadline 1800s ; } \
+  || echo "  ⚠ scheduler NOT set (enable cloudscheduler.googleapis.com after accepting Cloud ToS, then re-run) — service + endpoints are live regardless"
 
 echo "▸ seed the watch 'seen' set so the FIRST poll doesn't re-benchmark the whole catalog"
-curl -s -X POST "$URL/watch?dry_run=true" -H "Authorization: Bearer $FINEPRINT_API_TOKEN" | head -c 400; echo
+curl -s -X POST "$URL/watch?dry_run=true" -H "X-FinePrint-Token: $FINEPRINT_API_TOKEN" | head -c 400 || true; echo
 
 cat <<EOF
 
 ✅ Deployed. Endpoints (send the token on the two POSTs):
    GET  $URL/healthz
-   POST $URL/eval   -H "Authorization: Bearer \$TOKEN" -d '{"model":"anthropic/claude-opus-5","runs":3}'
-   POST $URL/watch  -H "Authorization: Bearer \$TOKEN"     # on-demand sweep (Scheduler runs it hourly)
+   POST $URL/eval   -H "X-FinePrint-Token: $TOKEN" -d '{"model":"anthropic/claude-opus-5","runs":3}'
+   POST $URL/watch  -H "X-FinePrint-Token: $TOKEN"     # on-demand sweep (Scheduler runs it hourly)
 EOF

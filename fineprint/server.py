@@ -67,6 +67,8 @@ class EvalReq(BaseModel):
     publish: bool = True
 
 
+@app.get("/")            # /healthz is intercepted by Google's front-end on Cloud Run, so alias it.
+@app.get("/status")
 @app.get("/healthz")
 def healthz() -> dict:
     n = None
