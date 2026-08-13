@@ -64,14 +64,6 @@ const LANDSCAPE: [string, string, string][] = [
 ];
 
 export default function Methodology() {
-  const stats: [string, string][] = [
-    [`${data.n_models}`, "models scored"],
-    [`${data.n_contracts}→1k`, "contracts (scaling)"],
-    [`${data.fields_per_contract}`, "fields / contract"],
-    [data.total_judgments.toLocaleString(), "field judgments"],
-    [`${data.n_runs}×`, "runs / contract"],
-  ];
-
   return (
     <div className="mx-auto max-w-5xl px-5 py-14">
       {/* hero */}
@@ -83,16 +75,6 @@ export default function Methodology() {
         the complexities it contains, the metrics we report, how we score, and how the benchmark is kept
         rigorous and hard to game — so anyone can judge the results on their merits.
       </p>
-
-      {/* at a glance */}
-      <div className="mt-10 panel rounded-2xl px-6 py-6 flex flex-wrap gap-x-10 gap-y-5">
-        {stats.map(([v, k]) => (
-          <div key={k}>
-            <div className="text-[26px] font-semibold tnum tracking-[-.03em]">{v}</div>
-            <div className="mt-1 text-[12.5px] text-muted">{k}</div>
-          </div>
-        ))}
-      </div>
 
       {/* 01 — why it matters */}
       <section className="mt-16">

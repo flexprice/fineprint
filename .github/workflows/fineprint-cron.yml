@@ -1,0 +1,30 @@
+# Hourly autopilot trigger — pings the deployed FinePrint service's /watch endpoint.
+# This is the lightweight alternative to Cloud Scheduler: the Cloud Run service does all the
+# work (detect new models -> eval -> publish -> Slack); this job just wakes it once an hour.
+# No GCP Cloud Scheduler / ToS needed.
+#
+# Repo secrets required (Settings -> Secrets and variables -> Actions):
+#   FINEPRINT_URL         e.g. https://fineprint-wo5ok35f7q-uc.a.run.app
+#   FINEPRINT_API_TOKEN   the X-FinePrint-Token shared secret
+name: FinePrint hourly watch
+
+on:
+  schedule:
+    - cron: "0 * * * *"      # top of every hour (UTC)
+  workflow_dispatch: {}       # manual "Run workflow" button for an on-demand sweep
+
+concurrency:
+  group: fineprint-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /watch on the FinePrint service
+        run: |
+          code=$(curl -sS -X POST "${{ secrets.FINEPRINT_URL }}/watch" \
+            -H "X-FinePrint-Token: ${{ secrets.FINEPRINT_API_TOKEN }}" \
+            --max-time 3000 -o /tmp/watch.json -w "%{http_code}")
+          echo "HTTP $code"; cat /tmp/watch.json
+          test "$code" = "200"
