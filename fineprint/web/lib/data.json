@@ -337,6 +337,30 @@
       "rank": 14
     },
     {
+      "id": "grok-4.6",
+      "label": "Grok 4.6",
+      "family": "Grok 4.6",
+      "brand": "xai",
+      "new": true,
+      "est": false,
+      "accuracy": 65.3,
+      "halluc": 11.8,
+      "consistency": 3.0,
+      "cost_1k": 108.2,
+      "cost_contract": 0.1082,
+      "p50": 140.2,
+      "p90": 194.6,
+      "avg_lat": 145.2,
+      "in_tok": 21246,
+      "out_tok": 10957,
+      "reasoning": 7151,
+      "reliability": 100.0,
+      "value": 0.6,
+      "avg_scored": 13.1,
+      "calls": 18,
+      "rank": 15
+    },
+    {
       "id": "gpt-5.6-terra",
       "label": "GPT-5.6 Terra",
       "family": "GPT-5.6",
@@ -358,7 +382,7 @@
       "value": 1.54,
       "avg_scored": 12.4,
       "calls": 18,
-      "rank": 15
+      "rank": 16
     },
     {
       "id": "deepseek-v3.2",
@@ -382,7 +406,7 @@
       "value": 8.26,
       "avg_scored": 13.2,
       "calls": 18,
-      "rank": 16
+      "rank": 17
     },
     {
       "id": "qwen3.7-plus",
@@ -406,7 +430,7 @@
       "value": 3.15,
       "avg_scored": 13.3,
       "calls": 18,
-      "rank": 17
+      "rank": 18
     },
     {
       "id": "claude-opus-4.8",
@@ -430,7 +454,7 @@
       "value": 0.24,
       "avg_scored": 12.7,
       "calls": 18,
-      "rank": 18
+      "rank": 19
     },
     {
       "id": "grok-4.20",
@@ -454,7 +478,7 @@
       "value": 1.86,
       "avg_scored": 14.2,
       "calls": 18,
-      "rank": 19
+      "rank": 20
     },
     {
       "id": "mistral-medium-3-5",
@@ -478,7 +502,7 @@
       "value": 0.99,
       "avg_scored": 13.3,
       "calls": 18,
-      "rank": 20
+      "rank": 21
     },
     {
       "id": "mistral-large-2512",
@@ -502,7 +526,7 @@
       "value": 3.43,
       "avg_scored": 13.7,
       "calls": 18,
-      "rank": 21
+      "rank": 22
     },
     {
       "id": "sonar-pro",
@@ -526,7 +550,7 @@
       "value": 0.56,
       "avg_scored": 14.4,
       "calls": 18,
-      "rank": 22
+      "rank": 23
     },
     {
       "id": "gpt-5.4-nano",
@@ -550,7 +574,7 @@
       "value": 4.73,
       "avg_scored": 12.5,
       "calls": 18,
-      "rank": 23
+      "rank": 24
     },
     {
       "id": "grok-4.3",
@@ -574,7 +598,7 @@
       "value": 1.78,
       "avg_scored": 13.0,
       "calls": 18,
-      "rank": 24
+      "rank": 25
     },
     {
       "id": "deepseek-v4-pro",
@@ -586,8 +610,8 @@
       "accuracy": 59.5,
       "halluc": 23.7,
       "consistency": 15.1,
-      "cost_1k": 16.7,
-      "cost_contract": 0.0167,
+      "cost_1k": 45.0,
+      "cost_contract": 0.045,
       "p50": 143.6,
       "p90": 295.4,
       "avg_lat": 165.0,
@@ -595,10 +619,10 @@
       "out_tok": 7933,
       "reasoning": 4660,
       "reliability": 94.4,
-      "value": 3.55,
+      "value": 1.32,
       "avg_scored": 12.9,
       "calls": 18,
-      "rank": 25
+      "rank": 26
     },
     {
       "id": "deepseek-r1-0528",
@@ -622,7 +646,7 @@
       "value": 2.03,
       "avg_scored": 12.9,
       "calls": 18,
-      "rank": 26
+      "rank": 27
     },
     {
       "id": "llama-4-maverick",
@@ -634,8 +658,8 @@
       "accuracy": 58.0,
       "halluc": 27.0,
       "consistency": 5.0,
-      "cost_1k": 5.7,
-      "cost_contract": 0.0057,
+      "cost_1k": 5.5,
+      "cost_contract": 0.0055,
       "p50": 39.7,
       "p90": 1205.8,
       "avg_lat": 283.7,
@@ -643,10 +667,10 @@
       "out_tok": 1969,
       "reasoning": 0,
       "reliability": 100.0,
-      "value": 10.16,
+      "value": 10.53,
       "avg_scored": 14.2,
       "calls": 18,
-      "rank": 27
+      "rank": 28
     },
     {
       "id": "ministral-14b-2512",
@@ -670,7 +694,7 @@
       "value": 10.26,
       "avg_scored": 12.0,
       "calls": 18,
-      "rank": 28
+      "rank": 29
     },
     {
       "id": "command-a",
@@ -694,7 +718,7 @@
       "value": 0.62,
       "avg_scored": 13.1,
       "calls": 18,
-      "rank": 29
+      "rank": 30
     },
     {
       "id": "qwen3.8-max",
@@ -718,7 +742,7 @@
       "value": 0.27,
       "avg_scored": 13.0,
       "calls": 18,
-      "rank": 30
+      "rank": 31
     },
     {
       "id": "mistral-small-2603",
@@ -742,7 +766,7 @@
       "value": 9.61,
       "avg_scored": 13.4,
       "calls": 18,
-      "rank": 31
+      "rank": 32
     },
     {
       "id": "nova-2-lite-v1",
@@ -766,7 +790,31 @@
       "value": 4.5,
       "avg_scored": 13.3,
       "calls": 18,
-      "rank": 32
+      "rank": 33
+    },
+    {
+      "id": "qwen3.7-flash",
+      "label": "Qwen3.7 Flash",
+      "family": "Qwen3",
+      "brand": "qwen",
+      "new": true,
+      "est": false,
+      "accuracy": 50.0,
+      "halluc": 38.0,
+      "consistency": 0.0,
+      "cost_1k": 1.8,
+      "cost_contract": 0.0018,
+      "p50": 118.5,
+      "p90": 130.3,
+      "avg_lat": 102.6,
+      "in_tok": 21404,
+      "out_tok": 8885,
+      "reasoning": 6313,
+      "reliability": 83.3,
+      "value": 27.82,
+      "avg_scored": 14.0,
+      "calls": 6,
+      "rank": 34
     },
     {
       "id": "glm-5.1",
@@ -778,8 +826,8 @@
       "accuracy": 45.9,
       "halluc": 28.1,
       "consistency": 17.0,
-      "cost_1k": 57.8,
-      "cost_contract": 0.0578,
+      "cost_1k": 85.0,
+      "cost_contract": 0.085,
       "p50": 374.9,
       "p90": 1959.3,
       "avg_lat": 684.6,
@@ -787,10 +835,10 @@
       "out_tok": 12547,
       "reasoning": 9918,
       "reliability": 94.4,
-      "value": 0.79,
+      "value": 0.54,
       "avg_scored": 12.8,
       "calls": 18,
-      "rank": 33
+      "rank": 35
     },
     {
       "id": "qwen3.7-max",
@@ -814,7 +862,7 @@
       "value": 0.66,
       "avg_scored": 12.6,
       "calls": 18,
-      "rank": 34
+      "rank": 36
     },
     {
       "id": "minimax-m3",
@@ -838,7 +886,7 @@
       "value": 4.14,
       "avg_scored": 13.2,
       "calls": 18,
-      "rank": 35
+      "rank": 37
     },
     {
       "id": "kimi-k2.6",
@@ -850,8 +898,8 @@
       "accuracy": 43.3,
       "halluc": 30.8,
       "consistency": 13.9,
-      "cost_1k": 55.0,
-      "cost_contract": 0.055,
+      "cost_1k": 90.2,
+      "cost_contract": 0.0902,
       "p50": 437.7,
       "p90": 1362.9,
       "avg_lat": 643.2,
@@ -859,10 +907,10 @@
       "out_tok": 17560,
       "reasoning": 15066,
       "reliability": 94.4,
-      "value": 0.79,
+      "value": 0.48,
       "avg_scored": 12.6,
       "calls": 18,
-      "rank": 36
+      "rank": 38
     },
     {
       "id": "command-r-plus-08-2024",
@@ -886,7 +934,7 @@
       "value": 0.47,
       "avg_scored": 13.1,
       "calls": 18,
-      "rank": 37
+      "rank": 39
     },
     {
       "id": "glm-5.2",
@@ -898,8 +946,8 @@
       "accuracy": 39.6,
       "halluc": 48.6,
       "consistency": 9.9,
-      "cost_1k": 3.2,
-      "cost_contract": 0.0032,
+      "cost_1k": 29.1,
+      "cost_contract": 0.0291,
       "p50": 83.2,
       "p90": 181.2,
       "avg_lat": 122.6,
@@ -907,34 +955,10 @@
       "out_tok": 7837,
       "reasoning": 4871,
       "reliability": 83.3,
-      "value": 12.23,
+      "value": 1.36,
       "avg_scored": 12.8,
       "calls": 18,
-      "rank": 38
-    },
-    {
-      "id": "qwen3.7-flash",
-      "label": "Qwen3.7 Flash",
-      "family": "Qwen3",
-      "brand": "qwen",
-      "new": true,
-      "est": false,
-      "accuracy": 36.0,
-      "halluc": 22.8,
-      "consistency": 23.1,
-      "cost_1k": 2.0,
-      "cost_contract": 0.002,
-      "p50": 82.2,
-      "p90": 143.5,
-      "avg_lat": 84.9,
-      "in_tok": 23151,
-      "out_tok": 9661,
-      "reasoning": 7910,
-      "reliability": 100.0,
-      "value": 18.46,
-      "avg_scored": 12.5,
-      "calls": 18,
-      "rank": 39
+      "rank": 40
     },
     {
       "id": "nova-premier-v1",
@@ -958,7 +982,7 @@
       "value": 0.41,
       "avg_scored": 12.8,
       "calls": 18,
-      "rank": 40
+      "rank": 41
     },
     {
       "id": "llama-4-scout",
@@ -982,7 +1006,7 @@
       "value": 12.67,
       "avg_scored": 12.7,
       "calls": 18,
-      "rank": 41
+      "rank": 42
     },
     {
       "id": "llama-3.3-70b-instruct",
@@ -1006,14 +1030,14 @@
       "value": 10.84,
       "avg_scored": 12.6,
       "calls": 18,
-      "rank": 42
+      "rank": 43
     }
   ],
   "n_runs": 3,
   "n_contracts": 6,
-  "n_models": 42,
+  "n_models": 43,
   "fields_per_contract": 13,
-  "total_judgments": 9512,
+  "total_judgments": 9593,
   "baseline_acc": 69.3,
   "baseline_label": "GPT-5.5",
   "newest_id": "gemini-3.6-flash",
@@ -1027,12 +1051,12 @@
       "Doc F"
     ],
     "difficulty": [
-      30.3,
-      55.7,
-      43.0,
-      57.9,
+      30.5,
+      56.9,
+      43.7,
+      58.7,
       80.0,
-      78.3
+      78.9
     ],
     "matrix": {
       "gemini-3.6-flash": [
@@ -1146,6 +1170,14 @@
         64.3,
         100.0,
         95.2
+      ],
+      "grok-4.6": [
+        30.2,
+        76.2,
+        55.5,
+        77.8,
+        76.8,
+        78.6
       ],
       "gpt-5.6-terra": [
         29.1,
@@ -1291,6 +1323,14 @@
         79.7,
         70.3
       ],
+      "qwen3.7-flash": [
+        23.1,
+        null,
+        42.9,
+        60.0,
+        42.9,
+        78.6
+      ],
       "glm-5.1": [
         28.9,
         52.4,
@@ -1338,14 +1378,6 @@
         40.5,
         45.2,
         48.4
-      ],
-      "qwen3.7-flash": [
-        17.2,
-        23.8,
-        26.2,
-        42.8,
-        38.4,
-        55.4
       ],
       "nova-premier-v1": [
         24.3,
