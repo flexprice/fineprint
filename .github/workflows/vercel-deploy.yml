@@ -1,0 +1,98 @@
+
+name: Deploy web to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fineprint/web/**"
+      - ".github/workflows/vercel-deploy.yml"
+  pull_request:
+    paths:
+      - "fineprint/web/**"
+      - ".github/workflows/vercel-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy target"
+        type: choice
+        options: [preview, production]
+        default: preview
+  repository_dispatch:
+    types: [fineprint-published]
+
+# One deploy at a time per ref; a newer push supersedes an in-flight build.
+concurrency:
+  group: vercel-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+defaults:
+  run:
+    working-directory: fineprint/web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write     # to comment the preview URL on PRs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: fineprint/web/package-lock.json
+
+      # production on push to main, on autopilot dispatch, or on manual "production"
+      - name: Resolve target
+        id: target
+        run: |
+          case "${{ github.event_name }}" in
+            push|repository_dispatch) prod=1 ;;
+            workflow_dispatch) [ "${{ inputs.target }}" = "production" ] && prod=1 || prod=0 ;;
+            *) prod=0 ;;
+          esac
+          if [ "$prod" = "1" ]; then
+            echo "env=production" >> "$GITHUB_OUTPUT"
+            echo "flag=--prod"    >> "$GITHUB_OUTPUT"
+          else
+            echo "env=preview" >> "$GITHUB_OUTPUT"
+            echo "flag="       >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel project settings + env
+        run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build ${{ steps.target.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt output
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `**Vercel preview** — ${process.env.PREVIEW_URL}`,
+            });
