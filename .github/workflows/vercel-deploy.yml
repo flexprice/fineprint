@@ -83,6 +83,27 @@ jobs:
             echo "::error::Missing repo secret(s):$missing — add them under Settings → Secrets and variables → Actions."
             exit 1
           fi
+          # Token SHAPE — never the value. A dashboard token is short and opaque; a JWT
+          # (eyJ…) means an OIDC token was pasted by mistake; whitespace means a stray newline.
+          n=$(printf %s "$VERCEL_TOKEN" | wc -c | tr -d ' ')
+          case "$VERCEL_TOKEN" in eyJ*) jwt=YES ;; *) jwt=no ;; esac
+          case "$VERCEL_TOKEN" in *[[:space:]]*) ws=YES ;; *) ws=no ;; esac
+          echo "token shape → length=$n looks_like_jwt=$jwt contains_whitespace=$ws"
+          [ "$ws" = "no" ] || echo "::warning::VERCEL_TOKEN contains whitespace — re-set it with: printf %s 'TOKEN' | gh secret set VERCEL_TOKEN"
+
+          # The CLI resolves the user behind the token BEFORE touching any project, so a token
+          # that reads a project can still fail with "User not found (404)". Check both.
+          ucode=$(curl -sS -o /tmp/user.json -w '%{http_code}' \
+            -H "Authorization: Bearer $VERCEL_TOKEN" https://api.vercel.com/v2/user)
+          echo "GET /v2/user -> HTTP $ucode"
+          if [ "$ucode" != "200" ]; then
+            echo "::error::Token authenticates no Vercel user (HTTP $ucode) — the CLI will fail with 'User not found'."
+            echo "::error::Create a fresh token at https://vercel.com/account/tokens and re-set VERCEL_TOKEN."
+            head -c 400 /tmp/user.json
+            exit 1
+          fi
+          echo "✓ token user: $(sed -n 's/.*"username":"\([^"]*\)".*/\1/p' /tmp/user.json | head -1)"
+
           code=$(curl -sS -o /tmp/proj.json -w '%{http_code}' \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
@@ -92,7 +113,7 @@ jobs:
             head -c 400 /tmp/proj.json
             exit 1
           fi
-          echo "✓ token can read project: $(head -c 200 /tmp/proj.json)"
+          echo "✓ token can read project"
 
       # Write .vercel/project.json explicitly instead of letting `pull` infer the project.
       # Both ID forms are accepted here (verified): --project prj_… and --scope team_….
