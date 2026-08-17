@@ -29,6 +29,7 @@ concurrency:
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
 defaults:
   run:
@@ -73,8 +74,6 @@ jobs:
       # Turns "Could not retrieve Project Settings" into an actionable message: that error
       # means an empty/wrong id OR a token that cannot see the project's team.
       - name: Preflight — secrets present and token can see the project
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           missing=
           [ -n "$VERCEL_ORG_ID" ]     || missing="$missing VERCEL_ORG_ID"
@@ -95,16 +94,26 @@ jobs:
           fi
           echo "✓ token can read project: $(head -c 200 /tmp/proj.json)"
 
+      # Write .vercel/project.json explicitly instead of letting `pull` infer the project.
+      # Both ID forms are accepted here (verified): --project prj_… and --scope team_….
+      - name: Link Vercel project
+        run: |
+          rm -rf .vercel
+          vercel link --yes \
+            --project "$VERCEL_PROJECT_ID" \
+            --scope "$VERCEL_ORG_ID" \
+            --token "$VERCEL_TOKEN"
+
       - name: Pull Vercel project settings + env
-        run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token "$VERCEL_TOKEN"
 
       - name: Build
-        run: vercel build ${{ steps.target.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN"
 
       - name: Deploy prebuilt output
         id: deploy
         run: |
-          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }})
+          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
 
