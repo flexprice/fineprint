@@ -25,22 +25,24 @@ def _delta(fields, truth):
 
 def test_exact_match_counts_correct():
     # A field is scored because truth has it; the prediction flips it to correct.
-    d = _delta([_fe("platform_fee.amount", "10000")], _truth({"platform_fee.amount": "10000"}))
+    d = _delta([_fe("recurring_fee.amount", "10000")], _truth({"recurring_fee.amount": "10000"}))
     assert d["correct"] == 1 and d["confident_wrong"] == 0
 
 
 def test_high_confidence_wrong_is_a_hallucination():
-    d = _delta([_fe("platform_fee.amount", "99999", "HIGH")], _truth({"platform_fee.amount": "10000"}))
+    # Hallucination is tracked on scalar extraction facts (fee amounts route through the fee bag).
+    d = _delta([_fe("commitment.amount", "99999", "HIGH")], _truth({"commitment.amount": "10000"}))
     assert d["correct"] == 0 and d["high"] == 1 and d["confident_wrong"] == 1
 
 
 def test_needs_review_wrong_is_not_a_hallucination():
-    d = _delta([_fe("platform_fee.amount", "99999", "NEEDS_REVIEW")], _truth({"platform_fee.amount": "10000"}))
+    d = _delta([_fe("commitment.amount", "99999", "NEEDS_REVIEW")], _truth({"commitment.amount": "10000"}))
     assert d["confident_wrong"] == 0 and d["high"] == 0
 
 
 def test_economic_equivalence_quarterly_equals_annual():
-    # truth: $40k annual; prediction: $10k quarterly -> annualized equal -> both accepted
-    truth = _truth({"platform_fee.amount": "40000", "platform_fee.frequency": "Annual"})
-    d = _delta([_fe("platform_fee.amount", "10000"), _fe("platform_fee.frequency", "Quarterly")], truth)
-    assert d["correct"] == 2                       # both amount + frequency accepted via equivalence
+    # truth: $40k annual; prediction: $10k quarterly -> annualized equal -> the fee matches in the bag.
+    # v2 scores the fee as ONE unit (matched by annualized value), not amount + frequency separately.
+    truth = _truth({"recurring_fee.amount": "40000", "recurring_fee.frequency": "Annual"})
+    d = _delta([_fe("recurring_fee.amount", "10000"), _fe("recurring_fee.frequency", "Quarterly")], truth)
+    assert d["correct"] == 1                        # one fee, matched via annualized equivalence
