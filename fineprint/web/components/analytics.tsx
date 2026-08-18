@@ -4,13 +4,36 @@ import { useMemo } from "react";
 import { data, models, money, ModelRow } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
+/* ── icons — one per view, so the grid scans by shape as well as by title ──── */
+const I = {
+  target: <svg viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3.4" /><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22" /></svg>,
+  value: <svg viewBox="0 0 24 24" aria-hidden><path d="M12 2v20" /><path d="M17 6.5c0-2-2.2-3-5-3s-5 .9-5 2.8c0 4.3 10 2.2 10 6.4 0 2-2.2 3.1-5 3.1s-5-1.1-5-3.1" /></svg>,
+  speed: <svg viewBox="0 0 24 24" aria-hidden><path d="M4 18a8 8 0 1 1 16 0" /><path d="m12 14 4.5-4.5" /><circle cx="12" cy="18" r="1.4" /></svg>,
+  alert: <svg viewBox="0 0 24 24" aria-hidden><path d="M12 4 3 19h18z" /><path d="M12 10v4" /><path d="M12 17h.01" /></svg>,
+  waves: <svg viewBox="0 0 24 24" aria-hidden><path d="M2 9h4l3-5 3 16 3-9 3 5h4" /></svg>,
+  grid: <svg viewBox="0 0 24 24" aria-hidden><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18M15 3v18" /></svg>,
+  lab: <svg viewBox="0 0 24 24" aria-hidden><path d="M9 3v6.5L4.5 18A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.8-3L15 9.5V3" /><path d="M8 3h8" /><path d="M7.5 15h9" /></svg>,
+  clock: <svg viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></svg>,
+  price: <svg viewBox="0 0 24 24" aria-hidden><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z" /><path d="M7.5 7.5h.01" /></svg>,
+  shield: <svg viewBox="0 0 24 24" aria-hidden><path d="M12 3l7.5 3v5.5c0 4.6-3.1 8.1-7.5 9.5-4.4-1.4-7.5-4.9-7.5-9.5V6z" /><path d="m9 12 2.2 2.2L15.5 10" /></svg>,
+};
+
 /* ── shared frame ─────────────────────────────────────────────────────────── */
-function Card({ title, sub, wide, children }: { title: string; sub: string; wide?: boolean; children: React.ReactNode }) {
+function Card({ title, sub, wide, icon, children }: {
+  title: string; sub: string; wide?: boolean; icon: React.ReactNode; children: React.ReactNode;
+}) {
   return (
-    <div className={`panel rounded-2xl p-5 sm:p-6 ${wide ? "md:col-span-2" : ""}`}>
-      <h3 className="text-[15px] font-semibold tracking-tight">{title}</h3>
-      <p className="text-[12.5px] text-muted mt-0.5 mb-4">{sub}</p>
-      {children}
+    <div className={`panel rounded-2xl p-5 sm:p-6 flex flex-col ${wide ? "md:col-span-2" : ""}`}>
+      <div className="flex items-start gap-3 mb-5">
+        <span className="spec-icon shrink-0">{icon}</span>
+        <div className="min-w-0">
+          <h3 className="text-[15px] font-medium tracking-tight">{title}</h3>
+          <p className="text-[12.5px] leading-relaxed text-muted mt-1">{sub}</p>
+        </div>
+      </div>
+      {/* flex-1 lets a chart opt into filling the leftover height of its grid row,
+          which grid stretch gives the panel but not its contents. */}
+      <div className="flex-1 flex flex-col">{children}</div>
     </div>
   );
 }
@@ -61,7 +84,7 @@ function Heatmap() {
           {c.labels.map((l, i) => (
             <div key={l} className="text-center">
               <div className="font-mono text-[10.5px] text-faint">{l.replace("Doc ", "")}</div>
-              <div className="tnum text-[10px] text-muted">{c.difficulty[i] != null ? `${Math.round(c.difficulty[i]!)}%` : "—"}</div>
+              <div className="tnum text-[10px] text-muted">{c.difficulty[i] != null ? `${Math.round(c.difficulty[i]!)}%` : "n/a"}</div>
             </div>
           ))}
         </div>
@@ -74,7 +97,7 @@ function Heatmap() {
             {(c.matrix[m.id] ?? c.labels.map(() => null)).map((v, i) => (
               <div key={i} className="h-6 rounded-[4px] grid place-items-center tnum text-[10px]"
                 style={{ background: cell(v), color: v != null && v > 55 ? "#fff" : "var(--muted)" }}
-                title={`${short(m)} · ${c.labels[i]}: ${v ?? "—"}%`}>
+                title={`${short(m)} · ${c.labels[i]}: ${v ?? "n/a"}%`}>
                 {v != null ? Math.round(v) : ""}
               </div>
             ))}
@@ -110,11 +133,11 @@ function Scatter() {
           <text x={x(t)} y={H - P.b + 15} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--faint)">{t}s</text>
         </g>
       ))}
-      <text x={(P.l + W - P.r) / 2} y={H - 3} textAnchor="middle" fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">← faster · median latency (log)</text>
+      <text x={(P.l + W - P.r) / 2} y={H - 3} textAnchor="middle" fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">lower is faster · median latency (log)</text>
       {models.map((m) => (
         <g key={m.id}>
           <circle cx={x(m.p50)} cy={y(m.accuracy)} r={m.new ? 5 : 4} fill={hue(m)} stroke="var(--bg)" strokeWidth={1.5}>
-            <title>{`${short(m)} — ${m.accuracy}% · ${m.p50}s`}</title>
+            <title>{`${short(m)}: ${m.accuracy}% · ${m.p50}s`}</title>
           </circle>
         </g>
       ))}
@@ -141,10 +164,10 @@ function PriceSpread() {
       {models.map((m, i) => (
         <circle key={m.id} cx={x(Math.max(m.cost_1k, 0.5))} cy={38 - (i % 2 ? 9 : -9)} r={m.new ? 4.5 : 3.5}
           fill={hue(m)} stroke="var(--bg)" strokeWidth={1.5} opacity={0.9}>
-          <title>{`${short(m)} — ${money(m.cost_1k)}/1k`}</title>
+          <title>{`${short(m)}: ${money(m.cost_1k)}/1k`}</title>
         </circle>
       ))}
-      <text x={P.l} y={84} fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">cost per 1,000 contracts (log) →</text>
+      <text x={P.l} y={84} fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">cost per 1,000 contracts (log)</text>
     </svg>
   );
 }
@@ -156,7 +179,7 @@ function Dumbbell({ rows }: { rows: ModelRow[] }) {
   const hi = Math.max(...rows.map((m) => m.p90)) * 1.15;
   const pos = (v: number) => (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * 100;
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2.5 h-full justify-between">
       {rows.map((m) => (
         <div key={m.id} className="grid grid-cols-[minmax(0,140px)_1fr] items-center gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -215,56 +238,64 @@ export function Analytics() {
   const byValue = [...models].sort((a, b) => b.value - a.value).slice(0, 12);
   const lowHall = [...models].filter((m) => m.halluc > 0).sort((a, b) => a.halluc - b.halluc).slice(0, 12);
   const consistent = [...models].sort((a, b) => a.consistency - b.consistency).slice(0, 12);
-  const fastest = [...models].sort((a, b) => a.p50 - b.p50).slice(0, 12);
+  // Sized to the lab count so this card and "Accuracy by lab" end up the same height
+  // instead of leaving a gap under the shorter one.
+  const labCount = new Set(models.map((m) => m.brand)).size;
+  const fastest = [...models].sort((a, b) => a.p50 - b.p50).slice(0, labCount);
   const dropped = [...models].filter((m) => m.reliability < 100).sort((a, b) => a.reliability - b.reliability).slice(0, 10);
 
   return (
-    <section id="analytics" className="mx-auto max-w-6xl px-5 py-10">
-      <div className="mb-5">
-        <p className="eyebrow mb-2">The numbers</p>
-        <h2 className="display text-[clamp(1.6rem,3.6vw,2.2rem)]">Ten ways to read the field.</h2>
-        <p className="text-[14px] text-muted mt-2 max-w-[60ch]">
+    <section id="analytics" className="shell py-10">
+      <div className="mb-8">
+        <p className="eyebrow mb-3">Going deeper</p>
+        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">Ten ways to read the field.</h2>
+        <p className="text-[15px] leading-relaxed text-muted mt-4 max-w-[66ch]">
+          Accuracy alone hides how a model fails. Ten views covering what it gets right, what it
+          invents, how much it moves between runs, and what it costs in money and seconds.
+        </p>
+        <p className="text-[13px] text-faint mt-3">
           {`${models.length} models · ${new Set(models.map((m) => m.brand)).size} labs · the same private contracts.`}
           {" "}Blue marks this generation&apos;s new releases.
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <Card title="Accuracy" sub="Fields read correctly, economic-equivalence aware. Top 15.">
+        <Card icon={I.target} title="Accuracy" sub="Fields read correctly. Equivalent answers count as correct. Top 15.">
           <Bars rows={topAcc} val={(m) => m.accuracy} fmt={(m) => `${m.accuracy}%`} max={Math.max(...topAcc.map((m) => m.accuracy))} />
         </Card>
-        <Card title="Best value" sub="Accuracy points per $/1k. Cheap and good rises. Top 12.">
+        <Card icon={I.value} title="Best value" sub="Accuracy per dollar spent. Cheap and accurate rises. Top 12.">
           <Bars rows={byValue} val={(m) => m.value} fmt={(m) => (m.value >= 10 ? m.value.toFixed(0) : m.value.toFixed(1))} max={Math.max(...byValue.map((m) => m.value))} />
         </Card>
 
-        <Card title="Speed × accuracy" sub="Median latency vs accuracy. Up and to the left wins." wide>
+        <Card icon={I.speed} title="Speed × accuracy" sub="Median latency against accuracy. Up and to the left wins." wide>
           <Scatter />
         </Card>
 
-        <Card title="Lowest hallucination" sub="Share of HIGH-confidence answers that were wrong. Lower is safer. Top 12.">
+        <Card icon={I.alert} title="Lowest hallucination" sub="Share of HIGH-confidence answers that were wrong. Lower is safer. Top 12.">
           <Bars rows={lowHall} val={(m) => m.halluc} fmt={(m) => `${m.halluc}%`} max={Math.max(...lowHall.map((m) => m.halluc))} invert />
         </Card>
-        <Card title="Most consistent" sub="Run-to-run σ across repeated runs. Lower is more reliable. Top 12.">
+        <Card icon={I.waves} title="Most consistent" sub="How far answers move between runs. Less movement is better. Top 12.">
           <Bars rows={consistent} val={(m) => m.consistency || 0.01} fmt={(m) => `±${m.consistency}`} max={Math.max(0.1, ...consistent.map((m) => m.consistency))} invert />
         </Card>
 
-        <Card title="Document difficulty" sub="Accuracy per anonymized contract. Some documents break everyone." wide>
+        <Card icon={I.grid} title="Document difficulty" sub="Accuracy per anonymized contract. Some documents break everyone." wide>
           <Heatmap />
         </Card>
 
-        <Card title="Accuracy by lab" sub="Average and best accuracy per provider.">
+        <Card icon={I.lab} title="Accuracy by lab" sub="Average and best accuracy per provider.">
           <ByLab />
         </Card>
-        <Card title="Latency tail" sub="p50 (filled) to p90 (hollow). Wider = less predictable. Fastest 12.">
+        <Card icon={I.clock} title="Latency tail" sub="p50 (filled) to p90 (hollow). Wider means less predictable.">
           <Dumbbell rows={fastest} />
         </Card>
 
-        <Card title="Price spread" sub="Cost to read 1,000 contracts, log scale — a ~100× range across the field." wide>
+        <Card icon={I.price} title="Price spread" sub="Cost to read 1,000 contracts on a log scale, a ~100× range across the field." wide>
           <PriceSpread />
         </Card>
 
+        {/* Full width: as a half card this sat alone on the last row and read as a stray. */}
         {dropped.length > 0 && (
-          <Card title="Reliability" sub="Share of calls that returned valid structured output. Only models that dropped any.">
+          <Card icon={I.shield} title="Reliability" sub="Share of calls that returned valid structured output. Only models that dropped any." wide>
             <Bars rows={dropped} val={(m) => m.reliability} fmt={(m) => `${m.reliability}%`} max={100} />
           </Card>
         )}

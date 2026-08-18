@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import { Rubik, Geist_Mono } from "next/font/google";
+import { Geist, Homemade_Apple } from "next/font/google";
 import "./globals.css";
 
-// Rubik — thicker, subtly rounded (softer) edges; mono kept for data/labels.
-const sans = Rubik({ variable: "--font-geist-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Geist carries everything. There is deliberately no mono face loaded — labels and
+// data that used to be monospaced now run in Geist with tabular figures.
+const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Homemade Apple — the FinePrint wordmark only, never body copy.
+const wordmark = Homemade_Apple({ variable: "--font-wordmark", subsets: ["latin"], weight: "400" });
 
-const TITLE = "FinePrint — the document-extraction benchmark";
+const TITLE = "FinePrint: the document-extraction benchmark";
 const DESCRIPTION =
   "Can it actually read the contract? Every new model, scored on real-world documents turned into structured data. Private test set. Updated the day a model ships.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://fineprint.bench"),
-  title: { default: TITLE, template: "%s — FinePrint" },
+  title: { default: TITLE, template: "%s · FinePrint" },
   description: DESCRIPTION,
   applicationName: "FinePrint",
   openGraph: { type: "website", siteName: "FinePrint", title: TITLE, description: DESCRIPTION, locale: "en_US" },
@@ -25,7 +27,7 @@ const themeScript = `(function(){try{var p=new URLSearchParams(location.search).
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${wordmark.variable}`} suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
