@@ -31,6 +31,9 @@ ROSTER_FILE = Path(os.environ.get("FINEPRINT_ROSTER", HERE / "roster.json"))   #
 OVERRIDES_DIR = REPO / "overrides"
 GROUND_TRUTH = Path(os.environ.get(
     "FINEPRINT_GROUND_TRUTH", REPO / "data" / "ground_truth.xlsx"))   # bring your own labeled workbook
+# Optional cleaned gold-label overrides (JSON {contract: {field: value}}); layered over the
+# workbook. Produced by the ensemble+adjudication label-QA pass — corrects hand-label errors.
+GOLD_LABELS = Path(os.environ["FINEPRINT_GOLD_LABELS"]) if os.environ.get("FINEPRINT_GOLD_LABELS") else None
 WEB_DATA = Path(os.environ.get(                              # anonymized aggregates — published
     "FINEPRINT_WEB_DATA", HERE / "web" / "lib" / "data.json"))
 

@@ -66,7 +66,7 @@
   },
   "llama-4-maverick": {
     "price_in": 0.2,
-    "price_out": 0.8,
+    "price_out": 0.696,
     "source": "openrouter"
   },
   "llama-4-scout": {
@@ -100,8 +100,8 @@
     "source": "openrouter"
   },
   "deepseek-v4-pro": {
-    "price_in": 0.435,
-    "price_out": 0.87,
+    "price_in": 1.168,
+    "price_out": 2.336,
     "source": "openrouter"
   },
   "deepseek-v4-flash": {
@@ -185,8 +185,8 @@
     "source": "openrouter"
   },
   "glm-5.2": {
-    "price_in": 0.07,
-    "price_out": 0.22,
+    "price_in": 0.63,
+    "price_out": 1.98,
     "source": "openrouter"
   },
   "glm-5.1": {
@@ -210,8 +210,13 @@
     "source": "openrouter"
   },
   "nemotron-3-super-120b-a12b": {
-    "price_in": 0.3,
-    "price_out": 0.9,
+    "price_in": 0.085,
+    "price_out": 0.4,
+    "source": "openrouter"
+  },
+  "grok-4.6": {
+    "price_in": 2.0,
+    "price_out": 6.0,
     "source": "openrouter"
   }
 }
