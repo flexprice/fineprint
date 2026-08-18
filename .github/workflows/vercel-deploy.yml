@@ -128,16 +128,20 @@ jobs:
       - name: Pull Vercel project settings + env
         run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token "$VERCEL_TOKEN"
 
-      - name: Build
-        run: vercel build ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN"
+      # Build gate only — catches a broken build cheaply and uploads nothing. We deliberately do
+      # NOT `vercel build` + `deploy --prebuilt`: that uploads .vercel/output file-by-file (1033
+      # files for this app, 959 of them inside serverless bundles), and the free plan allows 5000
+      # uploads / 24h — about 4 deploys a day. Deploying SOURCE uploads ~60 files instead.
+      - name: Build check
+        run: npm ci && npx next build
 
-      - name: Deploy prebuilt output
+      - name: Deploy (source build on Vercel)
         id: deploy
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           # --no-wait: return the deployment URL right after upload instead of polling the remote
           # build to "ready" (that poll is unbounded and has been hanging on stalled Vercel builds).
-          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --no-wait --token "$VERCEL_TOKEN")
+          url=$(vercel deploy ${{ steps.target.outputs.flag }} --no-wait --token "$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
 
