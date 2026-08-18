@@ -3,15 +3,17 @@
 import { useState } from "react";
 import sampleData from "@/lib/sample.json";
 
-// Real extraction over a real public contract (a Web Hosting Agreement filed as a public SEC
-// exhibit; CUAD, CC BY 4.0). Page image + the model's actual field bounding boxes — nothing faked.
+// Real extraction over a real public contract (Guidewire Software License Agreement, filed as
+// SEC exhibit EX-10.27). Rendered page image + the model's actual field bounding boxes — nothing faked.
 type Field = { field: string; value: string; confidence: string; category: string; boxes: number[][] };
 const sample = sampleData as { image: string; source: string; fields: Field[] };
 
+// Generic commercial-billing categories — apply to any contract (SEC filings, licenses,
+// services agreements), not a product-specific schema.
 const CAT_COLOR: Record<string, string> = {
-  Identity: "#7b84e6", Customer: "#5aa9c9", "Platform Fee": "#33b39c", "Hosting": "#e08a3c",
-  "LLM Usage": "#b06fd0", "Credit Grant": "#33a06a", Entitlement: "#3aa6e0",
-  Override: "#d081a8", Commitment: "#e06a6a", Terms: "#98a0ab", Other: "#98a0ab",
+  Term: "#7b84e6", Parties: "#5aa9c9", "Recurring Fee": "#33b39c", "Usage Fee": "#b06fd0",
+  "One-time Fee": "#33a06a", Payment: "#e08a3c", Penalty: "#e06a6a", Commitment: "#3aa6e0",
+  Discount: "#d081a8", Other: "#98a0ab",
 };
 
 export function AnnotatedContract() {
@@ -27,7 +29,7 @@ export function AnnotatedContract() {
       <div className="rounded-xl overflow-hidden border border-line-2 bg-white">
         <div className="flex items-center justify-between px-4 py-2 bg-[#eef0f2] border-b border-[#dfe1e5]">
           <span className="font-mono text-[10.5px] tracking-[.1em] uppercase text-[#5f6570]">Real contract · public SEC exhibit</span>
-          <span className="font-mono text-[10.5px] text-[#9096a0]">Web Hosting Agreement</span>
+          <span className="font-mono text-[10.5px] text-[#9096a0]">Software License Agreement · EX-10.27</span>
         </div>
         {/* No max-height: the page used to be cut off mid-document and scrolled inside
             its own box, so you never saw the whole contract at once. */}
