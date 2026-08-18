@@ -1,0 +1,153 @@
+
+name: Deploy web to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fineprint/web/**"
+      - ".github/workflows/vercel-deploy.yml"
+  pull_request:
+    paths:
+      - "fineprint/web/**"
+      - ".github/workflows/vercel-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy target"
+        type: choice
+        options: [preview, production]
+        default: preview
+  repository_dispatch:
+    types: [fineprint-published]
+
+# One deploy at a time per ref; a newer push supersedes an in-flight build.
+concurrency:
+  group: vercel-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+defaults:
+  run:
+    working-directory: fineprint/web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write     # to comment the preview URL on PRs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: fineprint/web/package-lock.json
+
+      # production on push to main, on autopilot dispatch, or on manual "production"
+      - name: Resolve target
+        id: target
+        run: |
+          case "${{ github.event_name }}" in
+            push|repository_dispatch) prod=1 ;;
+            workflow_dispatch) [ "${{ inputs.target }}" = "production" ] && prod=1 || prod=0 ;;
+            *) prod=0 ;;
+          esac
+          if [ "$prod" = "1" ]; then
+            echo "env=production" >> "$GITHUB_OUTPUT"
+            echo "flag=--prod"    >> "$GITHUB_OUTPUT"
+          else
+            echo "env=preview" >> "$GITHUB_OUTPUT"
+            echo "flag="       >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Turns "Could not retrieve Project Settings" into an actionable message: that error
+      # means an empty/wrong id OR a token that cannot see the project's team.
+      - name: Preflight — secrets present and token can see the project
+        run: |
+          missing=
+          [ -n "$VERCEL_ORG_ID" ]     || missing="$missing VERCEL_ORG_ID"
+          [ -n "$VERCEL_PROJECT_ID" ] || missing="$missing VERCEL_PROJECT_ID"
+          [ -n "$VERCEL_TOKEN" ]      || missing="$missing VERCEL_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repo secret(s):$missing — add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          # Token SHAPE — never the value. A dashboard token is short and opaque; a JWT
+          # (eyJ…) means an OIDC token was pasted by mistake; whitespace means a stray newline.
+          n=$(printf %s "$VERCEL_TOKEN" | wc -c | tr -d ' ')
+          case "$VERCEL_TOKEN" in eyJ*) jwt=YES ;; *) jwt=no ;; esac
+          case "$VERCEL_TOKEN" in *[[:space:]]*) ws=YES ;; *) ws=no ;; esac
+          echo "token shape → length=$n looks_like_jwt=$jwt contains_whitespace=$ws"
+          [ "$ws" = "no" ] || echo "::warning::VERCEL_TOKEN contains whitespace — re-set it with: printf %s 'TOKEN' | gh secret set VERCEL_TOKEN"
+
+          # The CLI resolves the user behind the token BEFORE touching any project, so a token
+          # that reads a project can still fail with "User not found (404)". Check both.
+          ucode=$(curl -sS -o /tmp/user.json -w '%{http_code}' \
+            -H "Authorization: Bearer $VERCEL_TOKEN" https://api.vercel.com/v2/user)
+          echo "GET /v2/user -> HTTP $ucode"
+          if [ "$ucode" != "200" ]; then
+            echo "::error::Token authenticates no Vercel user (HTTP $ucode) — the CLI will fail with 'User not found'."
+            echo "::error::Create a fresh token at https://vercel.com/account/tokens and re-set VERCEL_TOKEN."
+            head -c 400 /tmp/user.json
+            exit 1
+          fi
+          echo "✓ token user: $(sed -n 's/.*"username":"\([^"]*\)".*/\1/p' /tmp/user.json | head -1)"
+
+          code=$(curl -sS -o /tmp/proj.json -w '%{http_code}' \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
+          if [ "$code" != "200" ]; then
+            echo "::error::Vercel API returned HTTP $code for project $VERCEL_PROJECT_ID in team $VERCEL_ORG_ID."
+            echo "::error::The token likely belongs to a different Vercel account, or is scoped to another team."
+            head -c 400 /tmp/proj.json
+            exit 1
+          fi
+          echo "✓ token can read project"
+
+      # Write .vercel/project.json explicitly instead of letting `pull` infer the project.
+      # Both ID forms are accepted here (verified): --project prj_… and --scope team_….
+      - name: Link Vercel project
+        run: |
+          rm -rf .vercel
+          vercel link --yes \
+            --project "$VERCEL_PROJECT_ID" \
+            --scope "$VERCEL_ORG_ID" \
+            --token "$VERCEL_TOKEN"
+
+      - name: Pull Vercel project settings + env
+        run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token "$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt output
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `**Vercel preview** — ${process.env.PREVIEW_URL}`,
+            });
