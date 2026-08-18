@@ -31,10 +31,9 @@ const COLS: Col[] = [
       </div>
     ),
   },
-  { key: "halluc", label: "Hallucination", num: true, render: (m) => <span className="tnum">{m.halluc}%</span> },
-  // Was "σ (5 runs)", which both crowded the header and hardcoded a run count that
-  // no longer matches data.n_runs. The ± in the cell already says it is a spread.
-  { key: "consistency", label: "Consistency", num: true, render: (m) => <span className="tnum text-faint">±{m.consistency}</span> },
+  { key: "extraction", label: "Extract", num: true, render: (m) => <span className="tnum" title="economic facts: dates, fee amounts, credits, overrides">{m.extraction}%</span> },
+  { key: "convention", label: "Conv.", num: true, render: (m) => <span className="tnum text-faint" title="house-convention fields: fee timing, period, credit type">{m.convention}%</span> },
+  { key: "halluc", label: "Halluc.", num: true, render: (m) => <span className="tnum">{m.halluc}%</span> },
   { key: "cost_1k", label: "$/1k", num: true, render: (m) => <span className="tnum">{money(m.cost_1k)}</span> },
   {
     key: "value", label: "Value", num: true,

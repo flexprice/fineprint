@@ -9,7 +9,9 @@ export type ModelRow = {
   brand: string;         // lab id -> provider logo
   new: boolean;
   est: boolean;
-  accuracy: number;      // % of fields correct (economic-equivalence aware)
+  accuracy: number;      // combined % correct (extraction + convention)
+  extraction: number;    // % correct on economic facts (dates, fee-set, amounts, overrides)
+  convention: number;    // % correct on house-convention fields (timing, period, credit type)
   halluc: number;        // % of HIGH-confidence answers that were wrong
   consistency: number;   // mean run-to-run σ across the N runs
   cost_1k: number;       // USD per 1,000 contracts

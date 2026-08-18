@@ -20,7 +20,7 @@ def _contract_matrix(runs: list[dict], rows: list[dict]) -> dict:
     Safe to publish: carries difficulty, never contract identities. Powers the difficulty heatmap.
     """
     names = [c[0] for c in SEED_CONTRACTS]
-    labels = [f"Doc {chr(65 + i)}" for i in range(len(names))]
+    labels = [f"Doc {chr(65 + i)}" if len(names) <= 26 else f"Doc {i + 1:02d}" for i in range(len(names))]
     matrix = {}
     for r in rows:
         accs = []
