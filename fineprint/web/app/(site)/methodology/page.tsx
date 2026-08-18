@@ -5,7 +5,7 @@ import { data } from "@/lib/data";
 export const metadata: Metadata = {
   title: "Methodology",
   description:
-    "How FinePrint measures models on contract extraction — the dataset, its complexities, the metrics, the field-level scoring rubric, contamination controls, and where it sits among real-world LLM benchmarks.",
+    "How FinePrint measures models on contract extraction, the dataset, its complexities, the metrics, the field-level scoring rubric, contamination controls, and where it sits among real-world LLM benchmarks.",
 };
 
 /* ── small building blocks ─────────────────────────────────────────────────── */
@@ -38,45 +38,44 @@ const SCHEMA: [string, string[]][] = [
 
 const COMPLEXITY: [string, string][] = [
   ["Messy tables", "Fees split across multi-column pricing tables and schedules, not clean prose."],
-  ["Installment math", "“$240k in 4 equal quarterly installments” → $60k/quarter. The model must decompose totals."],
-  ["Economic equivalence", "The same price expressed as $10k/quarter or $40k/year — both must score as correct."],
+  ["Installment math", "“$240k in 4 equal quarterly installments” becomes $60k/quarter. The model must decompose totals."],
+  ["Economic equivalence", "The same price expressed as $10k/quarter or $40k/year, both must score as correct."],
   ["Ambiguous cadence", "Coverage period vs billing cadence vs term length, often conflated in the same sentence."],
   ["Redlines & edits", "Struck-through and replaced values where only the later, edited figure is active."],
-  ["Multi-currency", "USD, INR, EUR, GBP — inferred from symbols/words, normalized per contract."],
+  ["Multi-currency", "USD, INR, EUR, GBP, inferred from symbols/words, normalized per contract."],
   ["OCR noise", "Scanned and low-quality PDFs; the model reads imperfect text, like production."],
   ["Cross-document", "MSA + Order Form together, where the Order Form controls on conflict."],
 ];
 
 const METRICS: [string, string, string][] = [
-  ["Accuracy", "Σ correct ÷ Σ scored", "Share of scored fields the model gets right, aggregated across every contract and run — economic-equivalence aware."],
+  ["Accuracy", "Σ correct ÷ Σ scored", "Share of scored fields the model gets right, aggregated across every contract and run, economic-equivalence aware."],
   ["Hallucination", "confident-wrong ÷ HIGH-conf", "Of the answers a model marked HIGH confidence, the share that were wrong. The metric that matters for a human-review pipeline."],
   ["Consistency (σ)", "std-dev across runs", "Run-to-run standard deviation of accuracy. Low σ = a trustworthy, repeatable result; high σ = a coin flip on hard contracts."],
   ["Cost / 1k", "tokens × price", "Measured input/output tokens times published per-token pricing, projected to 1,000 contracts."],
-  ["Latency", "p50 / p90 wall-clock", "Median and tail request time — the difference between a real-time and a batch workflow."],
+  ["Latency", "p50 / p90 wall-clock", "Median and tail request time, the difference between a real-time and a batch workflow."],
   ["Value", "accuracy ÷ ($/1k)", "Accuracy points bought per dollar. Surfaces the cheap-and-good models the headline rank hides."],
 ];
 
 const LANDSCAPE: [string, string, string][] = [
-  ["Real-world task", "SWE-bench, τ-bench", "Not trivia — an actual job (resolve a GitHub issue; here, turn a contract into billing data)."],
+  ["Real-world task", "SWE-bench, τ-bench", "Not trivia, an actual job (resolve a GitHub issue; here, turn a contract into billing data)."],
   ["Multi-metric", "HELM", "Accuracy is necessary but not sufficient; we report cost, latency, calibration and consistency together."],
   ["Private holdout", "GPQA, SEAL", "Labels are held back so results resist training-set contamination and gaming."],
-  ["Domain-specific", "LegalBench, FinBen", "A vertical the general benchmarks don’t cover: commercial contract → billing terms, for finance & ops."],
+  ["Domain-specific", "LegalBench, FinBen", "A vertical the general benchmarks don’t cover: commercial contract into billing terms, for finance & ops."],
 ];
 
 export default function Methodology() {
   return (
-    <div className="mx-auto max-w-5xl px-5 py-14">
+    <div className="shell py-14">
       {/* hero */}
       <Eyebrow>Methodology &amp; transparency</Eyebrow>
       <h1 className="display text-[clamp(2.2rem,5.5vw,3.4rem)] max-w-[18ch]">How FinePrint measures a model.</h1>
       <p className="mt-5 text-[17px] text-muted leading-relaxed max-w-[64ch]">
-        FinePrint scores one real, economically-important task: reading a messy commercial contract and
-        turning it into correct, structured billing data. This page documents exactly what the dataset is,
-        the complexities it contains, the metrics we report, how we score, and how the benchmark is kept
-        rigorous and hard to game — so anyone can judge the results on their merits.
+        FinePrint scores one task: turning a messy commercial contract into correct, structured billing
+        data. This page covers what we test, how a field is judged correct, and where the benchmark
+        falls short.
       </p>
 
-      {/* 01 — why it matters */}
+      {/* 01, why it matters */}
       <section className="mt-16">
         <H2 n="01">Why this task matters</H2>
         <div className="grid md:grid-cols-2 gap-4">
@@ -84,7 +83,7 @@ export default function Methodology() {
             <div className="font-mono text-[11px] uppercase tracking-[.08em] text-faint mb-2">The enterprise world</div>
             <p className="text-[14.5px] text-muted leading-relaxed">
               Every company runs on contracts, and turning them into structured data is still overwhelmingly
-              manual — slow, expensive, and error-prone at volume. World Commerce &amp; Contracting estimates poor
+              manual, slow, expensive, and error-prone at volume. World Commerce &amp; Contracting estimates poor
               contract management costs organizations roughly <b className="text-text">9% of annual revenue</b>,
               with a single basic contract taking ~$6,900 to process. It is the canonical document-AI problem:
               unstructured, high-stakes text in, reliable structured records out.
@@ -94,7 +93,7 @@ export default function Methodology() {
             <div className="font-mono text-[11px] uppercase tracking-[.08em] text-faint mb-2">The finance &amp; billing world</div>
             <p className="text-[14.5px] text-muted leading-relaxed">
               Contract-to-cash lives or dies on these exact fields. Under <b className="text-text">ASC 606 / IFRS 15</b>,
-              the contract itself is the legal basis for recognized revenue — so a misread fee, cadence, or
+              the contract itself is the legal basis for recognized revenue, so a misread fee, cadence, or
               commitment becomes a mis-invoice, a revenue-recognition error, or an audit finding. As usage-based
               and hybrid pricing spread (~45% of SaaS companies now bill on some usage model), the terms get more
               intricate. This is the task Flexprice automates in production; FinePrint measures who’s ready.
@@ -103,13 +102,13 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 02 — the task */}
+      {/* 02, the task */}
       <section className="mt-16">
         <H2 n="02">The task</H2>
         <p className="text-[15px] text-muted leading-relaxed max-w-[64ch] mb-6">
-          A model receives a real contract as numbered OCR lines plus a structured markdown view, and must
-          return a fixed billing schema as strict JSON — citing the exact source line for every field. It is
-          the Flexprice production task, not an academic exam.
+          A model receives a real contract as numbered OCR lines plus a structured markdown view, and
+          returns a fixed billing schema as strict JSON, citing the source line for every field. This is
+          the same task Flexprice runs in production.
         </p>
         {/* pipeline */}
         <div className="panel rounded-2xl p-5 sm:p-7 overflow-x-auto">
@@ -126,7 +125,7 @@ export default function Methodology() {
                   <div className="text-[13px] font-semibold text-text tracking-tight" style={{ fontFamily: "var(--font-sans)" }}>{t}</div>
                   <div className="text-faint mt-1">{s}</div>
                 </div>
-                {i < a.length - 1 && <span className="text-line-2 text-lg shrink-0">→</span>}
+                {i < a.length - 1 && <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-line-2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 6 6 6-6 6" /></svg>}
               </div>
             ))}
           </div>
@@ -150,14 +149,14 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 03 — the dataset */}
+      {/* 03, the dataset */}
       <section className="mt-16">
         <H2 n="03">The dataset</H2>
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <div className="card rounded-xl p-6">
             <div className="font-mono text-[11px] uppercase tracking-[.08em] text-faint mb-2">Provenance</div>
             <p className="text-[14.5px] text-muted leading-relaxed">
-              Real, license-clear public contracts — material-agreement exhibits from <b className="text-text">SEC EDGAR</b>{" "}
+              Real, license-clear public contracts, material-agreement exhibits from <b className="text-text">SEC EDGAR</b>{" "}
               filings (public records) and the CC-BY-licensed <b className="text-text">CUAD</b> corpus of commercial
               agreements. No synthetic documents: every contract was signed by real parties.
             </p>
@@ -166,7 +165,7 @@ export default function Methodology() {
             <div className="font-mono text-[11px] uppercase tracking-[.08em] text-faint mb-2">Composition</div>
             <p className="text-[14.5px] text-muted leading-relaxed">
               Order forms, master service agreements, renewals and amendments, across industries and
-              currencies — including scanned and redlined documents. The mix is chosen to mirror what an
+              currencies, including scanned and redlined documents. The mix is chosen to mirror what an
               accounts-receivable or RevOps team actually sees, not the cleanest examples.
             </p>
           </div>
@@ -199,7 +198,7 @@ export default function Methodology() {
               <p className="text-[14.5px] leading-relaxed max-w-[58ch]" style={{ color: "rgba(255,255,255,.92)" }}>
                 Results shown here run on a hand-labeled seed. The corpus is expanding toward{" "}
                 <b>~1,000 contracts</b> via a two-tier scheme: a <b>gold</b> human-labeled holdout for scoring,
-                plus a larger <b>silver</b> pool (strong-model drafts, human-adjudicated) for coverage — the
+                plus a larger <b>silver</b> pool (strong-model drafts, human-adjudicated) for coverage, the
                 standard way credible benchmarks scale labels without sacrificing trust.
               </p>
             </div>
@@ -207,12 +206,12 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 04 — contamination controls */}
+      {/* 04, contamination controls */}
       <section className="mt-16">
         <H2 n="04">Kept honest &amp; un-gameable</H2>
         <div className="grid sm:grid-cols-3 gap-4">
           {[
-            ["Private labels", "Ground-truth answers are hand-checked and never published — so no model can be trained on them. We disclose the volume, never the data."],
+            ["Private labels", "Ground-truth answers are hand-checked and never published, so no model can be trained on them. We disclose the volume, never the data."],
             ["Anonymized results", "Only per-model aggregates ship. Contracts appear as “Doc A–F”; no identities, values, or spans leak from the leaderboard."],
             ["Fresh & obscure", "Documents are drawn from a long tail of filings and rotated as the set grows, limiting overlap with any pre-training corpus."],
           ].map(([t, d]) => (
@@ -224,12 +223,12 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 05 — metrics */}
+      {/* 05, metrics */}
       <section className="mt-16">
         <H2 n="05">The metrics</H2>
         <p className="text-[15px] text-muted leading-relaxed max-w-[64ch] mb-6">
-          A single accuracy number hides how a model fails. We report a small, defined set — each with an
-          exact definition — so the trade-offs are visible.
+          A single accuracy number hides how a model fails. Each metric below has an exact definition,
+          so the trade-offs stay visible.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {METRICS.map(([name, formula, desc]) => (
@@ -244,7 +243,7 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 06 — how we score */}
+      {/* 06, how we score */}
       <section className="mt-16">
         <H2 n="06">How we score, field by field</H2>
         <p className="text-[15px] text-muted leading-relaxed max-w-[64ch] mb-6">
@@ -274,7 +273,7 @@ export default function Methodology() {
                 ["platform_fee.amount", "25000", "25000", "✓", "text-success"],
                 ["platform_fee.frequency", "quarterly", "quarterly", "✓", "text-success"],
                 ["usage_fee.amount", "180000 / yr", "45000 / qtr", "✓ annualized", "text-success"],
-                ["platform_fee.timing", "advanced", "—", "✗ wrong", "text-danger"],
+                ["platform_fee.timing", "advanced", "n/a", "✗ wrong", "text-danger"],
                 ["hosting_fee.amount", "0", "0", "· not scored", "text-faint"],
                 ["scope_notes", "“$250k capacity…”", "“annual usage…”", "· soft (reviewed)", "text-faint"],
               ].map(([f, e, p, r, c]) => (
@@ -294,13 +293,13 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 07 — statistical rigor */}
+      {/* 07, statistical rigor */}
       <section className="mt-16">
         <H2 n="07">Statistical rigor</H2>
         <div className="grid sm:grid-cols-3 gap-4">
           {[
             ["Repeated runs", `Every contract is run ${data.n_runs}× per model. We keep the full distribution, not just a mean.`],
-            ["Report the spread", "We publish run-to-run σ alongside accuracy — a single run can swing several points and mislead."],
+            ["Report the spread", "We publish run-to-run σ alongside accuracy, a single run can swing several points and mislead."],
             ["Human-checked labels", "Ground truth is hand-labeled and adjudicated; as the set scales, agreement is measured across annotators."],
           ].map(([t, d]) => (
             <div key={t} className="card rounded-xl p-5">
@@ -311,7 +310,7 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 08 — where it sits */}
+      {/* 08, where it sits */}
       <section className="mt-16">
         <H2 n="08">Where FinePrint sits</H2>
         <p className="text-[15px] text-muted leading-relaxed max-w-[64ch] mb-6">
@@ -331,7 +330,7 @@ export default function Methodology() {
         </div>
       </section>
 
-      {/* 09 — openness + limitations */}
+      {/* 09, openness + limitations */}
       <section className="mt-16">
         <H2 n="09">Openness &amp; limitations</H2>
         <div className="grid md:grid-cols-2 gap-4">
@@ -340,7 +339,7 @@ export default function Methodology() {
             <p className="text-[14.5px] text-muted leading-relaxed">
               The harness, the model adapters, the scorer and the aggregation are open source and unit-tested;
               anyone can run FinePrint on their own labeled data. Pricing is pulled from OpenRouter. Only the
-              contract corpus and its labels are private — that’s the part that keeps the benchmark honest.
+              contract corpus and its labels are private, that’s the part that keeps the benchmark honest.
             </p>
           </div>
           <div className="card rounded-xl p-6">
@@ -355,7 +354,7 @@ export default function Methodology() {
       </section>
 
       <div className="mt-14 flex items-center justify-between gap-4">
-        <Link href="/#leaderboard" className="btn btn-ghost">← Back to the leaderboard</Link>
+        <Link href="/#leaderboard" className="btn btn-ghost">Back to the leaderboard</Link>
         <span className="font-mono text-[11px] text-faint">FinePrint · by Flexprice</span>
       </div>
     </div>

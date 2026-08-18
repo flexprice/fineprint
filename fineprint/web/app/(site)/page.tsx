@@ -5,6 +5,8 @@ import { Leaderboard } from "@/components/leaderboard";
 import { AnnotatedContract } from "@/components/annotated-contract";
 import { Analytics } from "@/components/analytics";
 import { WhatsInside } from "@/components/whats-inside";
+import { ProblemStatement } from "@/components/problem-statement";
+import { TeamNote } from "@/components/team-note";
 import { ProviderIcon } from "@/components/provider-icon";
 import { EmbedSnippet } from "@/components/embed-snippet";
 import { data, models, newest, money, BASELINE_LABEL } from "@/lib/data";
@@ -21,133 +23,166 @@ export default function Home() {
 
   return (
     <>
-      {/* hero — cinematic image + headline */}
+      {/* Hero. The artwork sits on the right and is washed into the page background on
+          every edge, so the copy runs on plain paper instead of over a scrim. */}
       <section className="relative isolate overflow-hidden">
-        <Image src="/hero/style-archive.webp" alt="A vivid vermilion temple archive of rolled contracts, a robed scholar reading a scroll of fine print cascading down the steps, in a lush orange garden under a cobalt sky"
-          fill priority sizes="100vw" className="object-cover object-center -z-10" />
-        <div aria-hidden className="absolute inset-0 -z-10"
-          style={{ background: "linear-gradient(96deg, rgba(8,11,20,.88) 0%, rgba(8,11,20,.66) 32%, rgba(8,11,20,.24) 60%, rgba(8,11,20,0) 100%)" }} />
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-28 -z-10"
-          style={{ background: "linear-gradient(180deg, transparent, var(--bg))" }} />
-        <div className="mx-auto max-w-6xl px-5 flex flex-col justify-center min-h-[80vh] py-24 text-white">
-          <p className="eyebrow mb-5 fp-up" style={{ color: "rgba(255,255,255,.74)", animationDelay: ".02s" }}>
+        {/* Full-bleed so the wash is measured against the viewport, not a nested box.
+            The copy column ends around 44%, so the background stays solid to there and
+            only then starts to reveal the artwork. */}
+        <div className="absolute inset-0 -z-10">
+          {/* Two levers push the artwork right: the box is inset from the left, and at
+              this box aspect object-cover is height-driven, which leaves horizontal
+              slack for objectPosition's X to pan within. (At full-bleed width there is
+              zero slack and X does nothing, which is why the inset is needed too.) */}
+          <div className="absolute inset-y-0 right-0 w-[72%]">
+            <Image src="/hero/style-archive.webp" alt="A vivid vermilion temple archive of rolled contracts, a robed scholar reading a scroll of fine print cascading down the steps, in a lush orange garden under a cobalt sky"
+              fill priority sizes="90vw" className="object-cover" style={{ objectPosition: "0% 46%" }} />
+          </div>
+          {/* Washes stay on the full section so their stops are viewport-relative. */}
+          <div aria-hidden className="absolute inset-0"
+            style={{ background: "linear-gradient(90deg, var(--bg) 0%, var(--bg) 44%, color-mix(in srgb, var(--bg) 80%, transparent) 50%, color-mix(in srgb, var(--bg) 52%, transparent) 56%, color-mix(in srgb, var(--bg) 26%, transparent) 61%, color-mix(in srgb, var(--bg) 8%, transparent) 66%, transparent 71%)" }} />
+          <div aria-hidden className="absolute inset-x-0 top-0 h-44"
+            style={{ background: "linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 45%, transparent) 58%, transparent 100%)" }} />
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-36"
+            style={{ background: "linear-gradient(0deg, var(--bg) 0%, transparent 100%)" }} />
+        </div>
+
+        <div className="shell flex flex-col justify-center min-h-[82vh] py-20">
+          {/* self-start: the shell is a flex column, so a bare inline-flex chip would
+              otherwise stretch the full width. */}
+          <p className="chip-eyebrow self-start mb-6 fp-up" style={{ animationDelay: ".02s" }}>
             The document-extraction benchmark · by Flexprice
           </p>
-          <h1 className="display text-[clamp(2.8rem,6.6vw,4.8rem)] max-w-[16ch] fp-up"
-            style={{ color: "#fff", textShadow: "0 2px 30px rgba(0,0,0,.4)", animationDelay: ".07s" }}>
-            Can it read the fine print?
+          <h1 className="display text-[clamp(2.2rem,4.6vw,3.5rem)] max-w-[20ch] fp-up" style={{ animationDelay: ".07s" }}>
+            Can your favorite model read the fine print?
           </h1>
-          <p className="mt-6 text-[18px] leading-relaxed max-w-[48ch] fp-up" style={{ color: "rgba(255,255,255,.82)", animationDelay: ".12s" }}>
-            Every new model, put through real contracts — the messy PDFs businesses actually run on —
-            and scored on whether it turns them into correct, structured data. A private test set nobody can game.
+          <p className="mt-7 text-[19.5px] leading-[1.62] max-w-[40ch] text-muted fp-up" style={{ animationDelay: ".12s" }}>
+            Signed contracts bury their billing terms in pages of prose. FinePrint runs every new model
+            over real ones and checks each field it returns against a human&rsquo;s answer.
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3 fp-up" style={{ animationDelay: ".17s" }}>
-            <Link href="#leaderboard" className="btn" style={{ background: "#fff", color: "#0a0a0a" }}>See the leaderboard</Link>
-            <Link href="#task" className="btn" style={{ color: "#fff", borderColor: "rgba(255,255,255,.3)" }}>Watch it read a contract</Link>
+          {/* One primary action; the others are supporting links, not peers. */}
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 fp-up" style={{ animationDelay: ".17s" }}>
+            <Link href="/compare" className="btn btn-primary btn-lg">Compare models</Link>
+            <Link href="#leaderboard" className="btn px-0 py-3 border-0 bg-transparent text-muted hover:text-text transition-colors">
+              See the leaderboard
+            </Link>
           </div>
-          <dl className="mt-14 flex flex-wrap gap-x-10 gap-y-5 fp-up" style={{ animationDelay: ".22s" }}>
+          <dl className="mt-16 flex flex-wrap gap-x-14 gap-y-7 fp-up" style={{ animationDelay: ".22s" }}>
             {stats.map(([v, k]) => (
               <div key={k}>
-                <dt className="text-[28px] font-semibold tnum tracking-[-.03em] text-white">{v}</dt>
-                <dd className="mt-1 text-[13px]" style={{ color: "rgba(255,255,255,.6)" }}>{k}</dd>
+                <dt className="text-[42px] leading-none font-medium tnum tracking-[-.035em]">{v}</dt>
+                <dd className="mt-2.5 text-[13.5px] font-medium text-muted">{k}</dd>
               </div>
             ))}
           </dl>
         </div>
       </section>
 
+      {/* the problem, stated once and plainly */}
+      <ProblemStatement />
+
+      {/* method: how the score is produced */}
+      <WhatsInside />
+
+      {/* demonstration: the method made concrete on one real document */}
+      <section id="task" className="shell py-16">
+        <p className="eyebrow mb-3">See it happen</p>
+        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">Watch a model read a real contract.</h2>
+        <p className="mt-4 text-[15px] leading-relaxed text-muted max-w-[62ch]">
+          A public SEC filing, read by a model and scored live. Every box is the model&rsquo;s own
+          citation. Hover a field to trace where it came from.
+        </p>
+        <div className="mt-8">
+          <AnnotatedContract />
+        </div>
+      </section>
+
+      {/* leaderboard */}
+      <section id="leaderboard" className="shell py-14">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+          <div>
+            <p className="eyebrow mb-3">The results</p>
+            <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">Every model, ranked.</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/compare" className="btn btn-primary">Compare models</Link>
+            <EmbedSnippet />
+          </div>
+        </div>
+        {/* the newest entry, called out above the board it sits in */}
+        {/* Identity on top, then the figures on their own divided row so the numbers
+            read as the point of the card rather than as trailing metadata. */}
+        <div className="panel rounded-xl overflow-hidden mb-4">
+          <div className="p-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+            <span className="badge badge-new">Latest tested</span>
+            <ProviderIcon brand={top.brand} size={20} />
+            <Link href={`/models/${top.id}`} className="text-[20px] font-medium tracking-[-.02em] hover:text-accent transition-colors">{top.label}</Link>
+            <span className="text-[12px] text-faint">{top.family}</span>
+            <p className="text-[13.5px] text-muted ml-auto">
+              Ranks <b className="text-text font-medium">#{top.rank}</b> of {data.n_models}
+              {delta != null && (
+                <>, <span className={delta >= 0 ? "text-success" : "text-danger"}>{delta >= 0 ? "+" : ""}{delta} pts vs {BASELINE_LABEL}</span></>
+              )}.
+            </p>
+          </div>
+          <dl className="grid grid-cols-2 sm:grid-cols-4 border-t border-line divide-x divide-line">
+            {([
+              [`${top.accuracy}%`, "accuracy"],
+              [`${top.halluc}%`, "hallucination"],
+              [money(top.cost_1k), "cost per 1k"],
+              [`${top.p50}s`, "p50 latency"],
+            ] as [string, string][]).map(([v, k], i) => (
+              <div key={k} className={`px-6 py-6 ${i < 2 ? "border-b sm:border-b-0 border-line" : ""}`}>
+                <dt className="text-[30px] leading-none font-medium tnum tracking-[-.035em]">{v}</dt>
+                <dd className="mt-2.5 text-[12.5px] text-muted whitespace-nowrap">{k}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <Leaderboard models={models} />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12px] text-faint">
+            Value = accuracy points per $/1k. Pricing from OpenRouter, updated continuously.
+          </p>
+          <span className="text-[12px] text-faint hidden sm:block">Click a column to sort.</span>
+        </div>
+      </section>
+
       {/* centerpiece: quality × cost quadrant */}
-      <section id="quadrant" className="mx-auto max-w-6xl px-5 pt-12 pb-4">
-        <div className="panel rounded-2xl p-5 sm:p-7">
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
-            <div>
-              <h2 className="text-[19px] font-semibold tracking-tight">Quality × cost</h2>
-              <p className="text-[13px] text-muted mt-1">Accuracy vs. price on real contracts. Up and to the left wins.</p>
-            </div>
-            <div className="flex items-center gap-4 font-mono text-[11px] text-muted">
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ background: "var(--accent)" }} /> new</span>
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ background: "var(--muted)" }} /> prior</span>
-              <span className="hidden sm:flex items-center gap-1.5"><span className="w-4 border-t-2" style={{ borderColor: "var(--accent)" }} /> value frontier</span>
-            </div>
+      <section id="quadrant" className="shell pt-10 pb-4">
+        <p className="eyebrow mb-3">Cost</p>
+        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">What accuracy actually costs.</h2>
+        <p className="mt-4 text-[15px] leading-relaxed text-muted max-w-[64ch]">
+          Accuracy against the cost of reading a thousand contracts. High and to the left is the
+          place to be. The line traces the best accuracy available at each price.
+        </p>
+        <div className="panel rounded-2xl p-5 sm:p-7 mt-8">
+          <div className="flex items-center justify-end gap-4 text-[12px] text-muted mb-3">
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ background: "var(--accent)" }} /> new</span>
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ background: "var(--muted)" }} /> prior</span>
+            <span className="hidden sm:flex items-center gap-1.5"><span className="w-4 border-t-2" style={{ borderColor: "var(--accent)" }} /> value frontier</span>
           </div>
           <QuadrantChart models={models} />
         </div>
       </section>
 
-      {/* newest-model spotlight */}
-      <section className="mx-auto max-w-6xl px-5 py-4">
-        <div className="card rounded-xl px-6 py-5 flex flex-wrap items-center gap-x-8 gap-y-4">
-          <div className="flex items-center gap-2.5">
-            <span className="badge badge-new">New</span>
-            <ProviderIcon brand={top.brand} size={18} />
-            <Link href={`/models/${top.id}`} className="text-[17px] font-semibold hover:text-accent transition-colors">{top.label}</Link>
-            <span className="font-mono text-[11px] text-faint">{top.family}</span>
-          </div>
-          <p className="text-[14px] text-muted">
-            Ranks <b className="text-text">#{top.rank}</b> of {data.n_models} on contract extraction
-            {delta != null && (
-              <> — <span className={delta >= 0 ? "text-success" : "text-danger"}>{delta >= 0 ? "+" : ""}{delta} pts vs {BASELINE_LABEL}</span></>
-            )}.
-          </p>
-          <div className="ml-auto flex flex-wrap gap-2">
-            <span className="badge">{top.accuracy}% accuracy</span>
-            <span className="badge">{top.halluc}% hallucination</span>
-            <span className="badge">{money(top.cost_1k)}/1k</span>
-            <span className="badge">{top.p50}s p50</span>
-          </div>
-        </div>
-      </section>
-
-      {/* the task — annotated contract */}
-      <section id="task" className="mx-auto max-w-6xl px-5 py-10">
-        <div className="flex items-end justify-between gap-3 mb-5">
-          <div>
-            <p className="eyebrow mb-2">The task</p>
-            <h2 className="display text-[clamp(1.6rem,3.6vw,2.2rem)]">Watch a model read a real contract.</h2>
-          </div>
-          <p className="text-[13px] text-muted max-w-[32ch] hidden md:block">
-            An actual public contract, scored live. Hover any field to see exactly where the model read it —
-            boxes are its own citations.
-          </p>
-        </div>
-        <AnnotatedContract />
-      </section>
-
-      {/* leaderboard */}
-      <section id="leaderboard" className="mx-auto max-w-6xl px-5 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-          <div>
-            <p className="eyebrow mb-2">Leaderboard</p>
-            <h2 className="display text-[clamp(1.6rem,3.6vw,2.2rem)]">Every model, ranked.</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/compare" className="btn btn-ghost">Compare models →</Link>
-            <EmbedSnippet />
-          </div>
-        </div>
-        <Leaderboard models={models} />
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="font-mono text-[11px] text-faint">
-            Value = accuracy points per $/1k. Pricing from OpenRouter, updated continuously.
-          </p>
-          <span className="font-mono text-[11px] text-faint hidden sm:block">click a column to sort</span>
-        </div>
-      </section>
-
       <Analytics />
 
-      <WhatsInside />
+      {/* how this came about, in the team's own words */}
+      <TeamNote />
 
       {/* methodology CTA */}
-      <section className="mx-auto max-w-6xl px-5 py-10">
-        <div className="grainient rounded-2xl px-7 py-9 flex flex-wrap items-center justify-between gap-5 shadow-[var(--shadow-card)]">
-          <div>
-            <h2 className="text-[20px] font-semibold tracking-tight" style={{ color: "#fff" }}>Rigorous, transparent, un-gameable.</h2>
-            <p className="text-[14px] mt-1.5 max-w-[54ch]" style={{ color: "rgba(255,255,255,.88)" }}>
-              Read exactly how we score — the private holdout, the field-level rubric, and why we repeat every run.
+      <section className="shell py-10">
+        <div className="grainient rounded-2xl px-8 sm:px-10 py-10 flex flex-wrap items-center justify-between gap-x-10 gap-y-6 shadow-[var(--shadow-card)]">
+          <div className="max-w-[46ch]">
+            <h2 className="text-[20px] font-medium tracking-tight" style={{ color: "var(--brand-cream)" }}>The answer key stays private.</h2>
+            <p className="text-[14px] mt-1.5 max-w-[54ch]" style={{ color: "rgba(255,252,246,.86)" }}>
+              How a field is judged correct, why every model runs three times, and where this
+              benchmark still falls short.
             </p>
           </div>
-          <Link href="/methodology" className="btn" style={{ background: "#fff", color: "#0a0a0a" }}>How we score</Link>
+          <Link href="/methodology" className="btn shrink-0" style={{ background: "var(--brand-cream)", color: "#092e44" }}>Read the methodology</Link>
         </div>
       </section>
     </>

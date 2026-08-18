@@ -3,7 +3,7 @@ import { newest, data, money, BASELINE_LABEL } from "@/lib/data";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "FinePrint — the document-extraction benchmark";
+export const alt = "FinePrint: the document-extraction benchmark";
 
 export default function OpengraphImage() {
   const m = newest();

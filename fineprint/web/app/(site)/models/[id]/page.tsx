@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const m = byId((await params).id);
   if (!m) return {};
   return {
-    title: `${m.label} — ${m.accuracy}% on contract extraction`,
+    title: `${m.label}: ${m.accuracy}% on contract extraction`,
     description: `${m.label} ranks #${m.rank} of ${data.n_models} on FinePrint: ${m.accuracy}% accuracy, ${m.halluc}% hallucination, ${money(m.cost_1k)}/1k contracts, ${m.p50}s median latency.`,
   };
 }
@@ -34,8 +34,8 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
   const maxTok = Math.max(...tokens.map((t) => t[1]));
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-12">
-      <Link href="/#leaderboard" className="font-mono text-[12px] text-faint hover:text-muted">← leaderboard</Link>
+    <div className="shell py-12">
+      <Link href="/#leaderboard" className="font-mono text-[12px] text-faint hover:text-muted">Back to leaderboard</Link>
       <div className="mt-4 flex items-center gap-3 flex-wrap">
         <ProviderIcon brand={m.brand} size={30} />
         <h1 className="display text-[clamp(2rem,5vw,2.8rem)]">{m.label}</h1>
@@ -45,7 +45,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
       <p className="mt-3 text-muted max-w-[60ch]">
         Ranks <b className="text-text">#{m.rank}</b> of {data.n_models} on reading real contracts into structured billing data
         {delta != null && (
-          <> — <span className={delta >= 0 ? "text-success" : "text-danger"}>{delta >= 0 ? "+" : ""}{delta} pts vs {BASELINE_LABEL}</span></>
+          <>, <span className={delta >= 0 ? "text-success" : "text-danger"}>{delta >= 0 ? "+" : ""}{delta} pts vs {BASELINE_LABEL}</span></>
         )}.
       </p>
 
@@ -76,7 +76,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <p className="mt-8 text-[13px] text-muted">
-        Want the full picture? <Link href="/methodology" className="ulink">How we score →</Link>
+        Want the full picture? <Link href="/methodology" className="ulink">How we score</Link>
       </p>
     </div>
   );

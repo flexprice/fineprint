@@ -1,12 +1,50 @@
 import { data } from "@/lib/data";
 
-const DOC_TYPES = ["Order forms", "Master agreements", "Renewals & amendments", "Scanned / OCR-noisy", "Redlined drafts", "Multi-currency"];
+// Hue per pill so the set reads as a calm palette rather than one flat grey block.
+const DOC_TYPES: [string, number][] = [
+  ["Order forms", 210],
+  ["Master agreements", 262],
+  ["Renewals & amendments", 158],
+  ["Scanned / OCR-noisy", 28],
+  ["Redlined drafts", 342],
+  ["Multi-currency", 190],
+];
 
-const SPECS: [string, string][] = [
-  ["Real documents", "Public, license-clear contracts from the web — the messy PDFs businesses actually run on. Never synthetic."],
-  ["Private test set", "Ground-truth labels stay internal, so no model can train on the answers. We publish the volume, never the data."],
-  ["Field-level scoring", "Every fee, cadence, currency, entitlement and party is checked. Economic-equivalence aware: $10k/qtr = $40k/yr."],
-  ["Repeated runs", `Every model runs each contract ${data.n_runs}×. We report mean accuracy and run-to-run σ — one shot hides nondeterminism.`],
+type Spec = { icon: React.ReactNode; title: string; body: string };
+
+const ICON = {
+  doc: (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+      <path d="M19 8v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7z" />
+      <path d="M9 13h6" /><path d="M9 17h4" />
+    </svg>
+  ),
+  lock: (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <rect x="4" y="10" width="16" height="10" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  ),
+  checklist: (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path d="M10 6h10" /><path d="M10 12h10" /><path d="M10 18h10" />
+      <path d="m3 6 1.4 1.4L7.2 4.6" /><path d="m3 12 1.4 1.4L7.2 10.6" /><path d="m3 18 1.4 1.4L7.2 16.6" />
+    </svg>
+  ),
+  repeat: (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path d="m17 2 4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <path d="m7 22-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  ),
+};
+
+const SPECS: Spec[] = [
+  { icon: ICON.doc, title: "Real documents", body: "Public contracts pulled off the web with the licenses checked. Some are scanned, some are redlined, and most are formatted badly enough to be realistic." },
+  { icon: ICON.lock, title: "Private test set", body: "The answer key never leaves our machines, so no model can train on it. We publish how much we scored and keep the documents themselves." },
+  { icon: ICON.checklist, title: "Field-level scoring", body: "Every fee, date, currency, entitlement and counterparty is judged on its own. $10k a quarter and $40k a year count as the same answer, because they are." },
+  { icon: ICON.repeat, title: "Repeated runs", body: `Each model reads each contract ${data.n_runs} times. One run hides how much a model wobbles, so we report the spread next to the average.` },
 ];
 
 export function WhatsInside() {
@@ -17,40 +55,48 @@ export function WhatsInside() {
     [`${data.n_runs}`, "runs per contract"],
   ];
   return (
-    <section id="inside" className="mx-auto max-w-6xl px-5 py-8">
-      <p className="eyebrow mb-3">What&rsquo;s inside</p>
-      <h2 className="display text-[clamp(1.6rem,3.6vw,2.2rem)] max-w-[20ch]">A private test set of real contracts.</h2>
-      <p className="mt-4 text-muted max-w-[58ch]">
-        Most benchmarks test trivia. FinePrint tests whether a model can take a real, messy contract and
-        return correct, structured billing data — the task that actually breaks in production.
+    <section id="inside" className="shell pt-24 pb-16">
+      <p className="eyebrow mb-3">How we measure</p>
+      <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)] max-w-[20ch]">A private test set of real contracts.</h2>
+      <p className="mt-5 text-[16px] leading-relaxed text-muted max-w-[62ch]">
+        Six real contracts, thirteen billing fields in each, three runs per model. Every field is
+        compared against a hand-labeled answer key that never ships.
       </p>
 
-      <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {SPECS.map(([t, d]) => (
-          <div key={t} className="grainient rounded-xl p-5 shadow-[var(--shadow-card)]">
-            <div className="font-mono text-[11px] uppercase tracking-[.08em] mb-2" style={{ color: "rgba(255,255,255,.7)" }}>{t}</div>
-            <p className="text-[13.5px] leading-relaxed" style={{ color: "rgba(255,255,255,.92)" }}>{d}</p>
+      <div className="mt-12 grid sm:grid-cols-2 gap-5">
+        {SPECS.map((s) => (
+          <div key={s.title} className="spec-card">
+            <span className="spec-icon">{s.icon}</span>
+            <div>
+              <div className="text-[15.5px] font-medium tracking-[-.01em]">{s.title}</div>
+              <p className="mt-2 text-[14px] leading-relaxed text-muted">{s.body}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 panel rounded-xl px-6 py-5 flex flex-wrap items-center gap-x-10 gap-y-5 justify-between">
-        <div className="flex flex-wrap gap-x-10 gap-y-4">
-          {stats.map(([v, k]) => (
-            <div key={k}>
-              <div className="font-mono text-[21px] font-semibold tnum">{v}</div>
-              <div className="text-[12px] text-faint mt-0.5">{k}</div>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5 max-w-[440px]">
-          {DOC_TYPES.map((d) => (
-            <span key={d} className="badge">{d}</span>
+      <div className="mt-5 panel rounded-xl grid sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-line">
+        {stats.map(([v, k]) => (
+          <div key={k} className="px-7 py-7">
+            <div className="text-[38px] leading-none font-medium tnum tracking-[-.035em]">{v}</div>
+            <div className="text-[13.5px] text-muted mt-3">{k}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pills sit directly on the page. Boxing them inside another panel added a
+          frame that carried no information. */}
+      <div className="mt-12">
+        <p className="eyebrow mb-4">Document types in the set</p>
+        <div className="flex flex-wrap gap-2.5">
+          {DOC_TYPES.map(([label, h]) => (
+            <span key={label} className="pill" style={{ ["--h" as string]: h }}>{label}</span>
           ))}
         </div>
       </div>
-      <p className="mt-3 font-mono text-[11px] text-faint">
-        Seed benchmark shown on a labeled subset · scaling to ~200 web-sourced contracts across 6 industries and 4 currencies.
+
+      <p className="mt-10 text-[12.5px] text-faint">
+        * A labeled seed set for now. We are working up to roughly 200 contracts across 6 industries and 4 currencies.
       </p>
     </section>
   );

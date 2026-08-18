@@ -21,6 +21,10 @@
   --warning: #c2760c;
   --danger: #e5484d;
   --shadow-card: 0 1px 1px rgba(0,0,0,.02), 0 2px 4px rgba(0,0,0,.04), inset 0 0 0 1px rgba(0,0,0,.05);
+  /* Flexprice brand — taken from the wordmark. Navy is the scrim color on imagery;
+     black scrims read as a dropshadow and are off-brand. */
+  --brand-navy: 9, 46, 68;
+  --brand-cream: #fffcf6;
   color-scheme: light;
 }
 :root[data-theme="dark"] {
@@ -60,8 +64,15 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* No monospace face is loaded. `font-mono` is aliased to the sans stack so the many
+     existing utility usages keep working while rendering in Geist. Numeric alignment
+     comes from .tnum (font-variant-numeric), which does not need a mono font. */
+  --font-mono: var(--font-geist-sans);
 }
+
+/* ── Shell — the single page measure. Every section, the header and the footer use
+   this, so nothing steps in or out of the column. Change the width once, here. ── */
+.shell { width: 100%; margin-inline: auto; max-width: 82rem; padding-inline: 24px; }
 
 * { border-color: var(--line); }
 html { background: var(--bg); }
@@ -76,43 +87,239 @@ body {
 .tnum { font-variant-numeric: tabular-nums; }
 .mono { font-family: var(--font-mono); }
 
-/* ── Type — Geist, tight negative tracking on display ────────────────────── */
-.eyebrow { font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
-.display { font-weight: 700; letter-spacing: -0.03em; line-height: 1.04; color: var(--text); text-wrap: balance; }
-.h2 { font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; color: var(--text); }
+/* ── Type — Geist, tight negative tracking on display.
+   Display weight is capped at medium (500): large type at 700 reads heavy and
+   un-premium at these sizes, and the brand leans quiet. ─────────────────────── */
+.eyebrow { font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
 
-/* ── Grainient — grainy multicolor gradient surface (lean CSS, no WebGL) ────── */
+/* ── Wordmark — Homemade Apple, used only for the FinePrint name ──────────── */
+.wordmark { font-family: var(--font-wordmark), cursive; font-weight: 400; letter-spacing: 0; line-height: 1; }
+/* Footer mark: a faint dotted impression of the wordmark. Shown in full, no crop.
+   Constants measured off the font with canvas TextMetrics (per 1em):
+     ink ascent 1.018 · ink descent .090 · ink top sits .293 ABOVE the line box at lh:1
+   That last one is why the box needs an explicit height: at line-height 1 the glyphs
+   overflow their own line box, so `height: auto` would let the ascenders collide with
+   whatever sits above. Box = full ink plus --bleed of air top and bottom. */
+.wordmark-crop {
+  --ink-ascent: 1.018em;
+  --ink-descent: .09em;
+  --bleed: .06em;
+  /* CRITICAL: background-clip:text paints only within the element's own background
+     box. At line-height:1 the glyphs overflow that box by .293em at the top, and those
+     pixels get no paint at all — the ascenders render flat-topped no matter how tall
+     the container is. So the mark runs at the font's full bounding box (1.3 ascent +
+     .85 descent = 2.15em); the ink is then wholly inside the painted area.
+     With line-height 2.15 the ink starts (1.3 - 1.018) = .282em below the box top. */
+  --line: 2.15;
+  --ink-from-box-top: .282em;
+  /* Fraction of the ink hidden off the bottom edge. Top keeps its --bleed of air, so
+     the word is anchored to the top of this box and bleeds off the bottom. */
+  --hide: .15;
+  /* overflow:hidden also establishes a block formatting context, so the mark's negative
+     margin offsets the glyphs instead of collapsing into this box. */
+  overflow: hidden;
+  height: calc(var(--bleed) + (var(--ink-ascent) + var(--ink-descent)) * (1 - var(--hide)));
+  text-align: center;
+}
+.wordmark-mark {
+  display: block; white-space: nowrap; user-select: none;
+  font-family: var(--font-wordmark), cursive; font-size: 1em; line-height: var(--line);
+  /* Pull the tall line box up so the ink lands --bleed below the container top. */
+  margin-top: calc(var(--bleed) - var(--ink-from-box-top));
+  color: transparent; -webkit-text-fill-color: transparent;
+  /* Two dot grids at different pitches, clipped to the glyphs. Drifting them in
+     opposite directions on hover reads as moving particles rather than a blink. */
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--text) 46%, transparent) 1.15px, transparent 1.5px),
+    radial-gradient(color-mix(in srgb, var(--text) 30%, transparent) 1px, transparent 1.35px);
+  background-size: 6px 6px, 9px 9px;
+  background-position: 0 0, 0 0;
+  -webkit-background-clip: text; background-clip: text;
+  opacity: .55;
+  transition: opacity .45s ease;
+}
+@keyframes fp-particles {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 60px 36px, -45px 27px; }
+}
+.wordmark-crop:hover .wordmark-mark { opacity: 1; animation: fp-particles 6s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-mark { transition: none; }
+  .wordmark-crop:hover .wordmark-mark { animation: none; }
+}
+.display { font-weight: 500; letter-spacing: -0.032em; line-height: 1.06; color: var(--text); text-wrap: balance; }
+.h2 { font-weight: 500; letter-spacing: -0.025em; line-height: 1.15; color: var(--text); }
+
+/* ── Grainient — brand-navy surface with a single directional ramp and fine grain.
+   Was three competing radial stops in emerald/amber/cyan; that read as a stock
+   gradient mesh and matched nothing else on the page. One tonal axis is calmer
+   and stays on the Flexprice palette. ──────────────────────────────────────── */
 .grainient {
-  color: #fff;
-  background-color: #0c463d;
+  color: var(--brand-cream);
+  background-color: #092e44;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(115% 115% at 12% 16%, #10B981 0%, rgba(16,185,129,0) 46%),
-    radial-gradient(115% 115% at 88% 20%, #EAB308 0%, rgba(234,179,8,0) 44%),
-    radial-gradient(125% 125% at 60% 94%, #06B6D4 0%, rgba(6,182,212,0) 52%);
-  background-size: 120px 120px, cover, cover, cover;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
-  background-blend-mode: overlay, normal, normal, normal;
+    linear-gradient(112deg, #0e4463 0%, #0a3350 46%, #071f2f 100%);
+  background-size: 120px 120px, cover;
+  background-repeat: repeat, no-repeat;
+  background-blend-mode: soft-light, normal;
   border: none;
 }
-.grainient :where(.text-muted, .text-faint) { color: rgba(255,255,255,.82); }
+.grainient :where(.text-muted, .text-faint) { color: rgba(255,252,246,.82); }
+
+/* ── Scroll-fill paragraph ───────────────────────────────────────
+   The paragraph itself owns ONE view timeline; every word animates against that same
+   timeline but over its own slice of it (--from/--to, set per word at render). Giving
+   each word its own view() timeline instead makes the whole block light up at once,
+   because all the words travel through the viewport together.
+   Full contrast is the DEFAULT; the dim state exists only inside @supports, so a
+   browser without scroll-driven animations just shows readable text. No JS. */
+.fill-para { view-timeline-name: --fill; view-timeline-axis: block; }
+/* --fill-to is the color a word settles on, so highlighted words ride the same
+   animation and the same dim floor without needing a second keyframe. */
+.fill-para span { --fill-to: var(--text); color: var(--fill-to); }
+.fill-para span.hl { --fill-to: var(--accent); }
+@supports (animation-timeline: view()) {
+  .fill-para span {
+    /* Floor is deliberately readable, not near-invisible: if a browser supports
+       animation-timeline but the timeline fails to advance, the paragraph must still
+       be legible rather than a blank block. */
+    color: color-mix(in srgb, var(--fill-to) 24%, transparent);
+    animation: fp-fill linear both;
+    animation-timeline: --fill;
+    animation-range: cover var(--from, 15%) var(--to, 30%);
+  }
+}
+@keyframes fp-fill { to { color: var(--fill-to); } }
+/* Must follow the @supports block to win the cascade. */
+@media (prefers-reduced-motion: reduce) {
+  .fill-para span { color: var(--fill-to); animation: none; }
+}
 
 /* ── Surfaces ────────────────────────────────────────────────────────────── */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .panel { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-card); }
 
+/* Spec card — icon rail on the left, quiet surface. Replaces the multicolor
+   grainient tiles, which fought each other and the rest of the page. */
+.spec-card { background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px; display: flex; gap: 14px; transition: border-color .15s ease; }
+.spec-card:hover { border-color: var(--line-2); }
+.spec-icon { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  background: var(--surface-2); color: var(--text); }
+.spec-icon svg { width: 17px; height: 17px; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── Paper — the team note. A cut sheet with a turned-up corner, so a first-person
+   aside reads as a different object from the data panels around it. ──────────── */
+.paper {
+  background: #fdfaf2;
+  border: 1px solid #e8dfcb;
+  border-radius: 2px;
+  box-shadow: 0 1px 0 #f3ecdc, 0 2px 3px rgba(80,60,25,.06), 0 18px 40px -26px rgba(80,60,25,.45);
+  color: #2b2417;
+  position: relative;
+  /* Bottom-right corner removed; .paper-fold fills it as the turned-up flap. */
+  --fold: 44px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--fold)), calc(100% - var(--fold)) 100%, 0 100%);
+}
+/* Faint fibre grain, so the sheet is not a flat fill. */
+.paper::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.045'/%3E%3C/svg%3E");
+}
+.paper-fold {
+  position: absolute; right: 0; bottom: 0; width: var(--fold); height: var(--fold);
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  background: linear-gradient(135deg, #efe6d0 0%, #e3d8bd 100%);
+  box-shadow: -1px -1px 3px rgba(80,60,25,.16);
+}
+/* Handwritten bits: heading, signature doodle. Slight rotation so they sit like ink. */
+.hand-tilt { display: inline-block; transform: rotate(-1.6deg); transform-origin: left center; }
+
+/* Highlighter. Two passes at slightly different heights so the edge is uneven like
+   a real marker rather than a flat rectangle. */
+.marker {
+  background-image:
+    linear-gradient(180deg, transparent 52%, rgba(255,201,64,.62) 52%, rgba(255,201,64,.62) 94%, transparent 94%),
+    linear-gradient(180deg, transparent 58%, rgba(255,214,102,.45) 58%, rgba(255,214,102,.45) 90%, transparent 90%);
+  background-position: 0 0, 2px 1px;
+  padding: 0 2px;
+}
+/* Hand underline, for emphasis of a different weight from the marker. */
+.underline-hand {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='8'%3E%3Cpath d='M2 5.2c22-2.6 46-3.4 74-1.4 16 1.1 28 1.6 42 .6' fill='none' stroke='%23c2760c' stroke-width='1.8' stroke-linecap='round' opacity='0.62'/%3E%3C/svg%3E");
+  background-repeat: repeat-x; background-position: 0 100%; background-size: 120px 8px;
+  padding-bottom: 3px;
+}
+:root[data-theme="dark"] .paper {
+  background: #14120e; border-color: #2b261d; color: #e6dfd1;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.03);
+}
+:root[data-theme="dark"] .paper-fold { background: linear-gradient(135deg, #241f18 0%, #191510 100%); box-shadow: -1px -1px 3px rgba(0,0,0,.5); }
+:root[data-theme="dark"] .paper .paper-muted { color: #9c917d; }
+:root[data-theme="dark"] .marker {
+  background-image:
+    linear-gradient(180deg, transparent 52%, rgba(255,201,64,.26) 52%, rgba(255,201,64,.26) 94%, transparent 94%),
+    linear-gradient(180deg, transparent 58%, rgba(255,214,102,.18) 58%, rgba(255,214,102,.18) 90%, transparent 90%);
+}
+
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
-.btn { display: inline-flex; align-items: center; gap: .45rem; font-size: 14px; font-weight: 500;
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  min-height: 36px; font-size: 14px; font-weight: 500; line-height: 1.25;
   border-radius: 8px; padding: 8px 15px; border: 1px solid transparent; transition: .13s ease; cursor: pointer; }
 .btn-primary { background: var(--primary); color: var(--on-primary); }
 .btn-primary:hover { background: var(--primary-hover); }
 .btn-ghost { color: var(--text); border-color: var(--line-2); background: var(--bg); }
 .btn-ghost:hover { border-color: var(--faint); }
+/* Icon-only: same height and radius as a text button, just square. */
+.btn-icon { width: 36px; min-height: 36px; padding: 0; }
+/* Larger primary action. Needed as a class because .btn is plain CSS declared after
+   Tailwind's utilities, so px-/py- utilities on a .btn silently lose the cascade. */
+.btn-lg { min-height: 46px; padding: 13px 24px; font-size: 15px; border-radius: 9px; }
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
 .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500;
   border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 8px; color: var(--muted); }
 .badge-new { color: #fff; background: var(--accent); border-color: transparent; }
+
+/* Eyebrow chip — pastel, with a live dot. Used where the kicker should read as a
+   badge rather than as small print. */
+.chip-eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 16px 7px 13px; border-radius: 8px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: hsl(212 44% 34%);
+  background: hsl(212 94% 96%);
+  border: 1px solid hsl(212 68% 89%);
+  box-shadow: 0 1px 2px hsl(212 60% 40% / .06);
+}
+.chip-eyebrow::before {
+  content: ""; width: 6px; height: 6px; border-radius: 999px; flex: none;
+  background: hsl(212 84% 56%);
+  box-shadow: 0 0 0 3px hsl(212 84% 56% / .18);
+}
+:root[data-theme="dark"] .chip-eyebrow {
+  color: hsl(212 62% 80%);
+  background: hsl(212 44% 14%);
+  border-color: hsl(212 38% 24%);
+  box-shadow: none;
+}
+
+/* Doc-type pills — quiet tinted shades so the set reads as a palette, not a warning.
+   `--h` is the only per-pill knob; everything else derives from it. */
+.pill {
+  display: inline-flex; align-items: center; font-size: 13px; font-weight: 500;
+  border-radius: 8px; padding: 6px 14px;
+  color: hsl(var(--h) 42% 34%);
+  background: hsl(var(--h) 62% 96%);
+  border: 1px solid hsl(var(--h) 46% 88%);
+}
+:root[data-theme="dark"] .pill {
+  color: hsl(var(--h) 58% 78%);
+  background: hsl(var(--h) 36% 14%);
+  border-color: hsl(var(--h) 30% 24%);
+}
 
 /* Flexprice wordmark — follows the site theme (data-theme; light by default). Navy on light, cream on dark. */
 .fp-logo-light { display: inline-block; }
