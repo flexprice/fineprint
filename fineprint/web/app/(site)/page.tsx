@@ -119,6 +119,11 @@ export default function Home() {
           <div>
             <p className="eyebrow mb-2">Leaderboard</p>
             <h2 className="display text-[clamp(1.6rem,3.6vw,2.2rem)]">Every model, ranked.</h2>
+            <p className="mt-1 text-[12px] text-muted max-w-2xl">
+              <span className="badge" style={{ padding: "1px 7px", fontSize: 11 }}>v2 preview</span>{" "}
+              Rebuilt scoring — <b>Extract</b> (economic facts) and <b>Conv.</b> (house conventions) scored separately.
+              {" "}Labels are QA&apos;d against the contract text; corrections pending final human sign-off. n={data.n_contracts} contracts.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/compare" className="btn btn-ghost">Compare models →</Link>

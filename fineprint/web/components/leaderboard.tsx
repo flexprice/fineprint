@@ -31,8 +31,9 @@ const COLS: Col[] = [
       </div>
     ),
   },
+  { key: "extraction", label: "Extract", num: true, render: (m) => <span className="tnum" title="economic facts: dates, fee amounts, credits, overrides">{m.extraction}%</span> },
+  { key: "convention", label: "Conv.", num: true, render: (m) => <span className="tnum text-faint" title="house-convention fields: fee timing, period, credit type">{m.convention}%</span> },
   { key: "halluc", label: "Halluc.", num: true, render: (m) => <span className="tnum">{m.halluc}%</span> },
-  { key: "consistency", label: "σ (5 runs)", num: true, render: (m) => <span className="tnum text-faint">±{m.consistency}</span> },
   { key: "cost_1k", label: "$/1k", num: true, render: (m) => <span className="tnum">{money(m.cost_1k)}</span> },
   {
     key: "value", label: "Value", num: true,
