@@ -44,9 +44,6 @@ export default function Home() {
         <div className="shell flex flex-col justify-center min-h-[82vh] py-20">
           {/* self-start: the shell is a flex column, so a bare inline-flex chip would
               otherwise stretch the full width. */}
-          <p className="chip-eyebrow self-start mb-6 fp-up" style={{ animationDelay: ".02s" }}>
-            The document-extraction benchmark · by Flexprice
-          </p>
           <h1 className="display text-[clamp(2.2rem,4.6vw,3.5rem)] max-w-[20ch] fp-up" style={{ animationDelay: ".07s" }}>
             Can your favorite model read the fine print?
           </h1>
