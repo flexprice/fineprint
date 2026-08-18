@@ -21,12 +21,6 @@ const accTicks = (lo: number, hi: number) => {
   return out;
 };
 
-const linTicks = (lo: number, hi: number, step: number) => {
-  const out: number[] = [];
-  for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) out.push(t);
-  return out;
-};
-
 type XMetric = "cost" | "latency";
 
 export function QuadrantChart({ models }: { models: ModelRow[] }) {
@@ -40,10 +34,10 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
 
   let xLo: number, xHi: number;
   if (isCost) { xLo = Math.min(...xs) * 0.55; xHi = Math.max(...xs) * 1.6; }
-  else { xLo = Math.max(0, Math.min(...xs) - 8); xHi = Math.max(...xs) + 8; }
-  const scale = isCost
-    ? scaleLog({ domain: [xLo, xHi], range: [M.left, W - M.right] })
-    : scaleLinear({ domain: [xLo, xHi], range: [M.left, W - M.right] });
+  // Latency is log too: the slowest model is ~12x the median, and on a linear axis it
+  // pushed most of the field into the left edge. Matches the scatter and dumbbell charts.
+  else { xLo = Math.max(1, Math.min(...xs) * 0.8); xHi = Math.max(...xs) * 1.25; }
+  const scale = scaleLog({ domain: [xLo, xHi], range: [M.left, W - M.right] });
   const x = (v: number) => scale(v) as number;
 
   const yLo = Math.min(...accs) - 4;
@@ -59,9 +53,10 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
   const frontRank = new Map(front.map((m, i) => [m.id, i]));
 
   const yt = accTicks(yLo, yHi);
-  const xt = isCost
-    ? [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter((v) => v >= xLo && v <= xHi)
-    : linTicks(xLo, xHi, 20);
+  const xt = (isCost
+    ? [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+    : [10, 20, 50, 100, 200, 500, 1000]
+  ).filter((v) => v >= xLo && v <= xHi);
   const xLabel = (t: number) => (isCost ? `$${t < 1 ? t : Math.round(t)}` : `${Math.round(t)}s`);
 
   return (
@@ -139,10 +134,10 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
         })}
 
         <text x={(M.left + W - M.right) / 2} y={H - 4} textAnchor="middle" fill={V.muted} fontSize="11.5" fontFamily="var(--font-mono)">
-          {isCost ? "cost per 1,000 contracts (log) →" : "median latency, seconds →"}
+          {isCost ? "cost per 1,000 contracts (log)" : "median latency, seconds (log)"}
         </text>
         <text transform="rotate(-90)" x={-(M.top + H - M.bottom) / 2} y={15} textAnchor="middle" fill={V.muted} fontSize="11.5" fontFamily="var(--font-mono)">
-          accuracy →
+          accuracy
         </text>
 
         {hover !== null && (() => {
