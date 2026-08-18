@@ -48,12 +48,6 @@ const SPECS: Spec[] = [
 ];
 
 export function WhatsInside() {
-  const stats: [string, string][] = [
-    [`${data.n_contracts}`, "contracts in this seed"],
-    [`${data.fields_per_contract}`, "labeled fields / contract"],
-    [data.total_judgments.toLocaleString(), "field judgments scored"],
-    [`${data.n_models}`, "models scored"],
-  ];
   return (
     <section id="inside" className="shell pt-24 pb-16">
       <p className="eyebrow mb-3">How we measure</p>
@@ -75,18 +69,9 @@ export function WhatsInside() {
         ))}
       </div>
 
-      <div className="mt-5 panel rounded-xl grid sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-line">
-        {stats.map(([v, k]) => (
-          <div key={k} className="px-7 py-7">
-            <div className="text-[38px] leading-none font-medium tnum tracking-[-.035em]">{v}</div>
-            <div className="text-[13.5px] text-muted mt-3">{k}</div>
-          </div>
-        ))}
-      </div>
-
       {/* Pills sit directly on the page. Boxing them inside another panel added a
           frame that carried no information. */}
-      <div className="mt-12">
+      <div className="mt-14">
         <p className="eyebrow mb-4">Document types in the set</p>
         <div className="flex flex-wrap gap-2.5">
           {DOC_TYPES.map(([label, h]) => (

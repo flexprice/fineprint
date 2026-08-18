@@ -270,11 +270,11 @@ export default function Methodology() {
             </thead>
             <tbody className="tnum">
               {[
-                ["platform_fee.amount", "25000", "25000", "✓", "text-success"],
-                ["platform_fee.frequency", "quarterly", "quarterly", "✓", "text-success"],
+                ["recurring_fee.amount", "25000", "25000", "✓", "text-success"],
+                ["recurring_fee.frequency", "quarterly", "quarterly", "✓", "text-success"],
                 ["usage_fee.amount", "180000 / yr", "45000 / qtr", "✓ annualized", "text-success"],
-                ["platform_fee.timing", "advanced", "n/a", "✗ wrong", "text-danger"],
-                ["hosting_fee.amount", "0", "0", "· not scored", "text-faint"],
+                ["recurring_fee.timing", "advanced", "n/a", "✗ wrong", "text-danger"],
+                ["fixed_fee.amount", "0", "0", "· not scored", "text-faint"],
                 ["scope_notes", "“$250k capacity…”", "“annual usage…”", "· soft (reviewed)", "text-faint"],
               ].map(([f, e, p, r, c]) => (
                 <tr key={f} className="border-t border-line">

@@ -18,9 +18,9 @@ from .extractor import Document
 # Contract-value fields (§6.1 of the design). value is a string; mapper coerces types.
 FIELD_NAMES = [
     "start_date", "usage_plan_class", "currency",
-    "platform_fee.amount", "platform_fee.frequency", "platform_fee.timing",
-    "hosting_fee.amount", "hosting_fee.frequency", "hosting_fee.timing",
-    "llm_usage_fee.amount", "llm_usage_fee.frequency", "llm_usage_fee.timing",
+    "recurring_fee.amount", "recurring_fee.frequency", "recurring_fee.timing",
+    "fixed_fee.amount", "fixed_fee.frequency", "fixed_fee.timing",
+    "usage_fee.amount", "usage_fee.frequency", "usage_fee.timing",
     "credit_grant.amount", "credit_grant.type",
     "entitlement.description", "entitlement.quantity", "entitlement.unit", "entitlement.period",
     "override_hosting_per_min", "override_sms_per_msg", "override_other",
@@ -31,16 +31,16 @@ FIELD_NAMES = [
     "customer.address_line1", "customer.address_line2", "customer.address_city",
     "customer.address_state", "customer.address_postal_code", "customer.address_country",
 ]
-CATEGORIES = ["Identity", "Customer", "Platform Fee", "Hosting", "LLM Usage", "Credit Grant",
+CATEGORIES = ["Identity", "Customer", "Recurring Fee", "Fixed Fee", "Usage Fee", "Credit Grant",
               "Entitlement", "Override", "Commitment", "Terms", "Other"]
 
 _FIELD_CATEGORY = {
     "start_date": "Identity", "usage_plan_class": "Identity", "currency": "Identity",
     "contract_value": "Identity", "effective_contract_value": "Identity", "pilot_fee": "Identity",
     "customer": "Customer",
-    "platform_fee": "Platform Fee", "hosting_fee": "Hosting", "llm_usage_fee": "LLM Usage",
+    "recurring_fee": "Recurring Fee", "fixed_fee": "Fixed Fee", "usage_fee": "Usage Fee",
     "credit_grant": "Credit Grant", "entitlement": "Entitlement",
-    "override_hosting_per_min": "Hosting", "override_sms_per_msg": "Override", "override_other": "Override",
+    "override_hosting_per_min": "Fixed Fee", "override_sms_per_msg": "Override", "override_other": "Override",
     "commitment": "Commitment", "payment_terms": "Terms",
 }
 
