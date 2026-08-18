@@ -1,158 +1,88 @@
 {
  "image": "/sample-contract.png",
- "source": "Web Hosting Agreement (public SEC exhibit, CUAD CC BY 4.0)",
+ "source": "Guidewire Software License Agreement \u2014 public SEC exhibit (EX-10.27)",
  "fields": [
   {
-   "field": "start_date",
-   "value": "1997-09-09",
+   "field": "effective_date",
+   "value": "2007-05-03",
+   "confidence": "HIGH",
+   "category": "Term",
+   "boxes": [
+    [
+     0.326,
+     0.1085,
+     0.3724,
+     0.1261
+    ]
+   ]
+  },
+  {
+   "field": "counterparty",
+   "value": "MGA Insurance Company, Inc.",
+   "confidence": "HIGH",
+   "category": "Parties",
+   "boxes": [
+    [
+     0.1404,
+     0.1297,
+     0.2631,
+     0.1473
+    ]
+   ]
+  },
+  {
+   "field": "license_fee",
+   "value": "License Fees \u2014 per Order Form",
    "confidence": "NEEDS_REVIEW",
-   "category": "Identity",
+   "category": "Recurring Fee",
    "boxes": [
     [
-     0.3816,
-     0.3402,
-     0.432,
-     0.35
-    ],
-    [
-     0.3816,
-     0.3874,
-     0.4332,
-     0.3972
+     0.1858,
+     0.6521,
+     0.2396,
+     0.6697
     ]
    ]
   },
   {
-   "field": "currency",
-   "value": "USD",
-   "confidence": "HIGH",
-   "category": "Identity",
-   "boxes": [
-    [
-     0.0189,
-     0.1674,
-     0.5882,
-     0.1772
-    ],
-    [
-     0.0176,
-     0.2565,
-     0.5516,
-     0.2894
-    ]
-   ]
-  },
-  {
-   "field": "llm_usage_fee.amount",
-   "value": "0.01",
-   "confidence": "HIGH",
-   "category": "LLM Usage",
-   "boxes": [
-    [
-     0.0189,
-     0.1674,
-     0.5882,
-     0.1772
-    ],
-    [
-     0.0176,
-     0.1728,
-     0.5932,
-     0.195
-    ]
-   ]
-  },
-  {
-   "field": "llm_usage_fee.timing",
-   "value": "arrear",
-   "confidence": "HIGH",
-   "category": "LLM Usage",
-   "boxes": [
-    [
-     0.0189,
-     0.1932,
-     0.5428,
-     0.2048
-    ]
-   ]
-  },
-  {
-   "field": "override_other",
-   "value": "After 400,000 accesses, rate changes to 0.005 per access",
-   "confidence": "HIGH",
-   "category": "Override",
-   "boxes": [
-    [
-     0.0189,
-     0.1674,
-     0.5882,
-     0.1772
-    ],
-    [
-     0.0176,
-     0.1728,
-     0.5932,
-     0.195
-    ]
-   ]
-  },
-  {
-   "field": "commitment.overage_factor",
-   "value": "0.0",
+   "field": "support_fee",
+   "value": "Support & maintenance fees",
    "confidence": "NEEDS_REVIEW",
-   "category": "Commitment",
+   "category": "Recurring Fee",
    "boxes": [
     [
-     0.0189,
-     0.1674,
-     0.5882,
-     0.1772
-    ],
-    [
-     0.0176,
-     0.1728,
-     0.5932,
-     0.195
+     0.3082,
+     0.6521,
+     0.4166,
+     0.6697
     ]
    ]
   },
   {
    "field": "payment_terms",
-   "value": "Weekly remittance by Wednesday for accesses used during the prior Monday-Sunday week",
+   "value": "Net 30",
    "confidence": "HIGH",
-   "category": "Terms",
+   "category": "Payment",
    "boxes": [
     [
-     0.0176,
-     0.1728,
-     0.5932,
-     0.195
-    ],
-    [
-     0.0189,
-     0.1932,
-     0.5428,
-     0.2048
+     0.0627,
+     0.6703,
+     0.1448,
+     0.6879
     ]
    ]
   },
   {
-   "field": "customer.name",
-   "value": "Horst Entertainment Inc.",
+   "field": "late_fee",
+   "value": "1% per month on overdue",
    "confidence": "HIGH",
-   "category": "Customer",
+   "category": "Penalty",
    "boxes": [
     [
-     0.0189,
-     0.1202,
-     0.4055,
-     0.1309
-    ],
-    [
-     0.0239,
-     0.4052,
-     0.2065,
-     0.4141
+     0.2061,
+     0.7031,
+     0.2691,
+     0.7207
     ]
    ]
   }
