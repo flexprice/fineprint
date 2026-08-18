@@ -14,12 +14,6 @@ import { data, models, newest, money, BASELINE_LABEL } from "@/lib/data";
 export default function Home() {
   const top = newest();
   const delta = data.baseline_acc != null ? +(top.accuracy - data.baseline_acc).toFixed(1) : null;
-  const stats: [string, string][] = [
-    [`${data.n_models}`, "models tested"],
-    [`${data.n_contracts}`, "contracts"],
-    [`${data.fields_per_contract}`, "fields / contract"],
-    [data.total_judgments.toLocaleString(), "field judgments"],
-  ];
 
   return (
     <>
@@ -67,14 +61,6 @@ export default function Home() {
               See the leaderboard
             </Link>
           </div>
-          <dl className="mt-16 flex flex-wrap gap-x-14 gap-y-7 fp-up" style={{ animationDelay: ".22s" }}>
-            {stats.map(([v, k]) => (
-              <div key={k}>
-                <dt className="text-[42px] leading-none font-medium tnum tracking-[-.035em]">{v}</dt>
-                <dd className="mt-2.5 text-[13.5px] font-medium text-muted">{k}</dd>
-              </div>
-            ))}
-          </dl>
         </div>
       </section>
 
