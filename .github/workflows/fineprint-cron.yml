@@ -8,6 +8,7 @@
 #   FINEPRINT_API_TOKEN   the X-FinePrint-Token shared secret
 name: FinePrint hourly watch
 
+
 on:
   schedule:
     - cron: "0 * * * *"      # top of every hour (UTC)
