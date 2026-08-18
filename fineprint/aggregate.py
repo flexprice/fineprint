@@ -33,6 +33,10 @@ def aggregate(runs: list[dict], models: list[dict], contracts: list[tuple]) -> t
             continue
         correct = sum(r["correct"] for r in ok)
         scored = sum(r["scored"] for r in ok)
+        ex_correct = sum(r.get("ex_correct", 0) for r in ok)
+        ex_scored = sum(r.get("ex_scored", 0) for r in ok)
+        cv_correct = sum(r.get("cv_correct", 0) for r in ok)
+        cv_scored = sum(r.get("cv_scored", 0) for r in ok)
         high = sum(r["high"] for r in ok)
         confident_wrong = sum(r["confident_wrong"] for r in ok)
         total_judgments += scored
@@ -51,6 +55,8 @@ def aggregate(runs: list[dict], models: list[dict], contracts: list[tuple]) -> t
             "id": m["id"], "label": m["label"], "family": m["family"], "brand": m.get("brand", "openai"),
             "new": m.get("new", False), "est": m.get("est", False),
             "accuracy": accuracy,
+            "extraction": pct(ex_correct, ex_scored),
+            "convention": pct(cv_correct, cv_scored),
             "halluc": pct(confident_wrong, high),
             "consistency": round(mean(sigmas), 1) if sigmas else 0.0,
             "cost_1k": round(cost_1k, 1),

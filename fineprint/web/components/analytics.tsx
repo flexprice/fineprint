@@ -237,7 +237,7 @@ export function Analytics() {
   const topAcc = byAcc.slice(0, 15);
   const byValue = [...models].sort((a, b) => b.value - a.value).slice(0, 12);
   const lowHall = [...models].filter((m) => m.halluc > 0).sort((a, b) => a.halluc - b.halluc).slice(0, 12);
-  const consistent = [...models].sort((a, b) => a.consistency - b.consistency).slice(0, 12);
+  const byExtraction = [...models].sort((a, b) => b.extraction - a.extraction).slice(0, 12);
   // Sized to the lab count so this card and "Accuracy by lab" end up the same height
   // instead of leaving a gap under the shorter one.
   const labCount = new Set(models.map((m) => m.brand)).size;
@@ -274,8 +274,8 @@ export function Analytics() {
         <Card icon={I.alert} title="Lowest hallucination" sub="Share of HIGH-confidence answers that were wrong. Lower is safer. Top 12.">
           <Bars rows={lowHall} val={(m) => m.halluc} fmt={(m) => `${m.halluc}%`} max={Math.max(...lowHall.map((m) => m.halluc))} invert />
         </Card>
-        <Card icon={I.waves} title="Most consistent" sub="How far answers move between runs. Less movement is better. Top 12.">
-          <Bars rows={consistent} val={(m) => m.consistency || 0.01} fmt={(m) => `±${m.consistency}`} max={Math.max(0.1, ...consistent.map((m) => m.consistency))} invert />
+        <Card icon={I.waves} title="Economic facts" sub="Accuracy on the money itself: dates, fee amounts, credits and overrides. Top 12.">
+          <Bars rows={byExtraction} val={(m) => m.extraction} fmt={(m) => `${m.extraction}%`} max={Math.max(...byExtraction.map((m) => m.extraction))} />
         </Card>
 
         <Card icon={I.grid} title="Document difficulty" sub="Accuracy per anonymized contract. Some documents break everyone." wide>

@@ -32,10 +32,10 @@ const ICON = {
       <path d="m3 6 1.4 1.4L7.2 4.6" /><path d="m3 12 1.4 1.4L7.2 10.6" /><path d="m3 18 1.4 1.4L7.2 16.6" />
     </svg>
   ),
-  repeat: (
+  split: (
     <svg viewBox="0 0 24 24" aria-hidden>
-      <path d="m17 2 4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
-      <path d="m7 22-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+      <path d="M4 4v5a4 4 0 0 0 4 4h12" /><path d="m16 9 4 4-4 4" />
+      <path d="M4 20v-3" />
     </svg>
   ),
 };
@@ -44,7 +44,7 @@ const SPECS: Spec[] = [
   { icon: ICON.doc, title: "Real documents", body: "Public contracts pulled off the web with the licenses checked. Some are scanned, some are redlined, and most are formatted badly enough to be realistic." },
   { icon: ICON.lock, title: "Private test set", body: "The answer key never leaves our machines, so no model can train on it. We publish how much we scored and keep the documents themselves." },
   { icon: ICON.checklist, title: "Field-level scoring", body: "Every fee, date, currency, entitlement and counterparty is judged on its own. $10k a quarter and $40k a year count as the same answer, because they are." },
-  { icon: ICON.repeat, title: "Repeated runs", body: `Each model reads each contract ${data.n_runs} times. One run hides how much a model wobbles, so we report the spread next to the average.` },
+  { icon: ICON.split, title: "Two scores, not one", body: "Economic facts are scored apart from house conventions, so a model that reads the money correctly but formats a cadence oddly is not marked like one that invented the number." },
 ];
 
 export function WhatsInside() {
@@ -52,14 +52,14 @@ export function WhatsInside() {
     [`${data.n_contracts}`, "contracts in this seed"],
     [`${data.fields_per_contract}`, "labeled fields / contract"],
     [data.total_judgments.toLocaleString(), "field judgments scored"],
-    [`${data.n_runs}`, "runs per contract"],
+    [`${data.n_models}`, "models scored"],
   ];
   return (
     <section id="inside" className="shell pt-24 pb-16">
       <p className="eyebrow mb-3">How we measure</p>
       <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)] max-w-[20ch]">A private test set of real contracts.</h2>
       <p className="mt-5 text-[16px] leading-relaxed text-muted max-w-[62ch]">
-        Six real contracts, thirteen billing fields in each, three runs per model. Every field is
+        {data.n_contracts} real contracts, {data.fields_per_contract} billing fields in each. Every field is
         compared against a hand-labeled answer key that never ships.
       </p>
 
