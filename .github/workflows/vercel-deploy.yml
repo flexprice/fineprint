@@ -133,8 +133,11 @@ jobs:
 
       - name: Deploy prebuilt output
         id: deploy
+        timeout-minutes: 5
         run: |
-          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN")
+          # --no-wait: return the deployment URL right after upload instead of polling the remote
+          # build to "ready" (that poll is unbounded and has been hanging on stalled Vercel builds).
+          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --no-wait --token "$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
 
