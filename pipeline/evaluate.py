@@ -21,9 +21,9 @@ XLSX = Path(os.environ.get("FINEPRINT_GROUND_TRUTH", PROJECT_ROOT / "data" / "gr
 # breakdown column (1-based) -> our field name
 COL = {
     6: "start_date",
-    8: "platform_fee.amount", 9: "platform_fee.frequency", 10: "platform_fee.timing",
-    12: "hosting_fee.amount", 13: "hosting_fee.frequency", 14: "hosting_fee.timing",
-    16: "llm_usage_fee.amount", 17: "llm_usage_fee.frequency", 18: "llm_usage_fee.timing",
+    8: "recurring_fee.amount", 9: "recurring_fee.frequency", 10: "recurring_fee.timing",
+    12: "fixed_fee.amount", 13: "fixed_fee.frequency", 14: "fixed_fee.timing",
+    16: "usage_fee.amount", 17: "usage_fee.frequency", 18: "usage_fee.timing",
     20: "credit_grant.amount", 21: "credit_grant.type",
     22: "entitlement.description", 23: "entitlement.period",
     24: "override_hosting_per_min", 25: "override_sms_per_msg", 26: "override_other",
@@ -31,7 +31,7 @@ COL = {
     30: "commitment.true_up", 31: "commitment.scope_notes",
     32: "payment_terms",
 }
-NUMERIC = {"platform_fee.amount", "hosting_fee.amount", "llm_usage_fee.amount",
+NUMERIC = {"recurring_fee.amount", "fixed_fee.amount", "usage_fee.amount",
            "credit_grant.amount", "override_hosting_per_min", "override_sms_per_msg",
            "commitment.amount", "commitment.overage_factor"}
 # free-text fields: reviewed by a human, not scored by exact string match
@@ -128,7 +128,7 @@ def evaluate(name: str, result_path: str = None):
         ok = exp == got
         if not ok and f.rsplit(".", 1)[-1] in ("amount", "frequency"):
             g = f.rsplit(".", 1)[0]
-            if g in ("platform_fee", "llm_usage_fee", "hosting_fee"):
+            if g in ("recurring_fee", "usage_fee", "fixed_fee"):
                 at, ap = _annualized(truth, g), _annualized(pred, g)
                 if at is not None and at == ap:   # $10k/qtr == $40k/yr (economic equivalence)
                     ok = True

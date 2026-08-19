@@ -3,29 +3,37 @@
 import { useState } from "react";
 import sampleData from "@/lib/sample.json";
 
-// Real extraction over a real public contract (a Web Hosting Agreement filed as a public SEC
-// exhibit; CUAD, CC BY 4.0). Page image + the model's actual field bounding boxes — nothing faked.
+// Real extraction over a real public contract (Guidewire Software License Agreement, filed as
+// SEC exhibit EX-10.27). Rendered page image + the model's actual field bounding boxes — nothing faked.
 type Field = { field: string; value: string; confidence: string; category: string; boxes: number[][] };
 const sample = sampleData as { image: string; source: string; fields: Field[] };
 
+// Generic commercial-billing categories — apply to any contract (SEC filings, licenses,
+// services agreements), not a product-specific schema.
 const CAT_COLOR: Record<string, string> = {
-  Identity: "#7b84e6", Customer: "#5aa9c9", "Platform Fee": "#33b39c", "Hosting": "#e08a3c",
-  "LLM Usage": "#b06fd0", "Credit Grant": "#33a06a", Entitlement: "#3aa6e0",
-  Override: "#d081a8", Commitment: "#e06a6a", Terms: "#98a0ab", Other: "#98a0ab",
+  Term: "#7b84e6", Parties: "#5aa9c9", "Recurring Fee": "#33b39c", "Usage Fee": "#b06fd0",
+  "One-time Fee": "#33a06a", Payment: "#e08a3c", Penalty: "#e06a6a", Commitment: "#3aa6e0",
+  Discount: "#d081a8", Other: "#98a0ab",
 };
 
 export function AnnotatedContract() {
   const [active, setActive] = useState<number | null>(null);
 
   return (
-    <div className="grid lg:grid-cols-[1fr_.82fr] gap-5 items-start">
+    // The contract is the exhibit, so it takes the larger share, but the schema still
+    // needs enough width to read. minmax(0,…) is load-bearing: the schema rows use
+    // `truncate` (white-space: nowrap), so their min-content width is the full
+    // untruncated string. A bare `1fr` floors at that and starves the contract.
+    <div className="grid lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] gap-5 items-start">
       {/* the real contract page + the model's overlay */}
       <div className="rounded-xl overflow-hidden border border-line-2 bg-white">
         <div className="flex items-center justify-between px-4 py-2 bg-[#eef0f2] border-b border-[#dfe1e5]">
           <span className="font-mono text-[10.5px] tracking-[.1em] uppercase text-[#5f6570]">Real contract · public SEC exhibit</span>
-          <span className="font-mono text-[10.5px] text-[#9096a0]">Web Hosting Agreement</span>
+          <span className="font-mono text-[10.5px] text-[#9096a0]">Software License Agreement · EX-10.27</span>
         </div>
-        <div className="relative max-h-[560px] overflow-y-auto bg-white">
+        {/* No max-height: the page used to be cut off mid-document and scrolled inside
+            its own box, so you never saw the whole contract at once. */}
+        <div className="relative bg-white">
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={sample.image} alt="Contract page" className="w-full block select-none" draggable={false} />
@@ -58,7 +66,7 @@ export function AnnotatedContract() {
       {/* extracted structured fields */}
       <div className="card rounded-xl p-1.5">
         <div className="px-3.5 py-2.5 flex items-center justify-between">
-          <span className="font-mono text-[10.5px] tracking-[.1em] uppercase text-faint">Extracted → billing schema</span>
+          <span className="font-mono text-[10.5px] tracking-[.1em] uppercase text-faint">Extracted billing schema</span>
           <span className="font-mono text-[10.5px] text-faint">{sample.fields.length} fields</span>
         </div>
         <div className="flex flex-col">
@@ -74,7 +82,7 @@ export function AnnotatedContract() {
                 style={{ background: on ? "var(--surface-2)" : "transparent" }}
               >
                 <span className="size-2 rounded-[3px] shrink-0" style={{ background: c }} />
-                <span className="font-mono text-[11.5px] text-muted w-[150px] shrink-0 truncate">{f.field}</span>
+                <span className="text-[11.5px] text-muted w-[142px] shrink-0 truncate">{f.field}</span>
                 <span className="text-[13px] tnum truncate flex-1">{f.value}</span>
                 <span className={`font-mono text-[9.5px] tracking-wide shrink-0 ${f.confidence === "HIGH" ? "text-faint" : "text-warning"}`}>
                   {f.confidence === "HIGH" ? "HIGH" : "REVIEW"}
@@ -84,7 +92,7 @@ export function AnnotatedContract() {
           })}
         </div>
         <p className="px-3.5 py-2.5 text-[11px] text-faint border-t border-line">
-          Every box is the model&rsquo;s own citation — hover a field to see where it read it.
+          Every box is the model&rsquo;s own citation. Hover a field to see where it read it.
         </p>
       </div>
     </div>
