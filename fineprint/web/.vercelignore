@@ -4,3 +4,5 @@ node_modules
 .vercel
 *.tsbuildinfo
 .env*
+
+# (CI trigger test — path filter matches fineprint/web/**)

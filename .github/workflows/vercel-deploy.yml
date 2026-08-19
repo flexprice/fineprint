@@ -51,7 +51,7 @@ jobs:
           cache: npm
           cache-dependency-path: fineprint/web/package-lock.json
 
-      # production on push to main, on autopilot dispatch, or on manual "production"
+      # production on push to main, on autopilot dispatch, or on manual "production" 
       - name: Resolve target
         id: target
         run: |
