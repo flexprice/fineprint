@@ -1,0 +1,6 @@
+# Keep the source upload small — the free plan caps file uploads at 5000 / 24h.
+node_modules
+.next
+.vercel
+*.tsbuildinfo
+.env*
