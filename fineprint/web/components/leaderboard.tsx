@@ -8,15 +8,15 @@ import { ProviderIcon } from "@/components/provider-icon";
 type Col = { key: keyof ModelRow; label: string; render: (m: ModelRow) => React.ReactNode; num: boolean };
 
 const COLS: Col[] = [
-  { key: "rank", label: "#", num: true, render: (m) => <span className="text-faint font-mono">{m.rank}</span> },
+  { key: "rank", label: "#", num: true, render: (m) => <span className="text-faint tnum">{m.rank}</span> },
   {
     key: "label", label: "Model", num: false,
     render: (m) => (
       <Link href={`/models/${m.id}`} className="flex items-center gap-2.5 group">
         <ProviderIcon brand={m.brand} />
-        <b className="font-semibold group-hover:text-accent transition-colors">{m.label}</b>
-        {m.new && <span className="badge badge-new" style={{ padding: "1px 7px", fontSize: 11 }}>new</span>}
-        <span className="font-mono text-[11px] text-faint">{m.family}</span>
+        <b className="font-medium group-hover:text-accent transition-colors">{m.label}</b>
+        {m.new && <span className="badge badge-new" style={{ padding: "1px 7px", fontSize: 11 }}>New</span>}
+        <span className="text-[11.5px] text-faint">{m.family}</span>
       </Link>
     ),
   },
@@ -24,7 +24,7 @@ const COLS: Col[] = [
     key: "accuracy", label: "Accuracy", num: true,
     render: (m) => (
       <div className="relative inline-flex flex-col items-end">
-        <span className={`tnum ${m.rank === 1 ? "text-text font-semibold" : ""}`}>{m.accuracy}%</span>
+        <span className={`tnum ${m.rank === 1 ? "text-text font-medium" : ""}`}>{m.accuracy}%</span>
         <span className="mt-1 h-[3px] w-16 rounded-full bg-line-2 overflow-hidden">
           <span className="block h-full rounded-full" style={{ width: `${m.accuracy}%`, background: "var(--accent)" }} />
         </span>
@@ -37,10 +37,10 @@ const COLS: Col[] = [
   { key: "cost_1k", label: "$/1k", num: true, render: (m) => <span className="tnum">{money(m.cost_1k)}</span> },
   {
     key: "value", label: "Value", num: true,
-    render: (m) => <span className={`tnum ${m.rank === 1 ? "" : ""}`} title="accuracy points per $/1k">{m.value >= 10 ? m.value.toFixed(0) : m.value}</span>,
+    render: (m) => <span className="tnum" title="accuracy points per $/1k">{m.value >= 10 ? m.value.toFixed(0) : m.value}</span>,
   },
   { key: "p50", label: "p50", num: true, render: (m) => <span className="tnum">{m.p50}s</span> },
-  { key: "reliability", label: "OK", num: true, render: (m) => <span className="tnum text-faint">{m.reliability}%</span> },
+  { key: "reliability", label: "Valid", num: true, render: (m) => <span className="tnum text-faint">{m.reliability}%</span> },
 ];
 
 export function Leaderboard({ models }: { models: ModelRow[] }) {
@@ -65,8 +65,16 @@ export function Leaderboard({ models }: { models: ModelRow[] }) {
           <tr>
             {COLS.map((c) => (
               <th key={String(c.key)} onClick={() => onSort(c.key)}
-                className={`px-4 py-3 font-mono text-[11px] uppercase tracking-[.06em] text-faint cursor-pointer hover:text-muted select-none ${c.num ? "text-right" : "text-left"}`}>
-                {c.label}{sortKey === c.key ? (asc ? " ↑" : " ↓") : ""}
+                className={`px-4 py-3 text-[11px] font-medium uppercase tracking-[.07em] text-faint cursor-pointer hover:text-muted select-none whitespace-nowrap ${c.num ? "text-right" : "text-left"}`}>
+                {c.label}
+                {sortKey === c.key && (
+                  // Drawn, not typed: arrow glyphs fall back inconsistently across fonts.
+                  <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    className={`inline-block size-3 ml-1 align-middle ${asc ? "rotate-180" : ""}`}>
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                )}
               </th>
             ))}
           </tr>

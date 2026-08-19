@@ -143,8 +143,8 @@ cd fineprint/web && npm install && npm run dev   # the leaderboard at http://loc
 ## What gets scored
 
 The model fills a fixed billing schema and cites the exact OCR line(s) for every field. Roughly
-**18 hard-scored fields per contract**: `start_date`, `platform_fee.*`, `hosting_fee.*`,
-`llm_usage_fee.*`, `credit_grant.*`, `commitment.*`, `entitlement.*`, `override_*`, plus the customer
+**18 hard-scored fields per contract**: `start_date`, `recurring_fee.*`, `fixed_fee.*`,
+`usage_fee.*`, `credit_grant.*`, `commitment.*`, `entitlement.*`, `override_*`, plus the customer
 counterparty. Free-text fields are human-reviewed, not string-matched.
 
 - **Normalized before compare** — numbers pulled from `"$0.05/min"`, dates canonicalized, missing ≡ $0.

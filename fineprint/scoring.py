@@ -33,11 +33,11 @@ _CREDIT = {"one time": "credit", "one-time": "credit", "onetime": "credit", "usa
            "prepaid": "credit", "usage credit": "credit", "committed spend": "credit", "bank": "credit"}
 _MULT = {"monthly": 12, "quarterly": 4, "half yearly": 2, "annual": 1}
 
-GROUPS = ("platform_fee", "hosting_fee", "llm_usage_fee")
+GROUPS = ("recurring_fee", "fixed_fee", "usage_fee")
 # field partitions
 EXTRACT_SCALAR = ("start_date", "credit_grant.amount", "commitment.amount", "commitment.overage_factor",
                   "override_hosting_per_min", "override_sms_per_msg")
-CONVENTION = ("platform_fee.timing", "hosting_fee.timing", "llm_usage_fee.timing",
+CONVENTION = ("recurring_fee.timing", "fixed_fee.timing", "usage_fee.timing",
               "entitlement.period", "commitment.period", "credit_grant.type", "commitment.true_up")
 
 

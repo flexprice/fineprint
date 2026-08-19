@@ -213,7 +213,7 @@ function MiniScatter({ selectedIds }: { selectedIds: string[] }) {
       })}
 
       <text x={(M.left + W - M.right) / 2} y={H - 6} textAnchor="middle" fill="var(--muted)" fontSize="10.5" fontFamily="var(--font-mono)">
-        cost per 1,000 contracts (log) →
+        cost per 1,000 contracts (log)
       </text>
     </svg>
   );

@@ -11,11 +11,11 @@ fictional examples — replace this file with your own client's conventions.
 - On a redlined/struck value, the later / edited value is active; ignore the struck original.
 
 ## Fee taxonomy (map each stated fee to exactly one field)
-- `Platform fee` / `Subscription fee` / `Base license fee` → `platform_fee`. Do not fold drawable usage
+- `Platform fee` / `Subscription fee` / `Base license fee` → `recurring_fee`. Do not fold drawable usage
   banks, usage commitments, hosting, or pass-through charges into it.
-- A fixed infrastructure/hosting charge stated as `$X / period` → `hosting_fee`. An order-specific
-  per-unit hosting rate (e.g. `$0.05 / minute`) → `override_hosting_per_min`, not `hosting_fee`.
-- `Usage fee` / `Consumption fee: $X per period` → `llm_usage_fee` (a recurring usage charge, NOT a
+- A fixed infrastructure/hosting charge stated as `$X / period` → `fixed_fee`. An order-specific
+  per-unit hosting rate (e.g. `$0.05 / minute`) → `override_hosting_per_min`, not `fixed_fee`.
+- `Usage fee` / `Consumption fee: $X per period` → `usage_fee` (a recurring usage charge, NOT a
   commitment, unless bank/minimum/committed-spend language is present).
 - A `committed spend`, `prepaid usage bank`, `minimum annual commitment`, or `usage credits` line is a
   commitment/credit-grant signal: populate `commitment.amount` and `credit_grant.amount`.
