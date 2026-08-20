@@ -159,11 +159,16 @@ def _load_sample_result(sample_id: str, model_id: str) -> dict:
     if not sample_id or not _SAMPLE_ID_RE.match(sample_id) or sample_id not in _known_sample_ids():
         raise HTTPException(404, f"unknown sample {sample_id!r}")
     base = SAMPLE_DIR / sample_id
+    meta_path, doc_path, pages_path = base / "meta.json", base / "doc.pkl", base / "pages.json"
+    if not meta_path.exists() or not doc_path.exists() or not pages_path.exists():
+        # listed in the public sample catalog (playground-samples.json) but not (yet) prepped
+        # on this deployment — a missing-data problem, not a client error.
+        raise HTTPException(503, "sample not available")
     default_path = base / "result.json"
-    if model_id == json.loads((base / "meta.json").read_text())["default_model"] and default_path.exists():
+    if model_id == json.loads(meta_path.read_text())["default_model"] and default_path.exists():
         return json.loads(default_path.read_text())
-    doc = pickle.loads((base / "doc.pkl").read_bytes())
-    pages = json.loads((base / "pages.json").read_text())   # precomputed page images
+    doc = pickle.loads(doc_path.read_bytes())
+    pages = json.loads(pages_path.read_text())               # precomputed page images
     res = playground.extract_result(doc, _resolve_model(model_id))
     res["pages"] = pages
     return res
@@ -171,6 +176,8 @@ def _load_sample_result(sample_id: str, model_id: str) -> dict:
 
 @app.post("/lead")
 async def lead(request: Request) -> dict:
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
     body = await request.json()
     try:
         tok = leads.record_lead(email=body.get("email"), company=body.get("company"),
@@ -210,7 +217,7 @@ async def extract(request: Request, file: UploadFile = File(None),
         tf.write(pdf)
         tmp = tf.name
     try:
-        doc = extract_document(tmp)                     # live Datalab OCR
+        doc = extract_document(tmp, cache=False)         # live Datalab OCR — never cached to disk
         res = playground.extract_result(doc, resolved_model)
         res["pages"] = [{"image": "data:image/png;base64," + base64.b64encode(p["png"]).decode(),
                          "w": p["w"], "h": p["h"]} for p in render_pages(pdf)]

@@ -2,8 +2,7 @@
 from pipeline.render import field_boxes
 from fineprint.config import OVERRIDES_DIR
 
-_RULES = ((OVERRIDES_DIR / "default.md").read_text() + "\n\n" +
-          (OVERRIDES_DIR / "base_client.md").read_text())
+_RULES = (OVERRIDES_DIR / "default.md").read_text()
 
 
 def extract_result(doc, model: dict, call_fn=None, want_boxes: bool = True) -> dict:

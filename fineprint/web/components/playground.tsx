@@ -69,7 +69,7 @@ export function Playground() {
           <label className="block border border-dashed border-line rounded-xl p-8 text-center text-muted cursor-pointer">
             <input type="file" accept="application/pdf" hidden
               onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErr(""); }} />
-            {file ? <b className="text-text">{file.name}</b> : <><b className="text-text">Drop a PDF</b>, or click to browse · ≤15 pages / 10 MB</>}
+            {file ? <b className="text-text">{file.name}</b> : <><b className="text-text">Drop a PDF</b>, or click to browse · ≤ 10 MB</>}
             <div className="text-[12px] text-faint mt-2">Your file is processed to extract terms and is not stored.</div>
           </label>
         )}

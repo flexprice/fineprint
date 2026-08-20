@@ -1,4 +1,5 @@
 """Capture playground leads: validate, announce to Slack, append to a stored list, mint a token."""
+import base64
 import hashlib
 import hmac
 import json
@@ -40,8 +41,24 @@ def record_lead(email, company, context: dict, notify_fn=None, store_append=None
 
 
 def issue_session_token(email: str) -> str:
-    return hmac.new(_SECRET, email.encode(), hashlib.sha256).hexdigest()[:32] + ".ok"
+    """Self-verifying token that carries the gated email: ``<b64url(email)>.<hmac-sig>``."""
+    b64 = base64.urlsafe_b64encode(email.encode()).decode().rstrip("=")
+    sig = hmac.new(_SECRET, email.encode(), hashlib.sha256).hexdigest()[:32]
+    return f"{b64}.{sig}"
 
 
 def valid_session_token(tok: str) -> bool:
-    return bool(tok) and tok.endswith(".ok") and len(tok) == 35
+    """Recompute the HMAC over the embedded email and compare — a bare '<32 hex>.ok' no longer
+    validates; only a token minted by issue_session_token (same secret) passes."""
+    if not tok or "." not in tok:
+        return False
+    b64, _, sig = tok.rpartition(".")
+    if not b64 or not sig:
+        return False
+    try:
+        padded = b64 + "=" * (-len(b64) % 4)
+        email = base64.urlsafe_b64decode(padded.encode()).decode()
+    except Exception:
+        return False
+    expected = hmac.new(_SECRET, email.encode(), hashlib.sha256).hexdigest()[:32]
+    return hmac.compare_digest(sig, expected)

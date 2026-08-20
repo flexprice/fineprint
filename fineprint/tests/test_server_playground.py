@@ -1,6 +1,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 import fineprint.server as srv
 
@@ -51,10 +53,37 @@ def test_extract_sample_missing_sample_id_is_422():
     r = client.post("/extract", json={"model": "gpt-5.5"})
     assert r.status_code == 422
 
+def test_load_sample_result_unprepped_sample_is_503_not_500(monkeypatch, tmp_path):
+    # "guidewire" is a real id in the public sample catalog (playground-samples.json), but
+    # SAMPLE_DIR here has nothing prepped for it (no meta.json/doc.pkl/pages.json) — this must
+    # surface as a clean 503, not an unhandled FileNotFoundError -> 500.
+    monkeypatch.setattr(srv, "SAMPLE_DIR", tmp_path)
+    with pytest.raises(HTTPException) as exc_info:
+        srv._load_sample_result("guidewire", "gpt-5.5")
+    assert exc_info.value.status_code == 503
+
+def test_extract_sample_unprepped_returns_503_over_http(monkeypatch, tmp_path):
+    monkeypatch.setattr(srv, "SAMPLE_DIR", tmp_path)
+    r = client.post("/extract", json={"sample_id": "guidewire", "model": "gpt-5.5"})
+    assert r.status_code == 503
+
 def test_extract_upload_unknown_model_rejected_before_ocr(monkeypatch):
     def _boom(*a, **k):
         raise AssertionError("extract_document (paid OCR) must not run for an unknown model")
     monkeypatch.setattr("pipeline.extractor.extract_document", _boom)
-    r = client.post("/extract", data={"model": "not-a-real-model", "session_token": "a" * 32 + ".ok"},
+    valid_token = srv.leads.issue_session_token("d@acme.com")   # must be a *real* token to get past the gate
+    r = client.post("/extract", data={"model": "not-a-real-model", "session_token": valid_token},
                     files={"file": ("c.pdf", b"%PDF-1.4", "application/pdf")})
     assert r.status_code == 400
+
+def test_lead_rate_limited_after_repeated_calls(monkeypatch):
+    # isolate this test's rate-limit budget from every other test sharing the module-level
+    # limiter and TestClient identity, so ordering/other tests' /lead|/extract calls can't
+    # affect this assertion (and vice versa).
+    monkeypatch.setattr(srv, "_limiter", srv.Limiter(max_hits=2, window_s=60))
+    monkeypatch.setattr(srv.leads, "record_lead", lambda **k: "tok")
+    body = {"email": "d@acme.com", "company": "Acme", "context": {}}
+    assert client.post("/lead", json=body).status_code == 200
+    assert client.post("/lead", json=body).status_code == 200
+    r = client.post("/lead", json=body)
+    assert r.status_code == 429

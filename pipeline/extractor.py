@@ -54,16 +54,23 @@ def _client():
     return DatalabClient(api_key=DATALAB_API_KEY)
 
 
-def _raw_ocr(path: Path, want_markdown: bool) -> dict:
-    """Datalab ocr() + convert(), cached on disk by file content hash."""
+def _raw_ocr(path: Path, want_markdown: bool, cache: bool = True) -> dict:
+    """Datalab ocr() + convert(). Cached on disk by file content hash when ``cache`` is True.
+
+    ``cache=False`` (the public playground's upload path) neither reads nor writes
+    ``.ocr_cache`` — the contract text is computed fresh and never touches disk, preserving the
+    "your upload is never stored" guarantee.
+    """
     from datalab_sdk.models import OCROptions, ConvertOptions
-    _CACHE.mkdir(exist_ok=True)
-    h = hashlib.sha1(path.read_bytes()).hexdigest()[:16]
-    cf = _CACHE / f"{h}.json"
-    if cf.exists():
-        cached = json.loads(cf.read_text())
-        if cached.get("has_md") or not want_markdown:
-            return cached
+    cf = None
+    if cache:
+        _CACHE.mkdir(exist_ok=True)
+        h = hashlib.sha1(path.read_bytes()).hexdigest()[:16]
+        cf = _CACHE / f"{h}.json"
+        if cf.exists():
+            cached = json.loads(cf.read_text())
+            if cached.get("has_md") or not want_markdown:
+                return cached
     client = _client()
     ocr_res = client.ocr(str(path), options=OCROptions())
     md = ""
@@ -71,14 +78,15 @@ def _raw_ocr(path: Path, want_markdown: bool) -> dict:
         md = (client.convert(str(path), options=ConvertOptions(
             output_format="markdown", paginate=True, disable_image_extraction=True)).markdown or "")
     data = {"pages": ocr_res.pages, "markdown": md, "has_md": want_markdown}
-    cf.write_text(json.dumps(data))
+    if cf is not None:
+        cf.write_text(json.dumps(data))
     return data
 
 
-def extract_document(path: str | Path, want_markdown: bool = True) -> Document:
+def extract_document(path: str | Path, want_markdown: bool = True, cache: bool = True) -> Document:
     path = Path(path)
     stem = _short_stem(path.stem)
-    raw = _raw_ocr(path, want_markdown)
+    raw = _raw_ocr(path, want_markdown, cache=cache)
 
     doc = Document(stem=stem, path=str(path), page_dims=[], markdown=raw.get("markdown", ""))
     for pi, page in enumerate(raw["pages"]):
