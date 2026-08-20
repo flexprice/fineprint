@@ -2,19 +2,12 @@
 
 import { useState } from "react";
 import sampleData from "@/lib/sample.json";
+import { CAT_COLOR } from "@/lib/categories";
 
 // Real extraction over a real public contract (Guidewire Software License Agreement, filed as
 // SEC exhibit EX-10.27). Rendered page image + the model's actual field bounding boxes — nothing faked.
 type Field = { field: string; value: string; confidence: string; category: string; boxes: number[][] };
 const sample = sampleData as { image: string; source: string; fields: Field[] };
-
-// Generic commercial-billing categories — apply to any contract (SEC filings, licenses,
-// services agreements), not a product-specific schema.
-const CAT_COLOR: Record<string, string> = {
-  Term: "#7b84e6", Parties: "#5aa9c9", "Recurring Fee": "#33b39c", "Usage Fee": "#b06fd0",
-  "One-time Fee": "#33a06a", Payment: "#e08a3c", Penalty: "#e06a6a", Commitment: "#3aa6e0",
-  Discount: "#d081a8", Other: "#98a0ab",
-};
 
 export function AnnotatedContract() {
   const [active, setActive] = useState<number | null>(null);
