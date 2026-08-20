@@ -65,3 +65,20 @@ def upload(src: Path, obj: str, content_type: str | None = None) -> None:
         return
     blob = _bucket().blob(obj)
     blob.upload_from_filename(str(src), content_type=content_type)
+
+
+def download_json(rel_path: str):
+    """Read a JSON object from the bucket, or None if bucket unset/blob absent."""
+    import json
+    if not enabled():
+        return None
+    blob = _bucket().blob(rel_path)
+    return json.loads(blob.download_as_text()) if blob.exists() else None
+
+
+def upload_json(rel_path: str, obj) -> None:
+    """Write a JSON object to the bucket; no-op if bucket unset."""
+    import json
+    if not enabled():
+        return
+    _bucket().blob(rel_path).upload_from_string(json.dumps(obj), content_type="application/json")
