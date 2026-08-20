@@ -22,6 +22,7 @@ def main() -> None:
 
     n = store.download_prefix("corpus/ocr", Path(config.OCR_DIR))
     store.download("corpus/ground_truth.xlsx", Path(config.GROUND_TRUTH))
+    store.download_prefix("playground/samples", Path(config.SAMPLE_DIR))
 
     for obj, local in {
         "state/runs.json": config.RESULTS,

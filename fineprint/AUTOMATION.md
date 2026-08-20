@@ -136,6 +136,59 @@ context) and POSTs `{"text": <fallback>, "blocks": [...]}` to the webhook via `u
 rank, accuracy (+delta vs baseline), $/1k, value, latency p50/p90, hallucination. Failures post a
 compact `:warning:` message instead.
 
+## Interactive playground endpoints
+
+Two new HTTP endpoints enable the FinePrint web UI ("Try it") to extract pricing data and lead
+management without a backend application:
+
+### `POST /extract` — document extraction
+
+**Request:**
+- `file` (form data): PDF contract (≤10MB)
+- `model` (query param): OpenRouter model ID (e.g., `openai/gpt-4o`)
+
+**Response:**
+```json
+{
+  "entities": [
+    { "type": "party", "value": "...", "pages": [0, 1], "confidence": 0.95 },
+    { "type": "quantity", "value": "100", "unit": "units", "pages": [2] }
+  ],
+  "boxes": [
+    { "page": 0, "box": { "x0": 10, "y0": 20, "x1": 100, "y1": 50 } }
+  ]
+}
+```
+
+**Guards:**
+- Email gate: upload requires valid email (stored in session, not persisted)
+- Rate limit: 12 requests per minute (per IP)
+- Size cap: 10MB max file size
+- Uploads are **processed transiently** — deleted after extraction completes
+
+### `POST /lead` — lead capture
+
+**Request:**
+```json
+{
+  "email": "buyer@company.com",
+  "company": "Example Inc",
+  "estimated_spend": "50000",
+  "notes": "Interested in seat-based pricing"
+}
+```
+
+**Response:**
+```json
+{ "status": "recorded", "id": "<uuid>" }
+```
+
+**Guards:**
+- Email gate: same validation as `/extract`
+- Rate limit: same 12 RPM cap
+- Payloads are **processed transiently** — not stored (delivered to configured webhook only)
+- File uploads from `/extract` are **excluded** from lead records
+
 ## Hosting — recommended primary: Modal
 
 Modal is the recommended host because it cleanly carries all three things the eval needs — the
