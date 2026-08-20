@@ -37,6 +37,9 @@ Concretely, it productizes the existing Ferry/pipeline flow (**PDF → Chandra/D
 
 ## 4. User experience — `/try` ("Try it" in the nav)
 
+> A validated **skeleton mockup** exists (interactive): the layout, controls, annotated-result interaction, and email gate below are the approved structure. It is a **reference skeleton, not final pixels** — visual polish (spacing, motion, empty/loading states, mobile) is part of implementation, following the site's design system.
+
+
 **Input panel**
 - Tabs: **Sample contracts** (6 cards; each a real public agreement labeled by type — e.g. "SaaS subscription · SEC EX-10", "Master services agreement", "Order form w/ fee table") and **Upload your own** (PDF dropzone; ≤ ~15 pages / ≤ 10 MB).
 - **Model dropdown**: curated ~6 (rank + accuracy shown); **"Show all 43"** toggle reveals the full roster.
