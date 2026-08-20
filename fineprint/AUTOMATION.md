@@ -136,58 +136,55 @@ context) and POSTs `{"text": <fallback>, "blocks": [...]}` to the webhook via `u
 rank, accuracy (+delta vs baseline), $/1k, value, latency p50/p90, hallucination. Failures post a
 compact `:warning:` message instead.
 
-## Interactive playground endpoints
+## Playground endpoints (`/extract`, `/lead`)
 
-Two new HTTP endpoints enable the FinePrint web UI ("Try it") to extract pricing data and lead
-management without a backend application:
+Public, CORS-restricted endpoints that power the `/try` playground. No `X-FinePrint-Token` (unlike `/eval`/`/watch`).
 
-### `POST /extract` — document extraction
+### `POST /extract`
+Rate-limited to 12 requests/minute per client. Two request modes:
 
-**Request:**
-- `file` (form data): PDF contract (≤10MB)
-- `model` (query param): OpenRouter model ID (e.g., `openai/gpt-4o`)
+**Sample mode** — JSON body, no auth:
+```
+{ "sample_id": "guidewire", "model": "gpt-5.5" }
+```
+`sample_id` must be a known curated public sample (unknown → 404).
 
-**Response:**
+**Upload mode** — multipart form; requires a `session_token` from `/lead`:
+- `file` — PDF, ≤ 10 MB (larger → 413)
+- `model` — form field, a board model id (unknown → 400)
+- `session_token` — form field, from `/lead` (missing/invalid → 401)
+
+The uploaded PDF is OCR'd live (Chandra/Datalab); the temp file is deleted after the response — never stored.
+
+**Response** (both modes):
 ```json
 {
-  "entities": [
-    { "type": "party", "value": "...", "pages": [0, 1], "confidence": 0.95 },
-    { "type": "quantity", "value": "100", "unit": "units", "pages": [2] }
-  ],
-  "boxes": [
-    { "page": 0, "box": { "x0": 10, "y0": 20, "x1": 100, "y1": 50 } }
-  ]
+  "pages":  [ { "image": "data:image/png;base64,…", "w": 1280, "h": 823 } ],
+  "fields": [ { "field": "recurring_fee.amount", "value": "$45,000",
+                "confidence": "HIGH", "category": "Recurring Fee",
+                "boxes": [ { "page": 0, "box": [0.19, 0.45, 0.24, 0.47] } ] } ],
+  "model": "GPT-5.5", "latency": 41.2
 }
 ```
 
-**Guards:**
-- Email gate: upload requires valid email (stored in session, not persisted)
-- Rate limit: 12 requests per minute (per IP)
-- Size cap: 10MB max file size
-- Uploads are **processed transiently** — deleted after extraction completes
+`confidence` ∈ `HIGH | NEEDS_REVIEW | MISSING`; `box` is `[x0,y0,x1,y1]` normalized 0–1 on the given `page`.
 
-### `POST /lead` — lead capture
+Errors: 400 (unknown model) · 401 (bad/missing session_token on upload) · 404 (unknown sample_id) · 413 (PDF > 10 MB) · 422 (missing/invalid body) · 429 (rate limit).
 
-**Request:**
+### `POST /lead`
+JSON body:
 ```json
-{
-  "email": "buyer@company.com",
-  "company": "Example Inc",
-  "estimated_spend": "50000",
-  "notes": "Interested in seat-based pricing"
-}
+{ "email": "you@company.com", "company": "Acme Inc.", "context": { "kind": "upload", "model": "gpt-5.5" } }
 ```
 
-**Response:**
+Validates the email (invalid → 422), posts a Slack notification, and appends the lead (email/company/model/sample-type only — never file contents) to a stored list. Returns:
 ```json
-{ "status": "recorded", "id": "<uuid>" }
+{ "session_token": "…" }
 ```
 
-**Guards:**
-- Email gate: same validation as `/extract`
-- Rate limit: same 12 RPM cap
-- Payloads are **processed transiently** — not stored (delivered to configured webhook only)
-- File uploads from `/extract` are **excluded** from lead records
+Pass this token as the `session_token` form field on `/extract`'s upload mode.
+
+**Guards / privacy:** `/extract` is rate-limited (12 rpm/client) with a 10 MB PDF cap; the upload path is gated behind `/lead` (email capture). Uploaded files are processed transiently and not retained.
 
 ## Hosting — recommended primary: Modal
 

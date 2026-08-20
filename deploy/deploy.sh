@@ -87,6 +87,7 @@ SECRETS="OPENROUTER_API_KEY=fineprint-openrouter-key:latest,FINEPRINT_API_TOKEN=
 [ -n "${SLACK_WEBHOOK_URL:-}" ]     && SECRETS="$SECRETS,SLACK_WEBHOOK_URL=fineprint-slack-webhook:latest"
 [ -n "${VERCEL_DEPLOY_HOOK_URL:-}" ] && SECRETS="$SECRETS,VERCEL_DEPLOY_HOOK_URL=fineprint-vercel-hook:latest"
 [ -n "${CHANDRA_OCR_API_KEY:-}" ]    && SECRETS="$SECRETS,CHANDRA_OCR_API_KEY=fineprint-chandra-ocr-key:latest"
+[ -n "${CHANDRA_OCR_API_KEY:-}" ] || echo "WARNING: CHANDRA_OCR_API_KEY unset — the playground's 'bring your own contract' OCR will fail at request time."
 
 gcloud run deploy "$SERVICE" --source "$here" --project "$PROJECT" --region "$REGION" \
   --service-account "$SA_EMAIL" \

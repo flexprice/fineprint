@@ -22,7 +22,7 @@ def main() -> None:
 
     n = store.download_prefix("corpus/ocr", Path(config.OCR_DIR))
     store.download("corpus/ground_truth.xlsx", Path(config.GROUND_TRUTH))
-    store.download_prefix("playground/samples", Path(config.SAMPLE_DIR))
+    s = store.download_prefix("playground/samples", Path(config.SAMPLE_DIR))
 
     for obj, local in {
         "state/runs.json": config.RESULTS,
@@ -32,7 +32,7 @@ def main() -> None:
     }.items():
         store.download(obj, Path(local))
 
-    print(f"bootstrap: synced {n} OCR docs + ground truth + state from gs://{store.BUCKET}")
+    print(f"bootstrap: synced {n} OCR docs + ground truth + {s} samples + state from gs://{store.BUCKET}")
 
 
 if __name__ == "__main__":
