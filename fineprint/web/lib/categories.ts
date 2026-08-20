@@ -1,9 +1,9 @@
 // fineprint/web/lib/categories.ts
 // Generic commercial-billing categories — apply to any contract (SEC filings, licenses,
-// services agreements), not a product-specific schema. Shared by annotated-contract.tsx
-// and annotated-result.tsx.
-// Superset of two category vocabularies so BOTH render color-coded: the static demo
-// (annotated-contract.tsx / sample.json) and the LIVE reasoner output from /extract
+// services agreements), not a product-specific schema. Shared by contract-viewer.tsx
+// and output-panel.tsx.
+// Superset of two category vocabularies so BOTH render color-coded: the bundled Guidewire
+// sample (sample.json, adapted in playground.tsx) and the LIVE reasoner output from /extract
 // (pipeline/reasoner.py `_FIELD_CATEGORY`: Identity, Customer, Recurring Fee, Fixed Fee,
 // Usage Fee, Credit Grant, Entitlement, Override, Commitment, Terms, Other).
 export const CAT_COLOR: Record<string, string> = {

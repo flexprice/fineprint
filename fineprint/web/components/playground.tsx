@@ -1,92 +1,142 @@
 // fineprint/web/components/playground.tsx
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import samples from "@/lib/playground-samples.json";
-import { runExtract, type ExtractResult } from "@/lib/playground-api";
-import { AnnotatedResult } from "@/components/annotated-result";
+import sample from "@/lib/sample.json";
+import { runExtract, fetchSamplePages, fetchAvailableSamples,
+  type ExtractResult, type Page, type SampleMeta } from "@/lib/playground-api";
+import { ContractViewer } from "@/components/contract-viewer";
+import { OutputPanel } from "@/components/output-panel";
+import { ModelPicker } from "@/components/model-picker";
 import { EmailGate } from "@/components/email-gate";
 
-const CURATED = [
-  { id: "gpt-5.5", label: "GPT-5.5 — #1 · 82.2%" },
-  { id: "claude-fable-5", label: "Claude Fable 5 — #2 · 81.8%" },
-  { id: "grok-4.6", label: "Grok 4.6 — #3 · 80.7%" },
-  { id: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite — best value" },
-  { id: "gpt-5.6-luna", label: "GPT-5.6 Luna — fastest" },
-  { id: "deepseek-v3.2", label: "DeepSeek V3.2 — #19" },
-];
+// Shortlist offered in the playground (ids match the backend PLAYGROUND_MODELS). Names + logos
+// are resolved from the published board (lib/data) inside ModelPicker — no rank/price here.
+const PLAYGROUND_MODEL_IDS = ["gpt-5.5", "claude-fable-5", "grok-4.6", "gemini-3.5-flash-lite", "gpt-5.6-luna", "deepseek-v3.2"];
+const DEFAULT_MODEL = PLAYGROUND_MODEL_IDS[0];
+const GUIDEWIRE_ID = samples[0].id; // "guidewire"
+const GUIDEWIRE_META = samples.find((s) => s.id === GUIDEWIRE_ID)! as SampleMeta;
+
+// The one sample that ships with the site as a static asset, adapted into the /extract shape
+// so the same viewer renders it. This is the default view — no network, always works.
+const GUIDEWIRE: ExtractResult = {
+  pages: [{ image: sample.image, w: 0, h: 0 }],
+  fields: sample.fields.map((f) => ({
+    field: f.field, value: f.value, confidence: f.confidence, category: f.category,
+    boxes: f.boxes.map((b) => ({ page: 0, box: b as [number, number, number, number] })),
+  })),
+  model: "GPT-5.5", latency: 41,
+};
+
+const sourceOf = (id: string) => {
+  const s = samples.find((x) => x.id === id);
+  return s ? `${s.type} · ${s.source}` : "Contract";
+};
 
 export function Playground() {
-  const [tab, setTab] = useState<"sample" | "upload">("sample");
-  const [sampleId, setSampleId] = useState(samples[0].id);
+  const [mode, setMode] = useState<"sample" | "upload">("sample");
+  const [sampleId, setSampleId] = useState(GUIDEWIRE_ID);
+  const [model, setModel] = useState(DEFAULT_MODEL);
   const [file, setFile] = useState<File | null>(null);
-  const [model, setModel] = useState(CURATED[0].id);
+  const [pages, setPages] = useState<Page[]>(GUIDEWIRE.pages);
+  const [result, setResult] = useState<ExtractResult | null>(GUIDEWIRE);
+  const [revealed, setRevealed] = useState(false);
+  const [hot, setHot] = useState<number | null>(null);
+  const [loadingPages, setLoadingPages] = useState(false);
+  const [status, setStatus] = useState<"" | "running" | "error">("");
+  const [err, setErr] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [gate, setGate] = useState(false);
-  const [status, setStatus] = useState<"" | "running" | "error">("");
-  const [result, setResult] = useState<ExtractResult | null>(null);
-  const [err, setErr] = useState("");
+  // Chips render only genuinely-available samples: the offline Guidewire, plus whatever the
+  // backend reports as prepped. No dead placeholder buttons.
+  const [available, setAvailable] = useState<SampleMeta[]>([GUIDEWIRE_META]);
+
+  useEffect(() => {
+    fetchAvailableSamples()
+      .then((list) => setAvailable([GUIDEWIRE_META, ...list.filter((s) => s.id !== GUIDEWIRE_ID)]))
+      .catch(() => {});   // backend down / none prepped → just the offline Guidewire
+  }, []);
+
+  function pickSample(id: string) {
+    setMode("sample"); setSampleId(id); setRevealed(false); setHot(null); setErr(""); setStatus("");
+    if (id === GUIDEWIRE_ID) { setPages(GUIDEWIRE.pages); setResult(GUIDEWIRE); return; }
+    setResult(null); setPages([]); setLoadingPages(true);
+    fetchSamplePages(id)
+      .then((p) => setPages(p))
+      .catch(() => setPages([]))          // preview may not be prepped yet; Run will still extract
+      .finally(() => setLoadingPages(false));
+  }
+
+  function pickUpload() {
+    setMode("upload"); setRevealed(false); setHot(null); setErr(""); setStatus("");
+    setResult(null); setPages([]);
+  }
 
   async function run(tokenOverride?: string) {
-    if (tab === "upload") {
-      if (!file) { setErr("Choose a PDF first."); return; }
-      const activeToken = tokenOverride ?? token;
-      if (!activeToken) { setGate(true); return; }         // gate only when we truly have no token
-      setStatus("running"); setErr("");
+    setErr("");
+    if (mode === "sample") {
+      // Guidewire on the default model is the offline path: nothing to fetch, just reveal.
+      if (sampleId === GUIDEWIRE_ID && model === DEFAULT_MODEL) {
+        setResult(GUIDEWIRE); setPages(GUIDEWIRE.pages); setRevealed(true); return;
+      }
+      setStatus("running");
       try {
-        const res = await runExtract({ file: file!, model, sessionToken: activeToken });
-        setResult(res); setStatus("");
-      } catch (e) { setErr(e instanceof Error ? e.message : "failed"); setStatus("error"); }
+        const res = await runExtract({ sampleId, model });
+        setResult(res); setPages(res.pages); setRevealed(true); setStatus("");
+      } catch (e) { setErr(e instanceof Error ? e.message : "extraction failed"); setStatus("error"); }
       return;
     }
-    setStatus("running"); setErr("");
+    // upload — gated on a work email
+    if (!file) { setErr("Choose a PDF first."); return; }
+    const activeToken = tokenOverride ?? token;
+    if (!activeToken) { setGate(true); return; }
+    setStatus("running");
     try {
-      const res = await runExtract({ sampleId, model });
-      setResult(res); setStatus("");
-    } catch (e) { setErr(e instanceof Error ? e.message : "failed"); setStatus("error"); }
+      const res = await runExtract({ file, model, sessionToken: activeToken });
+      setResult(res); setPages(res.pages); setRevealed(true); setStatus("");
+    } catch (e) { setErr(e instanceof Error ? e.message : "extraction failed"); setStatus("error"); }
   }
+
+  const running = status === "running";
 
   return (
     <div>
-      <div className="panel rounded-2xl p-5 mb-6">
-        <div className="flex gap-1 bg-surface-2 rounded-xl p-1 w-max mb-4">
-          {(["sample", "upload"] as const).map((t) => (
-            <button key={t} onClick={() => { setTab(t); setErr(""); }}
-              className={`px-4 py-1.5 rounded-lg text-[13.5px] font-semibold ${tab === t ? "bg-surface text-text shadow-sm" : "text-muted"}`}>
-              {t === "sample" ? "Sample contracts" : "Upload your own"}</button>
+      {/* controls: sample chips + upload + model + run */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {available.map((s) => (
+            <button key={s.id} onClick={() => pickSample(s.id)}
+              className={`text-[12.5px] px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors ${
+                mode === "sample" && sampleId === s.id
+                  ? "border-accent bg-accent/5 text-text font-semibold"
+                  : "border-line bg-surface text-muted hover:text-text"}`}>
+              {s.title}</button>
           ))}
+          <button onClick={pickUpload}
+            className={`text-[12.5px] px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors ${
+              mode === "upload"
+                ? "border-accent bg-accent/5 text-text font-semibold"
+                : "border-line bg-surface text-muted hover:text-text"}`}>
+            Upload your own ↑</button>
         </div>
-        {tab === "sample" ? (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {samples.map((s) => (
-              <button key={s.id} onClick={() => { setSampleId(s.id); setErr(""); }}
-                className={`text-left border rounded-xl p-3.5 ${sampleId === s.id ? "border-accent bg-accent/5" : "border-line"}`}>
-                <div className="text-[14px] font-semibold">{s.title}</div>
-                <div className="font-mono text-[11px] text-faint mt-1">{s.source}</div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <label className="block border border-dashed border-line rounded-xl p-8 text-center text-muted cursor-pointer">
-            <input type="file" accept="application/pdf" hidden
-              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErr(""); }} />
-            {file ? <b className="text-text">{file.name}</b> : <><b className="text-text">Drop a PDF</b>, or click to browse · ≤ 10 MB</>}
-            <div className="text-[12px] text-faint mt-2">Your file is processed to extract terms and is not stored.</div>
-          </label>
-        )}
-        <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-line-2">
-          <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="border border-line bg-surface rounded-lg px-3 py-2 text-[13.5px] font-semibold">
-            {CURATED.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-          <button onClick={() => run()} disabled={status === "running"}
-            className="ml-auto bg-primary text-bg rounded-xl px-5 py-2.5 text-[14px] font-bold disabled:opacity-60">
-            {status === "running" ? "Reading…" : "Run extraction →"}</button>
+        <div className="flex items-center gap-2.5 ml-auto">
+          <ModelPicker ids={PLAYGROUND_MODEL_IDS} value={model} onChange={setModel} />
+          <button onClick={() => run()} disabled={running}
+            className="bg-primary text-bg rounded-xl px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-60 whitespace-nowrap">
+            {running ? "Reading…" : revealed ? "Re-run →" : "Run extraction →"}</button>
         </div>
-        {err && <p className="mt-3 text-[13px] text-warning">{err}</p>}
       </div>
 
-      {status === "running" && <p className="text-center text-muted text-[14px] py-10 font-mono">OCR&rsquo;ing → reading → rendering…</p>}
-      {result && <AnnotatedResult result={result} />}
+      <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-4 items-start">
+        <ContractViewer
+          pages={pages} fields={result?.fields ?? []} revealed={revealed}
+          hot={hot} setHot={setHot}
+          mode={mode} file={file} onFile={(f) => { setFile(f); setErr(""); }}
+          loading={loadingPages} source={mode === "upload" ? "Your document" : sourceOf(sampleId)} />
+        <OutputPanel result={result} revealed={revealed} hot={hot} setHot={setHot} />
+      </div>
+
+      {err && <p className="mt-3 text-[13px] text-warning">{err}</p>}
 
       <EmailGate open={gate} onClose={() => setGate(false)}
         context={{ kind: "upload", model, sample: null }}

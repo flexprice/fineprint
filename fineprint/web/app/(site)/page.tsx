@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { QuadrantChart } from "@/components/quadrant-chart";
 import { Leaderboard } from "@/components/leaderboard";
-import { AnnotatedContract } from "@/components/annotated-contract";
+import { Playground } from "@/components/playground";
 import { Analytics } from "@/components/analytics";
 import { WhatsInside } from "@/components/whats-inside";
 import { ProblemStatement } from "@/components/problem-statement";
@@ -67,16 +67,17 @@ export default function Home() {
       {/* method: how the score is produced */}
       <WhatsInside />
 
-      {/* demonstration: the method made concrete on one real document */}
-      <section id="task" className="shell py-16">
-        <p className="eyebrow mb-3">See it happen</p>
-        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">Watch a model read a real contract.</h2>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted max-w-[62ch]">
-          A public SEC filing, read by a model and scored live. Every box is the model&rsquo;s own
-          citation. Hover a field to trace where it came from.
+      {/* try it: the method made interactive — pick a contract + model, read it, run it */}
+      <section id="try" className="shell py-16">
+        <p className="eyebrow mb-3">Try it · live on this page</p>
+        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">Read a contract with any model.</h2>
+        <p className="mt-4 text-[15px] leading-relaxed text-muted max-w-[64ch]">
+          Pick a sample contract (or bring your own) and a model, then run it. The document opens on
+          the left; every field the model extracts is boxed on the page and laid out as a structured
+          schema on the right — each one cited back to the line it was read from.
         </p>
         <div className="mt-8">
-          <AnnotatedContract />
+          <Playground />
         </div>
       </section>
 

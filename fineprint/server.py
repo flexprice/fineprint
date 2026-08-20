@@ -32,7 +32,7 @@ from fineprint.ratelimit import Limiter
 app = FastAPI(title="FinePrint", docs_url="/docs", redoc_url=None)
 
 app.add_middleware(CORSMiddleware, allow_origins=SITE_ORIGINS,
-                   allow_methods=["POST", "OPTIONS"], allow_headers=["*"])
+                   allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])
 _limiter = Limiter(max_hits=int(os.environ.get("FINEPRINT_PLAYGROUND_RPM", "12")), window_s=60)
 
 _TOKEN = os.environ.get("FINEPRINT_API_TOKEN", "").strip()
@@ -172,6 +172,34 @@ def _load_sample_result(sample_id: str, model_id: str) -> dict:
     res = playground.extract_result(doc, _resolve_model(model_id))
     res["pages"] = pages
     return res
+
+
+@app.get("/samples")
+def list_samples(request: Request) -> dict:
+    """The samples that are actually prepped on THIS deployment (their page renders exist). The
+    site renders a chip only for these, so it never shows a dead/placeholder sample button. The
+    catalog (title/type/source) comes from the site's playground-samples.json."""
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
+    path = config.HERE / "web" / "lib" / "playground-samples.json"
+    catalog = json.loads(path.read_text()) if path.exists() else []
+    avail = [c for c in catalog if (SAMPLE_DIR / c["id"] / "pages.json").exists()]
+    return {"samples": avail}
+
+
+@app.get("/sample/{sample_id}/pages")
+def sample_pages(sample_id: str, request: Request) -> dict:
+    """Rendered page images for a prepped sample — lets the site show the contract on the left
+    the instant it's picked, before (and independent of) any model run. No OCR, no model, no
+    gate: just the precomputed, public page renders. Same allowlist guard as /extract."""
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
+    if not sample_id or not _SAMPLE_ID_RE.match(sample_id) or sample_id not in _known_sample_ids():
+        raise HTTPException(404, f"unknown sample {sample_id!r}")
+    pages_path = SAMPLE_DIR / sample_id / "pages.json"
+    if not pages_path.exists():                       # in the catalog but not prepped on this deploy
+        raise HTTPException(503, "sample not available")
+    return {"pages": json.loads(pages_path.read_text())}
 
 
 @app.post("/lead")

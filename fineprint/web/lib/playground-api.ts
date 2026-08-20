@@ -2,8 +2,27 @@
 const API = process.env.NEXT_PUBLIC_FINEPRINT_API ?? "https://fineprint-wo5ok35f7q-uc.a.run.app";
 
 export type Box = { page: number; box: [number, number, number, number] };
+export type Page = { image: string; w: number; h: number };
 export type Field = { field: string; value: string; confidence: string; category: string; boxes: Box[] };
-export type ExtractResult = { pages: { image: string; w: number; h: number }[]; fields: Field[]; model: string; latency: number };
+export type ExtractResult = { pages: Page[]; fields: Field[]; model: string; latency: number };
+
+export type SampleMeta = { id: string; title: string; type: string; source: string };
+
+// The samples actually prepped on the backend (pages + default extraction present). The site
+// only ever shows chips for these, so there are no dead/placeholder sample buttons.
+export async function fetchAvailableSamples(): Promise<SampleMeta[]> {
+  const r = await fetch(`${API}/samples`);
+  if (!r.ok) throw new Error(`samples unavailable (${r.status})`);
+  return ((await r.json()) as { samples: SampleMeta[] }).samples;
+}
+
+// Preview a sample's rendered page images without running a model — lets the contract show
+// on the left the instant a sample is picked, before (and independent of) extraction.
+export async function fetchSamplePages(sampleId: string): Promise<Page[]> {
+  const r = await fetch(`${API}/sample/${encodeURIComponent(sampleId)}/pages`);
+  if (!r.ok) throw new Error(`preview unavailable (${r.status})`);
+  return ((await r.json()) as { pages: Page[] }).pages;
+}
 
 export async function submitLead(email: string, company: string, context: Record<string, unknown>) {
   const r = await fetch(`${API}/lead`, {
