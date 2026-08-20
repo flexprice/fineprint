@@ -26,16 +26,21 @@ export function Playground() {
   const [result, setResult] = useState<ExtractResult | null>(null);
   const [err, setErr] = useState("");
 
-  async function run() {
+  async function run(tokenOverride?: string) {
     if (tab === "upload") {
       if (!file) { setErr("Choose a PDF first."); return; }
-      if (!token) { setGate(true); return; }               // gate first BYO run
+      const activeToken = tokenOverride ?? token;
+      if (!activeToken) { setGate(true); return; }         // gate only when we truly have no token
+      setStatus("running"); setErr("");
+      try {
+        const res = await runExtract({ file: file!, model, sessionToken: activeToken });
+        setResult(res); setStatus("");
+      } catch (e) { setErr(e instanceof Error ? e.message : "failed"); setStatus("error"); }
+      return;
     }
     setStatus("running"); setErr("");
     try {
-      const res = tab === "sample"
-        ? await runExtract({ sampleId, model })
-        : await runExtract({ file: file!, model, sessionToken: token! });
+      const res = await runExtract({ sampleId, model });
       setResult(res); setStatus("");
     } catch (e) { setErr(e instanceof Error ? e.message : "failed"); setStatus("error"); }
   }
@@ -45,7 +50,7 @@ export function Playground() {
       <div className="panel rounded-2xl p-5 mb-6">
         <div className="flex gap-1 bg-surface-2 rounded-xl p-1 w-max mb-4">
           {(["sample", "upload"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
+            <button key={t} onClick={() => { setTab(t); setErr(""); }}
               className={`px-4 py-1.5 rounded-lg text-[13.5px] font-semibold ${tab === t ? "bg-surface text-text shadow-sm" : "text-muted"}`}>
               {t === "sample" ? "Sample contracts" : "Upload your own"}</button>
           ))}
@@ -53,7 +58,7 @@ export function Playground() {
         {tab === "sample" ? (
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
             {samples.map((s) => (
-              <button key={s.id} onClick={() => setSampleId(s.id)}
+              <button key={s.id} onClick={() => { setSampleId(s.id); setErr(""); }}
                 className={`text-left border rounded-xl p-3.5 ${sampleId === s.id ? "border-accent bg-accent/5" : "border-line"}`}>
                 <div className="text-[14px] font-semibold">{s.title}</div>
                 <div className="font-mono text-[11px] text-faint mt-1">{s.source}</div>
@@ -63,7 +68,7 @@ export function Playground() {
         ) : (
           <label className="block border border-dashed border-line rounded-xl p-8 text-center text-muted cursor-pointer">
             <input type="file" accept="application/pdf" hidden
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErr(""); }} />
             {file ? <b className="text-text">{file.name}</b> : <><b className="text-text">Drop a PDF</b>, or click to browse · ≤15 pages / 10 MB</>}
             <div className="text-[12px] text-faint mt-2">Your file is processed to extract terms and is not stored.</div>
           </label>
@@ -73,7 +78,7 @@ export function Playground() {
             className="border border-line bg-surface rounded-lg px-3 py-2 text-[13.5px] font-semibold">
             {CURATED.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
-          <button onClick={run} disabled={status === "running"}
+          <button onClick={() => run()} disabled={status === "running"}
             className="ml-auto bg-primary text-bg rounded-xl px-5 py-2.5 text-[14px] font-bold disabled:opacity-60">
             {status === "running" ? "Reading…" : "Run extraction →"}</button>
         </div>
@@ -85,7 +90,7 @@ export function Playground() {
 
       <EmailGate open={gate} onClose={() => setGate(false)}
         context={{ kind: "upload", model, sample: null }}
-        onSubmitted={(t) => { setToken(t); setGate(false); run(); }} />
+        onSubmitted={(t) => { setToken(t); setGate(false); run(t); }} />
     </div>
   );
 }
