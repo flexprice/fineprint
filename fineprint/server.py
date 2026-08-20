@@ -17,6 +17,7 @@ the private corpus live in GCS (see ``store.py``); they are synced down per requ
 import base64
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -121,7 +122,13 @@ def watch_poll(authorization: str | None = Header(None),
 
 # ── playground: /lead + /extract ───────────────────────────────────────────
 def _client_id(request: Request) -> str:
-    return request.headers.get("x-forwarded-for", request.client.host if request.client else "anon").split(",")[0]
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        # Rightmost entry is appended by our trusted last hop (proxy/load balancer); every
+        # entry to its left is client-supplied and can be spoofed to mint a fresh XFF (and
+        # thus a fresh rate-limit bucket) on every request, defeating the cap.
+        return xff.split(",")[-1].strip()
+    return request.client.host if request.client else "anon"
 
 
 def _resolve_model(model_id: str) -> dict:
@@ -131,10 +138,26 @@ def _resolve_model(model_id: str) -> dict:
     return m
 
 
+_SAMPLE_ID_RE = re.compile(r"^[a-z0-9_-]+$")
+
+
+def _known_sample_ids() -> set[str]:
+    """Allowlist of playground sample ids, sourced from the site's published sample catalog."""
+    path = config.HERE / "web" / "lib" / "playground-samples.json"
+    if not path.exists():
+        return set()
+    return {s["id"] for s in json.loads(path.read_text())}
+
+
 def _load_sample_result(sample_id: str, model_id: str) -> dict:
     """Precomputed default extraction (instant) or live-run the model over cached sample OCR."""
     import pickle
 
+    # sample_id comes straight from the request body — validate against an allowlist BEFORE
+    # it ever touches a path or pickle.loads(), or a crafted id (e.g. "../secret") could read
+    # arbitrary files / deserialize arbitrary pickles off disk.
+    if not sample_id or not _SAMPLE_ID_RE.match(sample_id) or sample_id not in _known_sample_ids():
+        raise HTTPException(404, f"unknown sample {sample_id!r}")
     base = SAMPLE_DIR / sample_id
     default_path = base / "result.json"
     if model_id == json.loads((base / "meta.json").read_text())["default_model"] and default_path.exists():
@@ -163,14 +186,21 @@ async def extract(request: Request, file: UploadFile = File(None),
     if not _limiter.allow(_client_id(request), time.time()):
         raise HTTPException(429, "rate limit — try again shortly")
     if file is None:                                   # JSON sample path
-        body = await request.json()
-        return _load_sample_result(body["sample_id"], body.get("model", PLAYGROUND_MODELS[0]))
+        try:
+            body = await request.json()
+        except (json.JSONDecodeError, ValueError):
+            raise HTTPException(422, "invalid JSON body")
+        sample_id = body.get("sample_id")
+        if not sample_id:
+            raise HTTPException(422, "sample_id is required")
+        return _load_sample_result(sample_id, body.get("model", PLAYGROUND_MODELS[0]))
     # upload path — gated
     if not leads.valid_session_token(session_token or ""):
         raise HTTPException(401, "enter your work email to run your own contract")
     pdf = await file.read()
     if len(pdf) > 10 * 1024 * 1024:
         raise HTTPException(413, "PDF too large (max 10 MB)")
+    resolved_model = _resolve_model(model or PLAYGROUND_MODELS[0])   # before any paid OCR spend
     from pipeline.extractor import extract_document
     from pipeline.render import render_pages
 
@@ -181,7 +211,7 @@ async def extract(request: Request, file: UploadFile = File(None),
         tmp = tf.name
     try:
         doc = extract_document(tmp)                     # live Datalab OCR
-        res = playground.extract_result(doc, _resolve_model(model or PLAYGROUND_MODELS[0]))
+        res = playground.extract_result(doc, resolved_model)
         res["pages"] = [{"image": "data:image/png;base64," + base64.b64encode(p["png"]).decode(),
                          "w": p["w"], "h": p["h"]} for p in render_pages(pdf)]
         return res
