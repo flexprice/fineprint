@@ -341,6 +341,18 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 @keyframes fp-pulse { 0%,100% { opacity: .18; transform: scale(1); } 50% { opacity: .05; transform: scale(1.9); } }
 .fp-up { animation: fp-up .6s cubic-bezier(.2,.65,.2,1) both; }
 .fp-hero-glow { background: radial-gradient(60% 60% at 70% 20%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%); }
+
+/* Playground extraction loader — a document "scanner" sweep + a shimmer skeleton, so a 30–80s
+   live run reads as "working", not "stuck". The reduced-motion reset below stills them. */
+@keyframes fp-scan { 0% { transform: translateY(-14%); } 100% { transform: translateY(114%); } }
+@keyframes fp-shimmer { 0% { background-position: -420px 0; } 100% { background-position: 420px 0; } }
+.fp-scanline { position: absolute; left: 0; right: 0; top: 0; height: 40px; pointer-events: none; z-index: 5;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 14%, transparent) 55%, color-mix(in srgb, var(--accent) 30%, transparent));
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 0 16px 3px color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: fp-scan 2.1s cubic-bezier(.45,0,.2,1) infinite; }
+.fp-shimmer { background: linear-gradient(90deg, var(--surface-2) 25%, color-mix(in srgb, var(--surface-2) 55%, var(--bg)) 50%, var(--surface-2) 75%);
+  background-size: 800px 100%; animation: fp-shimmer 1.25s linear infinite; border-radius: 7px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }

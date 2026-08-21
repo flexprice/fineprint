@@ -24,10 +24,10 @@ export async function fetchSamplePages(sampleId: string): Promise<Page[]> {
   return ((await r.json()) as { pages: Page[] }).pages;
 }
 
-export async function submitLead(email: string, company: string, context: Record<string, unknown>) {
+export async function submitLead(name: string, email: string, context: Record<string, unknown>) {
   const r = await fetch(`${API}/lead`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, company, context }),
+    body: JSON.stringify({ name, email, context }),
   });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? "lead failed");
   return (await r.json()) as { session_token: string };

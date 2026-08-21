@@ -239,10 +239,10 @@ async def lead(request: Request) -> dict:
         raise HTTPException(429, "rate limit — try again shortly")
     body = await request.json()
     try:
-        tok = leads.record_lead(email=body.get("email"), company=body.get("company"),
+        tok = leads.record_lead(email=body.get("email"), name=body.get("name"),
                                 context=body.get("context") or {})
-    except ValueError:
-        raise HTTPException(422, "invalid email")
+    except ValueError as e:
+        raise HTTPException(422, str(e) or "invalid lead")
     return {"session_token": tok}
 
 

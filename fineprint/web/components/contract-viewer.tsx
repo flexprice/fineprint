@@ -2,57 +2,62 @@
 // Left half of the Try-it section: the contract itself, in a scrollable window. The page
 // image(s) show as soon as a sample is picked (before any run) so the document can be read.
 // Once a run reveals results, every field's citation box is drawn over the page; hovering a
-// box lights up its row in the OutputPanel (shared `hot`), and vice-versa. When the user is
-// in upload mode with nothing chosen yet, the body is a drop zone instead.
+// box lights up its row in the OutputPanel (shared `hot`), and vice-versa. While a run is in
+// flight, a scanner sweep animates over the document so a 30–80s extraction reads as "working".
 import type { Page, Field } from "@/lib/playground-api";
 import { CAT_COLOR } from "@/lib/categories";
 
 export function ContractViewer({
-  pages, fields, revealed, hot, setHot, mode, file, onFile, loading, source,
+  pages, fields, revealed, hot, setHot, mode, file, onFile, loading, running, source,
 }: {
   pages: Page[]; fields: Field[]; revealed: boolean;
   hot: number | null; setHot: (i: number | null) => void;
   mode: "sample" | "upload"; file: File | null; onFile: (f: File | null) => void;
-  loading: boolean; source: string;
+  loading: boolean; running: boolean; source: string;
 }) {
   const hasPages = pages.length > 0;
   const headerLeft = mode === "upload" && !hasPages ? "Your document" : source;
-  const headerRight = revealed ? `${fields.length} fields cited` : hasPages ? "scroll to read ↓" : "";
+  const headerRight = running ? "scanning…" : revealed ? `${fields.length} fields cited` : hasPages ? "scroll to read ↓" : "";
 
   return (
     <div className="panel rounded-2xl overflow-hidden">
       <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-line bg-surface-2">
         <span className="font-mono text-[10px] tracking-[.08em] uppercase text-faint truncate">{headerLeft}</span>
-        <span className="font-mono text-[10px] tracking-[.08em] uppercase text-faint shrink-0 ml-3">{headerRight}</span>
+        <span className={`font-mono text-[10px] tracking-[.08em] uppercase shrink-0 ml-3 ${running ? "text-accent" : "text-faint"}`}>{headerRight}</span>
       </div>
 
       {hasPages ? (
-        <div className="max-h-[540px] overflow-auto bg-[#f4f2ec]">
-          {pages.map((pg, pi) => (
-            <div key={pi} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={pg.image} alt={`page ${pi + 1}`} className="w-full block select-none" draggable={false} />
-              {(fields ?? []).flatMap((f, fi) =>
-                f.boxes.filter((b) => b.page === pi).map((b, bi) => {
-                  const c = CAT_COLOR[f.category] ?? CAT_COLOR.Other;
-                  const on = hot === fi;
-                  return (
-                    <div key={`${fi}-${bi}`} data-box onMouseEnter={() => setHot(fi)} onMouseLeave={() => setHot(null)}
-                      className="absolute cursor-pointer rounded-[2px]"
-                      style={{
-                        left: `${b.box[0] * 100}%`, top: `${b.box[1] * 100}%`,
-                        width: `${(b.box[2] - b.box[0]) * 100}%`, height: `${(b.box[3] - b.box[1]) * 100}%`,
-                        border: `1.5px solid ${on ? c : `${c}99`}`,
-                        background: on ? `${c}30` : "transparent",
-                        boxShadow: on ? `0 0 0 2px ${c}66` : "none",
-                        opacity: revealed ? 1 : 0, pointerEvents: revealed ? "auto" : "none",
-                        transition: "opacity .2s, background .12s, border-color .12s, box-shadow .12s",
-                      }} />
-                  );
-                }))}
-            </div>
-          ))}
+        <div className="relative">
+          <div className="max-h-[540px] overflow-auto bg-[#f4f2ec]">
+            {pages.map((pg, pi) => (
+              <div key={pi} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={pg.image} alt={`page ${pi + 1}`} className="w-full block select-none" draggable={false} />
+                {(fields ?? []).flatMap((f, fi) =>
+                  f.boxes.filter((b) => b.page === pi).map((b, bi) => {
+                    const c = CAT_COLOR[f.category] ?? CAT_COLOR.Other;
+                    const on = hot === fi;
+                    return (
+                      <div key={`${fi}-${bi}`} data-box onMouseEnter={() => setHot(fi)} onMouseLeave={() => setHot(null)}
+                        className="absolute cursor-pointer rounded-[2px]"
+                        style={{
+                          left: `${b.box[0] * 100}%`, top: `${b.box[1] * 100}%`,
+                          width: `${(b.box[2] - b.box[0]) * 100}%`, height: `${(b.box[3] - b.box[1]) * 100}%`,
+                          border: `1.5px solid ${on ? c : `${c}99`}`,
+                          background: on ? `${c}30` : "transparent",
+                          boxShadow: on ? `0 0 0 2px ${c}66` : "none",
+                          opacity: revealed && !running ? 1 : 0, pointerEvents: revealed && !running ? "auto" : "none",
+                          transition: "opacity .2s, background .12s, border-color .12s, box-shadow .12s",
+                        }} />
+                    );
+                  }))}
+              </div>
+            ))}
+          </div>
+          {running && <div className="fp-scanline" aria-hidden />}
         </div>
+      ) : running ? (
+        <ScanSkeleton label="Running OCR on your document…" />
       ) : mode === "upload" ? (
         <label className="flex flex-col items-center justify-center text-center gap-2 min-h-[300px] px-6 cursor-pointer text-muted">
           <input type="file" accept="application/pdf" hidden
@@ -68,6 +73,24 @@ export function ContractViewer({
           {loading ? "rendering the document…" : "select a contract to read it here"}
         </div>
       )}
+    </div>
+  );
+}
+
+// Placeholder shown while an uploaded document is OCR'ing (no page render yet): a shimmering
+// "sheet" with a scanner sweep, so the wait reads as progress.
+function ScanSkeleton({ label }: { label: string }) {
+  return (
+    <div className="relative min-h-[300px] bg-[#f4f2ec] p-6 overflow-hidden">
+      <div className="mx-auto max-w-[440px] rounded-lg bg-white shadow-sm p-6 flex flex-col gap-3">
+        <div className="fp-shimmer h-4 w-1/2 mx-auto" />
+        <div className="h-2" />
+        {[92, 84, 96, 70, 88, 60, 90, 78].map((w, i) => (
+          <div key={i} className="fp-shimmer h-2.5" style={{ width: `${w}%` }} />
+        ))}
+      </div>
+      <div className="fp-scanline" aria-hidden />
+      <div className="absolute bottom-3 left-0 right-0 text-center font-mono text-[11px] text-accent">{label}</div>
     </div>
   );
 }

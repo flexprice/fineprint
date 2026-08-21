@@ -9,6 +9,7 @@ import { ContractViewer } from "@/components/contract-viewer";
 import { OutputPanel } from "@/components/output-panel";
 import { ModelPicker } from "@/components/model-picker";
 import { EmailGate } from "@/components/email-gate";
+import { byId } from "@/lib/data";
 
 // Shortlist offered in the playground (ids match the backend PLAYGROUND_MODELS). Names + logos
 // are resolved from the published board (lib/data) inside ModelPicker — no rank/price here.
@@ -129,11 +130,12 @@ export function Playground() {
 
       <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-4 items-start">
         <ContractViewer
-          pages={pages} fields={result?.fields ?? []} revealed={revealed}
+          pages={pages} fields={result?.fields ?? []} revealed={revealed} running={running}
           hot={hot} setHot={setHot}
           mode={mode} file={file} onFile={(f) => { setFile(f); setErr(""); }}
           loading={loadingPages} source={mode === "upload" ? "Your document" : sourceOf(sampleId)} />
-        <OutputPanel result={result} revealed={revealed} hot={hot} setHot={setHot} />
+        <OutputPanel result={result} revealed={revealed} running={running}
+          model={byId(model)?.label ?? model} hot={hot} setHot={setHot} />
       </div>
 
       {err && <p className="mt-3 text-[13px] text-warning">{err}</p>}

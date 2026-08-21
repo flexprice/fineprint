@@ -1,9 +1,10 @@
 "use client";
 // Right half of the Try-it section: the structured extraction. Before a run it holds an
-// empty state; after a run it shows the fields grouped by category (with a color dot and a
-// HIGH/REVIEW confidence chip) or the raw JSON. `hot` is shared with the ContractViewer so
-// hovering a field lights up its citation box on the contract, and vice-versa.
-import { useState } from "react";
+// empty state; while a run is in flight it shows a shimmering skeleton with cycling status
+// messages (so a 30–80s live extraction never reads as "stuck"); after a run it shows the
+// fields grouped by category (color dot + HIGH/REVIEW chip) or the raw JSON. `hot` is shared
+// with the ContractViewer so hovering a field lights up its citation box, and vice-versa.
+import { useEffect, useState } from "react";
 import { CAT_COLOR } from "@/lib/categories";
 import type { ExtractResult, Field } from "@/lib/playground-api";
 
@@ -18,12 +19,12 @@ function groupByCategory(fields: Field[]): [string, { f: Field; i: number }[]][]
   return order.map((cat) => [cat, groups[cat]]);
 }
 
-export function OutputPanel({ result, revealed, hot, setHot }: {
-  result: ExtractResult | null; revealed: boolean;
+export function OutputPanel({ result, revealed, running, model, hot, setHot }: {
+  result: ExtractResult | null; revealed: boolean; running: boolean; model?: string;
   hot: number | null; setHot: (i: number | null) => void;
 }) {
   const [tab, setTab] = useState<"fields" | "json">("fields");
-  const show = revealed && result;
+  const show = revealed && result && !running;
   const jsonObj = result
     ? Object.fromEntries(result.fields.map((f) => [f.field, { value: f.value, confidence: f.confidence }]))
     : {};
@@ -32,7 +33,7 @@ export function OutputPanel({ result, revealed, hot, setHot }: {
     <div className="panel rounded-2xl overflow-hidden flex flex-col">
       <div className="px-4 py-3 flex items-center justify-between border-b border-line">
         <span className="inline-flex items-center gap-2 text-[13px] font-semibold">
-          <span className="size-2 rounded-full" style={{ background: show ? "var(--accent)" : "var(--faint)" }} />
+          <span className="size-2 rounded-full" style={{ background: show || running ? "var(--accent)" : "var(--faint)", animation: running ? "fp-shimmer 1s linear infinite" : undefined }} />
           Extracted schema
         </span>
         <div className="flex gap-0.5 bg-surface-2 rounded-lg p-0.5">
@@ -44,7 +45,9 @@ export function OutputPanel({ result, revealed, hot, setHot }: {
         </div>
       </div>
 
-      {!show ? (
+      {running ? (
+        <RunningState model={model} />
+      ) : !show ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 px-6 py-14 min-h-[240px] text-faint">
           <div className="size-11 rounded-xl border border-dashed border-line flex items-center justify-center text-[19px]">⚙</div>
           <p className="text-[13.5px] max-w-[34ch] leading-relaxed">
@@ -85,6 +88,40 @@ export function OutputPanel({ result, revealed, hot, setHot }: {
           <a href="/#leaderboard" className="text-accent font-semibold hover:underline">Compare on the leaderboard →</a>
         </div>
       )}
+    </div>
+  );
+}
+
+function RunningState({ model }: { model?: string }) {
+  const steps = [
+    "Rendering the document…",
+    "Running OCR (Chandra)…",
+    model ? `Reading the terms with ${model}…` : "Reading the terms…",
+    "Mapping citations back to the page…",
+  ];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((n) => (n + 1) % steps.length), 2400);
+    return () => clearInterval(t);
+  }, [steps.length]);
+  return (
+    <div className="flex-1 flex flex-col min-h-[240px] p-2">
+      <div className="p-2 space-y-2.5">
+        {[0, 1, 2, 3, 4].map((r) => (
+          <div key={r} className="flex items-center gap-3 px-1">
+            <span className="fp-shimmer size-2.5 rounded-[3px] shrink-0" />
+            <span className="fp-shimmer h-3 rounded" style={{ width: `${28 + (r % 3) * 8}%` }} />
+            <span className="fp-shimmer h-3 rounded flex-1" style={{ maxWidth: `${40 + (r % 2) * 18}%` }} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto flex items-center gap-2.5 px-4 py-3 border-t border-line">
+        <span className="relative flex size-2.5">
+          <span className="absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: "var(--accent)", animation: "fp-scan 1.4s ease-in-out infinite" }} />
+          <span className="relative inline-flex rounded-full size-2.5" style={{ background: "var(--accent)" }} />
+        </span>
+        <span className="text-[12.5px] text-muted font-mono">{steps[i]}</span>
+      </div>
     </div>
   );
 }
