@@ -141,6 +141,9 @@ jobs:
         timeout-minutes: 8
         run: |
           set -o pipefail
+          # `vercel deploy --prebuilt` lstat's .env.local; .vercelignore excludes .env*, so create
+          # an empty one to satisfy the check (env is already baked into .vercel/output).
+          touch .env.local
           url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN" | tail -1)
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
