@@ -1,8 +1,7 @@
 [
-  { "id": "guidewire",   "title": "Software License Agreement", "type": "License agreement", "source": "SEC EX-10.27" },
-  { "id": "saas",        "title": "SaaS Subscription Agreement", "type": "Subscription",       "source": "SEC EX-10" },
-  { "id": "msa",         "title": "Master Services Agreement",   "type": "Services",           "source": "CUAD · CC BY 4.0" },
-  { "id": "orderform",   "title": "Order Form (fee schedule)",   "type": "Order form",         "source": "SEC EX-10" },
-  { "id": "hosting",     "title": "Hosting / Reseller Agreement","type": "Hosting",            "source": "CUAD · CC BY 4.0" },
-  { "id": "maintenance", "title": "Maintenance & Support",       "type": "Support",            "source": "SEC EX-10" }
+  { "id": "guidewire",   "title": "Software License Agreement", "type": "License agreement", "source": "Guidewire · SEC EX-10.27" },
+  { "id": "saas",        "title": "SaaS Subscription Agreement", "type": "Subscription",      "source": "Boot Barn · SEC EX-10.14" },
+  { "id": "msa",         "title": "Master Services Agreement",   "type": "Master services",   "source": "Jazz Pharmaceuticals · SEC EX-10.2" },
+  { "id": "hosting",     "title": "Hosting Agreement",           "type": "Hosting",           "source": "Covisint (Cisco) · SEC EX-10.1" },
+  { "id": "maintenance", "title": "Maintenance & Support",       "type": "Support",           "source": "SeaChange · SEC EX-10.1" }
 ]

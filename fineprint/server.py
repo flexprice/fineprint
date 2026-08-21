@@ -141,12 +141,22 @@ def _resolve_model(model_id: str) -> dict:
 _SAMPLE_ID_RE = re.compile(r"^[a-z0-9_-]+$")
 
 
+def _sample_catalog() -> list[dict]:
+    """Sample metadata (id/title/type/source). On the deployed service this ships WITH the
+    samples as SAMPLE_DIR/catalog.json (synced from GCS at boot) — the site's web/ dir is not
+    in the container image, so we can't read it there. Locally it falls back to the site catalog."""
+    for path in (SAMPLE_DIR / "catalog.json", config.HERE / "web" / "lib" / "playground-samples.json"):
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except (json.JSONDecodeError, OSError):
+                continue
+    return []
+
+
 def _known_sample_ids() -> set[str]:
-    """Allowlist of playground sample ids, sourced from the site's published sample catalog."""
-    path = config.HERE / "web" / "lib" / "playground-samples.json"
-    if not path.exists():
-        return set()
-    return {s["id"] for s in json.loads(path.read_text())}
+    """Allowlist of playground sample ids, sourced from the sample catalog."""
+    return {s["id"] for s in _sample_catalog()}
 
 
 def _load_sample_result(sample_id: str, model_id: str) -> dict:
@@ -181,9 +191,7 @@ def list_samples(request: Request) -> dict:
     catalog (title/type/source) comes from the site's playground-samples.json."""
     if not _limiter.allow(_client_id(request), time.time()):
         raise HTTPException(429, "rate limit — try again shortly")
-    path = config.HERE / "web" / "lib" / "playground-samples.json"
-    catalog = json.loads(path.read_text()) if path.exists() else []
-    avail = [c for c in catalog if (SAMPLE_DIR / c["id"] / "pages.json").exists()]
+    avail = [c for c in _sample_catalog() if (SAMPLE_DIR / c["id"] / "pages.json").exists()]
     return {"samples": avail}
 
 
