@@ -23,6 +23,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from fineprint import config, leads, playground, store, watch
@@ -210,6 +211,28 @@ def sample_pages(sample_id: str, request: Request) -> dict:
     return {"pages": json.loads(pages_path.read_text())}
 
 
+def _extract_upload(pdf: bytes, resolved_model: dict) -> dict:
+    """Blocking upload pipeline (live Datalab OCR + model + page render). MUST run in a worker
+    thread: the Datalab SDK calls asyncio.run() internally, which raises inside the async request
+    handler's already-running event loop. The temp PDF is written and unlinked here so it never
+    outlives the request (the upload is never persisted)."""
+    import tempfile
+    from pipeline.extractor import extract_document
+    from pipeline.render import render_pages
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tf:
+        tf.write(pdf)
+        tmp = tf.name
+    try:
+        doc = extract_document(tmp, cache=False)         # live Datalab OCR — never cached to disk
+        res = playground.extract_result(doc, resolved_model)
+        res["pages"] = [{"image": "data:image/png;base64," + base64.b64encode(p["png"]).decode(),
+                         "w": p["w"], "h": p["h"]} for p in render_pages(pdf)]
+        return res
+    finally:
+        os.unlink(tmp)                                  # never persist the upload
+
+
 @app.post("/lead")
 async def lead(request: Request) -> dict:
     if not _limiter.allow(_client_id(request), time.time()):
@@ -236,7 +259,8 @@ async def extract(request: Request, file: UploadFile = File(None),
         sample_id = body.get("sample_id")
         if not sample_id:
             raise HTTPException(422, "sample_id is required")
-        return _load_sample_result(sample_id, body.get("model", PLAYGROUND_MODELS[0]))
+        # off the event loop: a non-default model triggers a blocking provider call
+        return await run_in_threadpool(_load_sample_result, sample_id, body.get("model", PLAYGROUND_MODELS[0]))
     # upload path — gated
     if not leads.valid_session_token(session_token or ""):
         raise HTTPException(401, "enter your work email to run your own contract")
@@ -244,19 +268,4 @@ async def extract(request: Request, file: UploadFile = File(None),
     if len(pdf) > 10 * 1024 * 1024:
         raise HTTPException(413, "PDF too large (max 10 MB)")
     resolved_model = _resolve_model(model or PLAYGROUND_MODELS[0])   # before any paid OCR spend
-    from pipeline.extractor import extract_document
-    from pipeline.render import render_pages
-
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tf:
-        tf.write(pdf)
-        tmp = tf.name
-    try:
-        doc = extract_document(tmp, cache=False)         # live Datalab OCR — never cached to disk
-        res = playground.extract_result(doc, resolved_model)
-        res["pages"] = [{"image": "data:image/png;base64," + base64.b64encode(p["png"]).decode(),
-                         "w": p["w"], "h": p["h"]} for p in render_pages(pdf)]
-        return res
-    finally:
-        os.unlink(tmp)                                  # never persist the upload
+    return await run_in_threadpool(_extract_upload, pdf, resolved_model)
