@@ -128,22 +128,20 @@ jobs:
       - name: Pull Vercel project settings + env
         run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token "$VERCEL_TOKEN"
 
-      # Build gate only — catches a broken build cheaply and uploads nothing. We deliberately do
-      # NOT `vercel build` + `deploy --prebuilt`: that uploads .vercel/output file-by-file (1033
-      # files for this app, 959 of them inside serverless bundles), and the free plan allows 5000
-      # uploads / 24h — about 4 deploys a day. Deploying SOURCE uploads ~60 files instead.
-      - name: Build check
-        run: npm ci && npx next build
+      # Build the app HERE, not on Vercel: the remote source-build stalls indefinitely at
+      # "Building…" for this project (hangs past a 10-min timeout, though it builds in seconds
+      # locally). So we produce the prebuilt output in CI and upload it. Trade-off: this uploads
+      # .vercel/output file-by-file (~1033 files) vs ~60 for a source deploy, and the free plan
+      # caps uploads at 5000 / 24h — so keep prod deploys modest (a handful a day).
+      - name: Build (prebuilt output, local)
+        run: vercel build ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN"
 
-      - name: Deploy (source build on Vercel)
+      - name: Deploy prebuilt to Vercel (no remote build to stall)
         id: deploy
-        timeout-minutes: 10
+        timeout-minutes: 8
         run: |
-          # Wait for the remote build so the ACTUAL error surfaces in this log — the step's
-          # 10-min timeout bounds any stall. --no-wait previously hid build failures behind
-          # Vercel's opaque "Your deployment failed. Please retry later."
           set -o pipefail
-          url=$(vercel deploy ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN" | tail -1)
+          url=$(vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN" | tail -1)
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
 
