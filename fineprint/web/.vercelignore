@@ -4,5 +4,7 @@ node_modules
 .vercel
 *.tsbuildinfo
 .env*
+# …but keep the empty .env.local the prebuilt deploy lstat's (real env is baked into .vercel/output)
+!.env.local
 
 # (CI trigger test — path filter matches fineprint/web/**)
