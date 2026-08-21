@@ -71,6 +71,7 @@ put_secret fineprint-openrouter-key "$OPENROUTER_API_KEY"
 put_secret fineprint-api-token      "$FINEPRINT_API_TOKEN"
 [ -n "${SLACK_WEBHOOK_URL:-}" ]     && put_secret fineprint-slack-webhook "$SLACK_WEBHOOK_URL"
 [ -n "${VERCEL_DEPLOY_HOOK_URL:-}" ] && put_secret fineprint-vercel-hook  "$VERCEL_DEPLOY_HOOK_URL"
+[ -n "${CHANDRA_OCR_API_KEY:-}" ]    && put_secret fineprint-chandra-ocr-key "$CHANDRA_OCR_API_KEY"
 
 echo "▸ deploy Cloud Run (build from source via Cloud Build)"
 ENVS="FINEPRINT_BUCKET=$BUCKET,FINEPRINT_N_RUNS=$N_RUNS"
@@ -79,14 +80,18 @@ ENVS="$ENVS,FINEPRINT_SEED_CONTRACTS=/tmp/fp/corpus/seed_contracts.json"
 ENVS="$ENVS,FINEPRINT_RESULTS=/tmp/fp/state/runs.json,FINEPRINT_WEB_DATA=/tmp/fp/state/data.json"
 ENVS="$ENVS,FINEPRINT_ROSTER=/tmp/fp/state/roster.json,FINEPRINT_SEEN_FILE=/tmp/fp/state/seen_models.json"
 [ -n "${FINEPRINT_SITE_URL:-}" ] && ENVS="$ENVS,FINEPRINT_SITE_URL=$FINEPRINT_SITE_URL"
+[ -n "${FINEPRINT_SITE_ORIGINS:-}" ] && ENVS="$ENVS,FINEPRINT_SITE_ORIGINS=$FINEPRINT_SITE_ORIGINS"
+ENVS="$ENVS,FINEPRINT_PLAYGROUND_RPM=12,FINEPRINT_SAMPLE_DIR=/tmp/fp/playground/samples"
 
 SECRETS="OPENROUTER_API_KEY=fineprint-openrouter-key:latest,FINEPRINT_API_TOKEN=fineprint-api-token:latest"
 [ -n "${SLACK_WEBHOOK_URL:-}" ]     && SECRETS="$SECRETS,SLACK_WEBHOOK_URL=fineprint-slack-webhook:latest"
 [ -n "${VERCEL_DEPLOY_HOOK_URL:-}" ] && SECRETS="$SECRETS,VERCEL_DEPLOY_HOOK_URL=fineprint-vercel-hook:latest"
+[ -n "${CHANDRA_OCR_API_KEY:-}" ]    && SECRETS="$SECRETS,CHANDRA_OCR_API_KEY=fineprint-chandra-ocr-key:latest"
+[ -n "${CHANDRA_OCR_API_KEY:-}" ] || echo "WARNING: CHANDRA_OCR_API_KEY unset — the playground's 'bring your own contract' OCR will fail at request time."
 
 gcloud run deploy "$SERVICE" --source "$here" --project "$PROJECT" --region "$REGION" \
   --service-account "$SA_EMAIL" \
-  --cpu 2 --memory 2Gi --timeout 3600 --concurrency 1 --max-instances 1 --min-instances 0 \
+  --cpu 2 --memory 2Gi --timeout 3600 --concurrency 1 --max-instances 1 --min-instances 1 \
   --allow-unauthenticated \
   --set-env-vars "$ENVS" --set-secrets "$SECRETS"
 

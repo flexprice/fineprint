@@ -14,16 +14,27 @@ Auth: send the shared token as ``Authorization: Bearer <token>`` or ``X-FinePrin
 (compared to env ``FINEPRINT_API_TOKEN``). ``/healthz`` is open. State (runs/roster/seen/data) and
 the private corpus live in GCS (see ``store.py``); they are synced down per request and back up after.
 """
+import base64
 import json
 import os
+import re
+import time
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
-from fineprint import config, store, watch
+from fineprint import config, leads, playground, store, watch
+from fineprint.config import PLAYGROUND_MODELS, SAMPLE_DIR, SITE_ORIGINS, all_models
+from fineprint.ratelimit import Limiter
 
 app = FastAPI(title="FinePrint", docs_url="/docs", redoc_url=None)
+
+app.add_middleware(CORSMiddleware, allow_origins=SITE_ORIGINS,
+                   allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])
+_limiter = Limiter(max_hits=int(os.environ.get("FINEPRINT_PLAYGROUND_RPM", "12")), window_s=60)
 
 _TOKEN = os.environ.get("FINEPRINT_API_TOKEN", "").strip()
 # GCS object names for each piece of mutable state (local paths come from config/watch, env-driven).
@@ -108,3 +119,153 @@ def watch_poll(authorization: str | None = Header(None),
     if not dry_run:
         _sync_up()
     return {"ok": True, "dry_run": dry_run, "published": published}
+
+
+# ── playground: /lead + /extract ───────────────────────────────────────────
+def _client_id(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        # Rightmost entry is appended by our trusted last hop (proxy/load balancer); every
+        # entry to its left is client-supplied and can be spoofed to mint a fresh XFF (and
+        # thus a fresh rate-limit bucket) on every request, defeating the cap.
+        return xff.split(",")[-1].strip()
+    return request.client.host if request.client else "anon"
+
+
+def _resolve_model(model_id: str) -> dict:
+    m = next((x for x in all_models() if x["id"] == model_id), None)
+    if not m:
+        raise HTTPException(400, f"unknown model {model_id}")
+    return m
+
+
+_SAMPLE_ID_RE = re.compile(r"^[a-z0-9_-]+$")
+
+
+def _sample_catalog() -> list[dict]:
+    """Sample metadata (id/title/type/source). On the deployed service this ships WITH the
+    samples as SAMPLE_DIR/catalog.json (synced from GCS at boot) — the site's web/ dir is not
+    in the container image, so we can't read it there. Locally it falls back to the site catalog."""
+    for path in (SAMPLE_DIR / "catalog.json", config.HERE / "web" / "lib" / "playground-samples.json"):
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except (json.JSONDecodeError, OSError):
+                continue
+    return []
+
+
+def _known_sample_ids() -> set[str]:
+    """Allowlist of playground sample ids, sourced from the sample catalog."""
+    return {s["id"] for s in _sample_catalog()}
+
+
+def _load_sample_result(sample_id: str, model_id: str) -> dict:
+    """Precomputed default extraction (instant) or live-run the model over cached sample OCR."""
+    import pickle
+
+    # sample_id comes straight from the request body — validate against an allowlist BEFORE
+    # it ever touches a path or pickle.loads(), or a crafted id (e.g. "../secret") could read
+    # arbitrary files / deserialize arbitrary pickles off disk.
+    if not sample_id or not _SAMPLE_ID_RE.match(sample_id) or sample_id not in _known_sample_ids():
+        raise HTTPException(404, f"unknown sample {sample_id!r}")
+    base = SAMPLE_DIR / sample_id
+    meta_path, doc_path, pages_path = base / "meta.json", base / "doc.pkl", base / "pages.json"
+    if not meta_path.exists() or not doc_path.exists() or not pages_path.exists():
+        # listed in the public sample catalog (playground-samples.json) but not (yet) prepped
+        # on this deployment — a missing-data problem, not a client error.
+        raise HTTPException(503, "sample not available")
+    default_path = base / "result.json"
+    if model_id == json.loads(meta_path.read_text())["default_model"] and default_path.exists():
+        return json.loads(default_path.read_text())
+    doc = pickle.loads(doc_path.read_bytes())
+    pages = json.loads(pages_path.read_text())               # precomputed page images
+    res = playground.extract_result(doc, _resolve_model(model_id))
+    res["pages"] = pages
+    return res
+
+
+@app.get("/samples")
+def list_samples(request: Request) -> dict:
+    """The samples that are actually prepped on THIS deployment (their page renders exist). The
+    site renders a chip only for these, so it never shows a dead/placeholder sample button. The
+    catalog (title/type/source) comes from the site's playground-samples.json."""
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
+    avail = [c for c in _sample_catalog() if (SAMPLE_DIR / c["id"] / "pages.json").exists()]
+    return {"samples": avail}
+
+
+@app.get("/sample/{sample_id}/pages")
+def sample_pages(sample_id: str, request: Request) -> dict:
+    """Rendered page images for a prepped sample — lets the site show the contract on the left
+    the instant it's picked, before (and independent of) any model run. No OCR, no model, no
+    gate: just the precomputed, public page renders. Same allowlist guard as /extract."""
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
+    if not sample_id or not _SAMPLE_ID_RE.match(sample_id) or sample_id not in _known_sample_ids():
+        raise HTTPException(404, f"unknown sample {sample_id!r}")
+    pages_path = SAMPLE_DIR / sample_id / "pages.json"
+    if not pages_path.exists():                       # in the catalog but not prepped on this deploy
+        raise HTTPException(503, "sample not available")
+    return {"pages": json.loads(pages_path.read_text())}
+
+
+def _extract_upload(pdf: bytes, resolved_model: dict) -> dict:
+    """Blocking upload pipeline (live Datalab OCR + model + page render). MUST run in a worker
+    thread: the Datalab SDK calls asyncio.run() internally, which raises inside the async request
+    handler's already-running event loop. The temp PDF is written and unlinked here so it never
+    outlives the request (the upload is never persisted)."""
+    import tempfile
+    from pipeline.extractor import extract_document
+    from pipeline.render import render_pages
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tf:
+        tf.write(pdf)
+        tmp = tf.name
+    try:
+        doc = extract_document(tmp, cache=False)         # live Datalab OCR — never cached to disk
+        res = playground.extract_result(doc, resolved_model)
+        res["pages"] = [{"image": "data:image/png;base64," + base64.b64encode(p["png"]).decode(),
+                         "w": p["w"], "h": p["h"]} for p in render_pages(pdf)]
+        return res
+    finally:
+        os.unlink(tmp)                                  # never persist the upload
+
+
+@app.post("/lead")
+async def lead(request: Request) -> dict:
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
+    body = await request.json()
+    try:
+        tok = leads.record_lead(email=body.get("email"), company=body.get("company"),
+                                context=body.get("context") or {})
+    except ValueError:
+        raise HTTPException(422, "invalid email")
+    return {"session_token": tok}
+
+
+@app.post("/extract")
+async def extract(request: Request, file: UploadFile = File(None),
+                  model: str = Form(None), session_token: str = Form(None)) -> dict:
+    if not _limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "rate limit — try again shortly")
+    if file is None:                                   # JSON sample path
+        try:
+            body = await request.json()
+        except (json.JSONDecodeError, ValueError):
+            raise HTTPException(422, "invalid JSON body")
+        sample_id = body.get("sample_id")
+        if not sample_id:
+            raise HTTPException(422, "sample_id is required")
+        # off the event loop: a non-default model triggers a blocking provider call
+        return await run_in_threadpool(_load_sample_result, sample_id, body.get("model", PLAYGROUND_MODELS[0]))
+    # upload path — gated
+    if not leads.valid_session_token(session_token or ""):
+        raise HTTPException(401, "enter your work email to run your own contract")
+    pdf = await file.read()
+    if len(pdf) > 10 * 1024 * 1024:
+        raise HTTPException(413, "PDF too large (max 10 MB)")
+    resolved_model = _resolve_model(model or PLAYGROUND_MODELS[0])   # before any paid OCR spend
+    return await run_in_threadpool(_extract_upload, pdf, resolved_model)

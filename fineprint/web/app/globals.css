@@ -75,7 +75,9 @@
 .shell { width: 100%; margin-inline: auto; max-width: 82rem; padding-inline: 24px; }
 
 * { border-color: var(--line); }
-html { background: var(--bg); }
+/* Sticky header is ~72px; clear it so in-page anchor jumps (#try, #leaderboard, …) don't
+   tuck the section's eyebrow behind the nav. */
+html { background: var(--bg); scroll-padding-top: 5.5rem; }
 body {
   background: var(--bg);
   color: var(--text);

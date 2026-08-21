@@ -1,0 +1,7 @@
+[
+  { "id": "guidewire",   "title": "Software License Agreement", "type": "License agreement", "source": "Guidewire · SEC EX-10.27" },
+  { "id": "saas",        "title": "SaaS Subscription Agreement", "type": "Subscription",      "source": "Boot Barn · SEC EX-10.14" },
+  { "id": "msa",         "title": "Master Services Agreement",   "type": "Master services",   "source": "Jazz Pharmaceuticals · SEC EX-10.2" },
+  { "id": "hosting",     "title": "Hosting Agreement",           "type": "Hosting",           "source": "Covisint (Cisco) · SEC EX-10.1" },
+  { "id": "maintenance", "title": "Maintenance & Support",       "type": "Support",           "source": "SeaChange · SEC EX-10.1" }
+]

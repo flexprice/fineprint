@@ -136,6 +136,56 @@ context) and POSTs `{"text": <fallback>, "blocks": [...]}` to the webhook via `u
 rank, accuracy (+delta vs baseline), $/1k, value, latency p50/p90, hallucination. Failures post a
 compact `:warning:` message instead.
 
+## Playground endpoints (`/extract`, `/lead`)
+
+Public, CORS-restricted endpoints that power the `/try` playground. No `X-FinePrint-Token` (unlike `/eval`/`/watch`).
+
+### `POST /extract`
+Rate-limited to 12 requests/minute per client. Two request modes:
+
+**Sample mode** — JSON body, no auth:
+```
+{ "sample_id": "guidewire", "model": "gpt-5.5" }
+```
+`sample_id` must be a known curated public sample (unknown → 404).
+
+**Upload mode** — multipart form; requires a `session_token` from `/lead`:
+- `file` — PDF, ≤ 10 MB (larger → 413)
+- `model` — form field, a board model id (unknown → 400)
+- `session_token` — form field, from `/lead` (missing/invalid → 401)
+
+The uploaded PDF is OCR'd live (Chandra/Datalab); the temp file is deleted after the response — never stored.
+
+**Response** (both modes):
+```json
+{
+  "pages":  [ { "image": "data:image/png;base64,…", "w": 1280, "h": 823 } ],
+  "fields": [ { "field": "recurring_fee.amount", "value": "$45,000",
+                "confidence": "HIGH", "category": "Recurring Fee",
+                "boxes": [ { "page": 0, "box": [0.19, 0.45, 0.24, 0.47] } ] } ],
+  "model": "GPT-5.5", "latency": 41.2
+}
+```
+
+`confidence` ∈ `HIGH | NEEDS_REVIEW | MISSING`; `box` is `[x0,y0,x1,y1]` normalized 0–1 on the given `page`.
+
+Errors: 400 (unknown model) · 401 (bad/missing session_token on upload) · 404 (unknown sample_id) · 413 (PDF > 10 MB) · 422 (missing/invalid body) · 429 (rate limit).
+
+### `POST /lead`
+JSON body:
+```json
+{ "email": "you@company.com", "company": "Acme Inc.", "context": { "kind": "upload", "model": "gpt-5.5" } }
+```
+
+Validates the email (invalid → 422), posts a Slack notification, and appends the lead (email/company/model/sample-type only — never file contents) to a stored list. Returns:
+```json
+{ "session_token": "…" }
+```
+
+Pass this token as the `session_token` form field on `/extract`'s upload mode.
+
+**Guards / privacy:** `/extract` is rate-limited (12 rpm/client) with a 10 MB PDF cap; the upload path is gated behind `/lead` (email capture). Uploaded files are processed transiently and not retained.
+
 ## Hosting — recommended primary: Modal
 
 Modal is the recommended host because it cleanly carries all three things the eval needs — the

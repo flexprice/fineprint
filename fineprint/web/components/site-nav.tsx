@@ -15,6 +15,7 @@ const LINKS: [string, string][] = [
   ["Leaderboard", "/#leaderboard"],
   ["Charts", "/#analytics"],
   ["Compare", "/compare"],
+  ["Try it", "/#try"],
   ["Methodology", "/methodology"],
 ];
 
