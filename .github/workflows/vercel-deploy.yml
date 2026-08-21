@@ -139,9 +139,11 @@ jobs:
         id: deploy
         timeout-minutes: 10
         run: |
-          # --no-wait: return the deployment URL right after upload instead of polling the remote
-          # build to "ready" (that poll is unbounded and has been hanging on stalled Vercel builds).
-          url=$(vercel deploy ${{ steps.target.outputs.flag }} --no-wait --token "$VERCEL_TOKEN")
+          # Wait for the remote build so the ACTUAL error surfaces in this log — the step's
+          # 10-min timeout bounds any stall. --no-wait previously hid build failures behind
+          # Vercel's opaque "Your deployment failed. Please retry later."
+          set -o pipefail
+          url=$(vercel deploy ${{ steps.target.outputs.flag }} --token "$VERCEL_TOKEN" | tail -1)
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "🚀 ${{ steps.target.outputs.env }}: $url" >> "$GITHUB_STEP_SUMMARY"
 
