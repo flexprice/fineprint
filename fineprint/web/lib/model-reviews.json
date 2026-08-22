@@ -1,0 +1,342 @@
+{
+  "generated": "2026-08-23",
+  "window_days": 15,
+  "models": [
+    {
+      "id": "deepseek-v4-flash-vision-exp",
+      "openrouter_id": "deepseek/deepseek-v4-flash-vision-exp",
+      "label": "DeepSeek V4 Flash Vision Exp",
+      "brand": "deepseek",
+      "launched": "2026-08-21",
+      "price_in": 0.22,
+      "price_out": 0.66,
+      "context": 1048576,
+      "headline": "Cheap eyes, blurry vision",
+      "one_liner": "A sparse-MoE vision bolt-on to DeepSeek V4 Flash that is by far the cheapest multimodal option here, but whose own docs disclaim fine-grained OCR.",
+      "points": [
+        "Sparse MoE, 284B total / 13B active, 1M context, up to 384K output tokens; vision added to V4-Flash 0731 with text performance held constant (OpenRouter, vLLM recipes).",
+        "DeepSeek claims its multimodal agent benchmarks put it 'close to Opus 4.8', but publishes no reproducible figures and no third party has replicated them (the-decoder, DeepSeek API docs).",
+        "Vendor guidance explicitly lists fine-grained OCR, small-object identification, GUI grounding and hallucination calibration as limited, and tells you to human-review legal and financial documents.",
+        "Hacker News testers were harsher than the marketing: images reportedly downsampled near 800x800 ('kills a lot of use cases'), a clock read as 5:10 instead of 8:09:25, landmarks 6/12 versus a rival's 11/12.",
+        "Structured output is the weak spot for extraction work: OpenRouter lists tools/tool_choice plus response_format for JSON, but with no JSON-schema enforcement, so adherence is prompt-luck.",
+        "Genuinely fast and cheap at $0.22/$0.66 with 87 tok/s and 1.17s P50 latency on OpenRouter, the best price-per-image-token in this comparison set.",
+        "Labelled experimental by DeepSeek; reviewers uniformly recommend feature-flagging it behind a verified fallback rather than making it a sole decision source."
+      ],
+      "sources": [
+        {
+          "title": "DeepSeek-V4-Flash-Vision-Exp Release: Multimodal API Now Live (DeepSeek API Docs)",
+          "url": "https://api-docs.deepseek.com/news/news260821/"
+        },
+        {
+          "title": "Deepseek releases experimental Flash vision model that rivals Opus 4.8 on agent benchmarks (The Decoder)",
+          "url": "https://the-decoder.com/deepseek-releases-experimental-flash-vision-model-that-rivals-opus-4-8-on-agent-benchmarks/"
+        },
+        {
+          "title": "DeepSeek-v4-flash-vision-exp (Hacker News discussion)",
+          "url": "https://news.ycombinator.com/item?id=49386163"
+        },
+        {
+          "title": "DeepSeek V4 Flash Vision Exp - API Pricing & Providers (OpenRouter)",
+          "url": "https://openrouter.ai/deepseek/deepseek-v4-flash-vision-exp"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "medium"
+    },
+    {
+      "id": "ox-alpha",
+      "openrouter_id": "stealth/ox-alpha",
+      "label": "Ox Alpha",
+      "brand": "stealth",
+      "launched": "2026-08-20",
+      "price_in": null,
+      "price_out": null,
+      "price_note": "Stealth model \u2014 price unlisted while cloaked, not free forever",
+      "context": 1048576,
+      "headline": "Anonymous, hyped, unproven",
+      "one_liner": "A cloaked 1M-context reasoning model that topped one small coding benchmark, that community fingerprinting keeps pointing at Z.ai, and that nobody can independently verify.",
+      "points": [
+        "Pricing is NA because the model is cloaked, not free: it appeared 20 Aug 2026 for a roughly one-week free preview on OpenRouter and OpenCode, expected to close around 27 Aug, after which terms are unknown.",
+        "Community fingerprinting points at a Chinese lab, most often a GLM-5.3 variant: token counts across English, German, Chinese, code and emoji reportedly matched GLM-5.3 plus a fixed 75-token offset, with a 60-string LocalLLaMA comparison agreeing. No lab has claimed it.",
+        "The headline result is thin: developer Ben Davis scored roughly 80% on DeepSWE over just 10 tasks, versus 65% for Fable and 52% for GPT-5.6 Sol. Critics note a bash-only harness and a sample far too small to trust.",
+        "Abacus.AI's Bindu Reddy ran her own eval and called it 'worse than last generation models', scoring 'alongside Kimi 2.6 which is 2 generations old', while conceding it is 'pure marketing genius'.",
+        "Consistently described as slow and over-deliberating: 23 tok/s throughput and 5.49s P50 latency on OpenRouter, with testers noting it 'spins a lot' before producing anything.",
+        "Structured output is unenforced: OpenRouter lists tools/tool_choice and response_format for JSON but no JSON-schema enforcement. One reported agent run logged 69 tool calls with a single error and no retry loops.",
+        "Serious blocker for confidential documents: under the stealth agreement the anonymous provider retains prompts and completions (it states they are not used for training), and you cannot audit who that provider is."
+      ],
+      "sources": [
+        {
+          "title": "Ox Alpha - API Pricing & Providers (OpenRouter)",
+          "url": "https://openrouter.ai/stealth/ox-alpha"
+        },
+        {
+          "title": "Stealth API and Models (OpenRouter)",
+          "url": "https://openrouter.ai/stealth"
+        },
+        {
+          "title": "Is Ox Alpha GLM-5.3 Flash? Evidence and Gaps (Kingy AI)",
+          "url": "https://kingy.ai/blog/ox-alpha-glm-5-3-flash-evidence/"
+        },
+        {
+          "title": "Ox Alpha: What We Know So Far, Aug 2026 (explainx.ai)",
+          "url": "https://www.explainx.ai/blog/ox-alpha-what-we-know-mystery-ai-model-august-2026"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "low"
+    },
+    {
+      "id": "glm-5.3",
+      "openrouter_id": "z-ai/glm-5.3",
+      "label": "GLM-5.3",
+      "brand": "zhipu",
+      "launched": "2026-08-18",
+      "price_in": 1.4,
+      "price_out": 4.4,
+      "context": 1048576,
+      "headline": "Frontier coding, cyber baggage",
+      "one_liner": "The same 743B base model as GLM-5.2 with far more post-training, which pulled it level with Kimi K3 at the top of open weights and simultaneously made it good enough at exploitation that Z.ai delayed the weights.",
+      "points": [
+        "No new base model: Z.ai kept GLM-5.2's 743B base and attributes every gain to scaled post-training with more task environments and longer training runs.",
+        "Artificial Analysis independently scored it 60 on the Intelligence Index on 18 Aug 2026, up 7 from GLM-5.2, tying Kimi K3 and sitting three points behind Claude Opus 5 at 63.",
+        "Z.ai's own long-horizon coding jumps are dramatic: Terminal-Bench 3.0 from 4.6 to 28.3 and DeepSWE v1.1 from 46.2 to 66.9, though it still trails GPT-5.6 Sol and Fable 5 on the harder coding evals.",
+        "Cybersecurity is the story: CyberGym 77.2% to 84.5% (past Mythos 5's 83.8%) and ExploitBench 24.4% to 54.4%, with 2,436 real vulnerabilities found across 269 projects after expert review and deduplication.",
+        "Weights were held back roughly two weeks post-launch for safety hardening, so the 'open weights' claim was a promise at launch rather than a download.",
+        "Structured output is unenforced: OpenRouter lists tools/tool_choice and response_format for JSON with no JSON-schema enforcement, and reasoning cannot be disabled, which inflates cost and latency on simple extraction calls.",
+        "Slow for the price at $1.40/$4.40 with 34 tok/s and 3.12s P50 latency; Hacker News split between 'only just by a hair' behind frontier and 'is post-training magic just overfitting to benchmarks?'"
+      ],
+      "sources": [
+        {
+          "title": "Z.ai Ships GLM-5.3 Without Retraining the Base Model (MarkTechPost)",
+          "url": "https://www.marktechpost.com/2026/08/14/z-ai-ships-glm-5-3-without-retraining-the-base-model-better-at-complex-coding-and-long-horizon-tasks/"
+        },
+        {
+          "title": "GLM-5.3 Scores 60 on Artificial Analysis Intelligence Index, Matching Kimi K3 (Unite.AI)",
+          "url": "https://www.unite.ai/glm-5-3-scores-60-on-artificial-analysis-intelligence-index-matching-kimi-k3/"
+        },
+        {
+          "title": "GLM-5.3 (max) - Intelligence, Performance & Price Analysis (Artificial Analysis)",
+          "url": "https://artificialanalysis.ai/models/glm-5-3"
+        },
+        {
+          "title": "GLM-5.3 is here with advanced cyber capabilities (VentureBeat)",
+          "url": "https://venturebeat.com/technology/glm-5-3-is-here-with-advanced-cyber-capabilities-and-reportedly-already-found-a-serious-vulnerability-in-cursor"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "high"
+    },
+    {
+      "id": "gemini-3.7-flash",
+      "openrouter_id": "google/gemini-3.7-flash",
+      "label": "Gemini 3.7 Flash",
+      "brand": "google",
+      "launched": "2026-08-13",
+      "price_in": 0.375,
+      "price_out": 1.875,
+      "context": 1048576,
+      "headline": "Fast, capable, JSON-flaky",
+      "one_liner": "Google's workhorse Flash tier made a real jump in agentic coding, but it shipped with a documented schema-constrained JSON regression that is exactly the failure mode a structured-extraction benchmark punishes.",
+      "points": [
+        "Big generational move on Google's own numbers versus 3.6 Flash: DeepSWE v1.1 65.3% vs 49.0%, FrontierCode 1.1 43.6% vs 34.4%, AutomationBench 30.4% vs 17.0%, WebDev Arena Elo 1588 vs 1538.",
+        "There is a live structured-output regression: with responseMimeType application/json plus responseSchema, prompts containing many near-identical items emit a valid JSON prefix then loop an integer field's digits until maxOutputTokens.",
+        "The reporter measured roughly 33% incidence on synthetic payloads and up to 100% on production equivalents, burning 241 runaway calls and about $60 of unintended output tokens in three days; retries re-entered the loop and temperature did not help.",
+        "The same bug does not occur on gemini-3-flash-preview, so this is a 3.7-specific regression, and no Google fix is documented in the thread.",
+        "Related complaints: agents terminating with empty output after a tool call, MALFORMED_FUNCTION_CALL on large function-call arguments across the Flash family, and schema key order not preserved in the Python SDK.",
+        "Migration is real API work, not a model-name swap: the 'minimal' thinking level now returns a validation error, thinking_budget is replaced by thinking_level, and deprecated sampling and candidate-count fields must go.",
+        "Price is the catch. OpenRouter lists $0.375/$1.875, but Google's own announcement puts introductory pricing at $0.75/$3.75 through 31 Dec 2026 and standard pricing at $1.50/$7.50 from 1 Jan 2027, so budget for a steep increase.",
+        "Genuinely quick and broadly multimodal (text, images, video, PDF, audio in) at 253 tok/s and 1.53s P50, with a 1M context but only a 65,536-token completion cap."
+      ],
+      "sources": [
+        {
+          "title": "Introducing Gemini 3.7 Flash: our most intelligent workhorse model (Google blog)",
+          "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-3-7-flash/"
+        },
+        {
+          "title": "Gemini-3.7-flash: schema-constrained JSON output degenerates into repeated '0' until maxOutputTokens (Google AI Developers Forum)",
+          "url": "https://discuss.ai.google.dev/t/gemini-3-7-flash-schema-constrained-json-output-degenerates-into-repeated-0-until-maxoutputtokens-regression-vs-gemini-3-flash-preview/178681"
+        },
+        {
+          "title": "Google's Gemini 3.7 Flash targets coding and agents with a 50% introductory price cut (VentureBeat)",
+          "url": "https://venturebeat.com/technology/googles-gemini-3-7-flash-targets-coding-and-agents-with-a-50-introductory-price-cut"
+        },
+        {
+          "title": "Migrating to Gemini 3.7 Flash: What Breaks, What Changed, and How to Fix Your Code (Google Cloud Community, Medium)",
+          "url": "https://medium.com/google-cloud/migrating-to-gemini-3-7-flash-what-breaks-what-changed-and-how-to-fix-your-code-8f18385f0833"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "high"
+    },
+    {
+      "id": "qwen3.8-2.4t-a95b",
+      "openrouter_id": "qwen/qwen3.8-2.4t-a95b",
+      "label": "Qwen3.8 2.4T A95B",
+      "brand": "qwen",
+      "launched": "2026-08-12",
+      "price_in": 2.0,
+      "price_out": 6.0,
+      "context": 1048576,
+      "headline": "Open frontier, premium price",
+      "one_liner": "Alibaba's first Max-class model released as open weights, near the top of independent intelligence rankings but priced and clocked like a laggard on hosted endpoints.",
+      "points": [
+        "Sparse MoE with 2.4T total and 95B active parameters, 512 experts (10 routed plus 1 shared), pairing Gated DeltaNet linear attention with Gated Attention in a 23-block repeating pattern.",
+        "Artificial Analysis independently places it at 58 on the Intelligence Index, ranking it #2 of 107 models evaluated and well above the 27 median for comparable open-weight models.",
+        "Alibaba's own headline numbers are strong: GPQA Diamond 92.6, PaperBench 93.0 (leading), OSWorld 86.1, Terminal-Bench 2.1 86.6, trading blows with Opus 4.8 and GPT-5.6 Sol on agentic tests.",
+        "It supports real structured outputs via JSON schema in response_format plus tools/tool_choice, which puts it in the better half of this set for extraction reliability.",
+        "Verbosity is a documented cost: it burned 140M output tokens on the Artificial Analysis Intelligence Index against a 100M median, and Qwen models are pre-trained to reason so they ramble even with thinking off.",
+        "Expensive for open weights at $2.00/$6.00 versus Artificial Analysis medians of $0.30/$1.20, working out to $1.09 per Intelligence Index task.",
+        "Speed reports conflict sharply: Artificial Analysis measured 45.1 tok/s and 2.54s TTFT (both worse than median) while OpenRouter's best provider shows 167 tok/s and 0.99s, so throughput is provider-dependent and worth testing yourself.",
+        "Long-standing caution from developers: Qwen's benchmark-to-real-world correlation has been inconsistent across past releases, so treat the vendor table as an upper bound."
+      ],
+      "sources": [
+        {
+          "title": "Qwen3.8 2.4T A95B - Intelligence, Performance & Price Analysis (Artificial Analysis)",
+          "url": "https://artificialanalysis.ai/models/qwen3-8-2-4t-a95b"
+        },
+        {
+          "title": "Qwen3.8 2.4T A95B - API Pricing & Providers (OpenRouter)",
+          "url": "https://openrouter.ai/qwen/qwen3.8-2.4t-a95b"
+        },
+        {
+          "title": "Qwen3.8-2.4T-A95B: Alibaba's Open-Weight Qwen-Max Flagship Explained (MindStudio)",
+          "url": "https://www.mindstudio.ai/blog/qwen3-8-2-4t-a95b-release"
+        },
+        {
+          "title": "Qwen3.8-2.4T-A95B Benchmarks vs Opus 4.8 and GPT-5.6 Sol (MindStudio)",
+          "url": "https://www.mindstudio.ai/blog/qwen3-8-2-4t-a95b-benchmarks"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "medium"
+    },
+    {
+      "id": "deepseek-v4-pro-0813",
+      "openrouter_id": "deepseek/deepseek-v4-pro-0813",
+      "label": "DeepSeek V4 Pro (0813)",
+      "brand": "deepseek",
+      "launched": "2026-08-12",
+      "price_in": 1.122,
+      "price_out": 3.366,
+      "context": 1048576,
+      "headline": "Strong claims, thin proof",
+      "one_liner": "DeepSeek's 1.6T flagship went GA with no announcement and a scorecard that would put it near frontier, except almost none of it has been independently reproduced.",
+      "points": [
+        "1.6T total parameters with roughly 49B active, pretrained on over 32T tokens, 1M context and up to ~393K output tokens, including a DSpark speculative-decoding module for faster inference.",
+        "Shipped with no blog post, changelog entry or press release on 12 Aug 2026, which is on-brand for DeepSeek but leaves reviewers working from third-party tables.",
+        "Vendor agentic numbers are aggressive: Terminal Bench 2.1 87.9 (vs 85.0 for Opus 4.8), CyberGym 83.3, AutomationBench Public 31.8, DeepSWE 62.7, NL2Repo 61.5, plus SWE-bench Verified 96.40% at roughly 1/36th the cost per test.",
+        "None of it is reproducible: the agentic harness was never released, and reviewers flag every headline figure as vendor- or analyst-reported.",
+        "The one independent read is Artificial Analysis at 53 on its Intelligence Index, up from 45 for April's V4 Pro, against Claude Opus 5 at 63.",
+        "No vision at all, and DeepSeek has signalled vision is not on the V4 Pro roadmap; this is the single most common complaint on Hacker News and r/LocalLLaMA.",
+        "Good structured-output surface for extraction: OpenRouter lists tools/tool_choice and genuine structured outputs via JSON schema in response_format, unlike DeepSeek's own Flash Vision variant.",
+        "Pricing is unstable and provider-dependent. DeepSeek's first-party API lists $0.435 input (cache miss) and $0.87 output with an unquantified increase announced, while OpenRouter routing sits materially higher. Developers on HN have already reacted with 'DS is dead to me after the pricing changes.'",
+        "Fast where it counts for batch extraction: 107 tok/s and 0.69s P50 latency across OpenRouter providers."
+      ],
+      "sources": [
+        {
+          "title": "DeepSeek V4 Pro 0813 Goes GA: Benchmark Claims Await Independent Proof (TechTimes)",
+          "url": "https://www.techtimes.com/articles/324241/20260813/deepseek-v4-pro-0813-goes-ga-benchmark-claims-await-independent-proof.htm"
+        },
+        {
+          "title": "DeepSeek V4 Pro Benchmarks: Official vs Independent (OrcaRouter)",
+          "url": "https://www.orcarouter.ai/blog/deepseek-v4-pro-benchmark"
+        },
+        {
+          "title": "DeepSeek v4-0813-Pro Benchmarks: Model Scores One Point Higher Than Flash On Artificial Analysis Intelligence Index (OfficeChai)",
+          "url": "https://officechai.com/ai/deepseek-v4-0813-pro-benchmarks/"
+        },
+        {
+          "title": "DeepSeek V4-Pro (0813) Is Now GA: Benchmarks, Pricing and the Catch (Codersera)",
+          "url": "https://codersera.com/blog/deepseek-v4-pro-0813-guide-2026/"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "medium"
+    },
+    {
+      "id": "nemotron-3.5-lightning",
+      "openrouter_id": "nvidia/nemotron-3.5-lightning",
+      "label": "Nemotron 3.5 Lightning",
+      "brand": "nvidia",
+      "launched": "2026-08-11",
+      "price_in": 0.08,
+      "price_out": 0.2,
+      "context": 262144,
+      "headline": "Blazing, cheap, shallow",
+      "one_liner": "A 3B-active hybrid Mamba-MoE built to be the fastest hands on a keyboard rather than the smartest head in the room, and priced accordingly.",
+      "points": [
+        "Hybrid Mamba-2 plus MoE architecture with roughly 31.6B total and 3.6B active parameters, released under the permissive OpenMDW-1.1 licence in both BF16 and NVFP4 checkpoints.",
+        "Cheapest and fastest model in this set by a wide margin: $0.08/$0.20 with 413 tok/s and 0.16s P50 latency on OpenRouter; Artificial Analysis clocked nearly 670 tok/s on a pre-release NVFP4 endpoint.",
+        "The tradeoff is explicit. Artificial Analysis scores it 24 on the Intelligence Index (a +9 jump over Nemotron 3 Nano's 15) but well behind Qwen3.6 35B at 32; Terminal-Bench v2.1 sits at 24%.",
+        "NVIDIA's own figures are better on knowledge-shaped tasks than agentic ones: MMLU Pro 81.94, GPQA Diamond 75.44, SWE-bench Verified 51.56, PinchBench 85.37 for the BF16 checkpoint.",
+        "It supports tools/tool_choice and true structured outputs via JSON schema in response_format, with reasoning toggled on or off through the chat template, and r/LocalLLaMA impressions describe 'clean tool calling' (impressions only, no independent table exists).",
+        "Best framed as an execution engine beneath a smarter orchestrator: formatting results, calling tools and grinding through repetitive volume, not the hardest single-pass reasoning or nuanced long-form writing.",
+        "Context claims conflict. OpenRouter serves 262K, while NVIDIA's model card claims up to 1M but concedes 256K is the practical ceiling on a single H100, with the full window needing 8xH100 or Blackwell.",
+        "Verbosity reports conflict too: one review says it emitted 100M tokens on the Intelligence Index against a 45M median, while Artificial Analysis's own launch note says per-task output tokens were similar to its predecessor."
+      ],
+      "sources": [
+        {
+          "title": "NVIDIA launches Nemotron 3.5 Lightning (Artificial Analysis)",
+          "url": "https://artificialanalysis.ai/articles/nemotron-3-5-lightning-launch"
+        },
+        {
+          "title": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16 (Hugging Face model card)",
+          "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+        },
+        {
+          "title": "Nemotron 3.5 Lightning - API Pricing & Providers (OpenRouter)",
+          "url": "https://openrouter.ai/nvidia/nemotron-3.5-lightning"
+        },
+        {
+          "title": "Nemotron 3.5 Lightning Review: Fast Agent Worker (Kingy AI)",
+          "url": "https://kingy.ai/blog/nemotron-3-5-lightning-review/"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "medium"
+    },
+    {
+      "id": "muse-spark-1.2",
+      "openrouter_id": "meta/muse-spark-1.2",
+      "label": "Muse Spark 1.2",
+      "brand": "meta",
+      "launched": "2026-08-05",
+      "price_in": 1.25,
+      "price_out": 4.25,
+      "context": 1048576,
+      "headline": "Reliable runner-up, sluggish",
+      "one_liner": "Meta's closed-weights coding model finishes a consistent second to Claude Opus 5 on Meta's own benchmarks, with the best structured-output surface here and the worst first-token latency.",
+      "points": [
+        "A coding-focused point release of 1.1, co-trained with Meta's Muse Code agent on rejection-sampled harness trajectories plus a self-improvement loop where 1.1 generated and graded its successor's training environments.",
+        "Second place on all three of Meta's headline benchmarks: Terminal-Bench 2.1 82.9% vs Opus 5's 86.7%, DeepSWE v1.1 59.3% vs 65.0%, and Meta's internal coding benchmark 70.6% vs 79.4%.",
+        "Artificial Analysis independently scores it 54 on the Intelligence Index, up 3 from 1.1 and 11 from 1.0, effectively tied with Grok 4.5 but behind Opus 5, Fable 5, GPT-5.6 Sol and Kimi K3.",
+        "Those 3 points cost real money: input tokens rose about 53% and output about 36% versus 1.1, pushing cost per Intelligence Index task from $0.29 to $0.40. SciCode fell 2 points and Humanity's Last Exam fell 1.",
+        "Best-documented structured-output support in this set: genuine JSON-schema structured outputs in response_format, tools/tool_choice, parallel function calling and configurable reasoning effort. Tool-use benchmarks are still modest though, at 27% on Artificial Analysis's tau-3-Banking.",
+        "Hallucination profile is worth knowing for extraction: Artificial Analysis's AA-Omniscience puts it at 22 with a 28% hallucination rate and 67% attempt rate, with accuracy slipping from 41% to 38% as abstention rose.",
+        "Slowest to first token here by a distance: 9.50s P50 on OpenRouter at 84 tok/s, with 97.96% three-day availability, the weakest in this comparison.",
+        "Weights stayed closed, which the community forgave least: Alexandr Wang called Muse Spark 'not suitable for open sourcing' in May, then promised open weights on 10 Aug.",
+        "The cheap $0.10/$0.20 Contributor tier buys its 12-21x discount with permission to train on your data, which rules it out for confidential contracts."
+      ],
+      "sources": [
+        {
+          "title": "Muse Spark 1.2: Benchmarks and analysis (Artificial Analysis)",
+          "url": "https://artificialanalysis.ai/articles/muse-spark-1-2"
+        },
+        {
+          "title": "Meta enters the AI coding wars with Muse Spark 1.2 and Muse Code (VentureBeat)",
+          "url": "https://venturebeat.com/orchestration/meta-enters-the-ai-coding-wars-with-muse-spark-1-2-and-muse-code-with-persistent-async-background-agents"
+        },
+        {
+          "title": "Muse Spark 1.2 - API Pricing & Providers (OpenRouter)",
+          "url": "https://openrouter.ai/meta/muse-spark-1.2"
+        },
+        {
+          "title": "Meta Muse Spark 1.2: what changed, what it costs, and the catch (eesel AI)",
+          "url": "https://www.eesel.ai/blog/meta-muse-spark-12"
+        }
+      ],
+      "coverage": "good",
+      "confidence": "high"
+    }
+  ]
+}
