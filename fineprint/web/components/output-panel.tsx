@@ -85,7 +85,7 @@ export function OutputPanel({ result, revealed, running, model, hot, setHot }: {
       {show && (
         <div className="mt-auto flex items-center justify-between px-4 py-2.5 border-t border-line text-[11.5px] text-faint">
           <span className="font-mono">{result!.model} · read in {result!.latency}s · {result!.fields.length} fields</span>
-          <a href="/#leaderboard" className="text-accent font-semibold hover:underline">Compare on the leaderboard →</a>
+          <a href="/#leaderboard" className="text-accent font-semibold hover:underline">Compare on the leaderboard</a>
         </div>
       )}
     </div>

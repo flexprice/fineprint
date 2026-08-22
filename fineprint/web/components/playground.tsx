@@ -17,6 +17,8 @@ const PLAYGROUND_MODEL_IDS = ["gpt-5.5", "claude-fable-5", "grok-4.6", "gemini-3
 const DEFAULT_MODEL = PLAYGROUND_MODEL_IDS[0];
 const GUIDEWIRE_ID = samples[0].id; // "guidewire"
 const GUIDEWIRE_META = samples.find((s) => s.id === GUIDEWIRE_ID)! as SampleMeta;
+// Team feedback: MSA reads cleaner as the first thing people see than the license agreement.
+const DEFAULT_SAMPLE_ID = "msa";
 
 // The one sample that ships with the site as a static asset, adapted into the /extract shape
 // so the same viewer renders it. This is the default view — no network, always works.
@@ -36,14 +38,15 @@ const sourceOf = (id: string) => {
 
 export function Playground() {
   const [mode, setMode] = useState<"sample" | "upload">("sample");
-  const [sampleId, setSampleId] = useState(GUIDEWIRE_ID);
+  const [sampleId, setSampleId] = useState(DEFAULT_SAMPLE_ID);
   const [model, setModel] = useState(DEFAULT_MODEL);
   const [file, setFile] = useState<File | null>(null);
-  const [pages, setPages] = useState<Page[]>(GUIDEWIRE.pages);
-  const [result, setResult] = useState<ExtractResult | null>(GUIDEWIRE);
+  const isGuidewireDefault = DEFAULT_SAMPLE_ID === GUIDEWIRE_ID;
+  const [pages, setPages] = useState<Page[]>(isGuidewireDefault ? GUIDEWIRE.pages : []);
+  const [result, setResult] = useState<ExtractResult | null>(isGuidewireDefault ? GUIDEWIRE : null);
   const [revealed, setRevealed] = useState(false);
   const [hot, setHot] = useState<number | null>(null);
-  const [loadingPages, setLoadingPages] = useState(false);
+  const [loadingPages, setLoadingPages] = useState(!isGuidewireDefault);
   const [status, setStatus] = useState<"" | "running" | "error">("");
   const [err, setErr] = useState("");
   const [token, setToken] = useState<string | null>(null);
@@ -56,6 +59,15 @@ export function Playground() {
     fetchAvailableSamples()
       .then((list) => setAvailable([GUIDEWIRE_META, ...list.filter((s) => s.id !== GUIDEWIRE_ID)]))
       .catch(() => {});   // backend down / none prepped → just the offline Guidewire
+    // The default sample (MSA) isn't the offline-baked one, so its contract still needs a
+    // fetch on first paint — same path pickSample() takes for any non-Guidewire sample.
+    if (!isGuidewireDefault) {
+      fetchSamplePages(DEFAULT_SAMPLE_ID)
+        .then(setPages)
+        .catch(() => setPages([]))
+        .finally(() => setLoadingPages(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: default sample is a constant
   }, []);
 
   function pickSample(id: string) {
@@ -118,13 +130,13 @@ export function Playground() {
               mode === "upload"
                 ? "border-accent bg-accent/5 text-text font-semibold"
                 : "border-line bg-surface text-muted hover:text-text"}`}>
-            Upload your own ↑</button>
+            Upload your own</button>
         </div>
         <div className="flex items-center gap-2.5 ml-auto">
           <ModelPicker ids={PLAYGROUND_MODEL_IDS} value={model} onChange={setModel} />
           <button onClick={() => run()} disabled={running}
             className="bg-primary text-bg rounded-xl px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-60 whitespace-nowrap">
-            {running ? "Reading…" : revealed ? "Re-run →" : "Run extraction →"}</button>
+            {running ? "Reading…" : revealed ? "Re-run" : "Run extraction"}</button>
         </div>
       </div>
 

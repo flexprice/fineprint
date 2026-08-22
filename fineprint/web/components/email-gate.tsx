@@ -32,7 +32,7 @@ export function EmailGate({ open, onClose, onSubmitted, context }:
         {err && <p className="mt-2 text-[12.5px] text-warning">{err}</p>}
         <button disabled={busy || !ready} onClick={go}
           className="mt-4 w-full rounded-xl bg-primary text-bg py-3 text-[14px] font-bold disabled:opacity-50 disabled:cursor-not-allowed">
-          {busy ? "Running…" : "Run extraction →"}</button>
+          {busy ? "Running…" : "Run extraction"}</button>
         <p className="mt-3 text-[11.5px] text-faint text-center">We&rsquo;ll only use this to follow up about FinePrint. Your file is not stored.</p>
       </div>
     </div>
