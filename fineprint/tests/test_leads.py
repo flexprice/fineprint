@@ -10,16 +10,20 @@ def test_valid_email_rejects_junk():
 
 def test_record_lead_notifies_and_returns_working_token():
     sent = {}
-    tok = record_lead("dev@acme.com", "Acme", {"sample": "SaaS", "model": "GPT-5.5"},
+    tok = record_lead("dev@acme.com", "Ada Lovelace", {"sample": "SaaS", "model": "GPT-5.5"},
                       notify_fn=lambda text: sent.setdefault("t", text),
                       store_append=lambda row: sent.setdefault("row", row))
-    assert "acme.com" in sent["t"] and sent["row"]["company"] == "Acme"
+    assert "acme.com" in sent["t"] and sent["row"]["name"] == "Ada Lovelace"
     assert "file" not in sent["row"]                      # never store file contents
     assert valid_session_token(tok)
 
 def test_record_lead_rejects_bad_email():
     with pytest.raises(ValueError):
-        record_lead("nope", "Acme", {})
+        record_lead("nope", "Ada Lovelace", {})
+
+def test_record_lead_rejects_missing_name():
+    with pytest.raises(ValueError):
+        record_lead("dev@acme.com", "  ", {})
 
 def test_issue_session_token_is_self_verifying_and_carries_the_email():
     tok = issue_session_token("dev@acme.com")

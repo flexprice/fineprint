@@ -24,9 +24,19 @@ _CATALOG_URL = "https://openrouter.ai/api/v1/models"
 
 # Distinct exit codes so the watch loop can report an honest reason instead of always blaming the
 # provider calls. UNRESOLVABLE = the model id isn't on OpenRouter (a withdrawn/renamed stealth
-# variant, or a bad spec); ALL_FAILED = it resolved but every provider call errored.
+# variant, or a bad spec); ALL_FAILED = it resolved but every provider call errored for reasons this
+# service can retry past; POLICY_BLOCKED = every provider call was rejected by THIS OpenRouter
+# account's own privacy/data-policy settings — not a bug, and not something a code fix can route
+# around (that's the point of the setting). Only a human with dashboard access can decide to relax it.
 EXIT_UNRESOLVABLE = 3
 EXIT_ALL_FAILED = 2
+EXIT_POLICY_BLOCKED = 4
+
+# OpenRouter's own wording when an account's configured data-collection/guardrail policy excludes
+# every provider that could serve a model (e.g. "only zero-retention providers") — verbatim from a
+# live 404 hit while diagnosing deepseek/deepseek-v4-flash-vision-exp. Matched, not parsed: OpenRouter
+# doesn't give this a machine-readable error code.
+_POLICY_BLOCKED_MARKER = "no endpoints available matching your guardrail restrictions and data policy"
 
 
 def _die(msg: str, code: int) -> None:
@@ -82,6 +92,11 @@ def evaluate(spec: str, runs: int = N_RUNS, workers: int = MAX_WORKERS,
 
     if not any(r["ok"] for r in records):
         errs = {r.get("error", "?") for r in records}
+        if errs and all(_POLICY_BLOCKED_MARKER in e.lower() for e in errs):
+            _die(f"\n{model['label']} is blocked by this OpenRouter account's own privacy/data-policy "
+                 f"settings — no provider for this model meets the configured guardrails. Not a bug; "
+                 f"review https://openrouter.ai/settings/privacy if you want this model included.\n  "
+                 + "\n  ".join(sorted(errs)), EXIT_POLICY_BLOCKED)
         _die(f"\nall calls failed for {model['label']}:\n  " + "\n  ".join(sorted(errs)),
              EXIT_ALL_FAILED)
 

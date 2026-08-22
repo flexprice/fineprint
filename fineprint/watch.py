@@ -118,11 +118,14 @@ def _eval_worker(orid: str, runs: int) -> None:
 
 # Exit codes raised by fineprint.eval — kept in sync so the Slack skip-reason is honest instead of
 # always blaming the provider calls.
-from fineprint.eval import EXIT_UNRESOLVABLE, EXIT_ALL_FAILED
+from fineprint.eval import EXIT_UNRESOLVABLE, EXIT_ALL_FAILED, EXIT_POLICY_BLOCKED
 
 _EXIT_REASON = {
     EXIT_UNRESOLVABLE: "not on OpenRouter anymore (withdrawn / renamed stealth or preview variant)",
     EXIT_ALL_FAILED: "resolved, but every provider call errored (see eval logs)",
+    EXIT_POLICY_BLOCKED: "blocked by this OpenRouter account's privacy/data-policy settings — no "
+                          "provider for this model meets the configured guardrails "
+                          "(openrouter.ai/settings/privacy)",
 }
 
 

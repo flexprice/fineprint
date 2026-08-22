@@ -64,3 +64,31 @@ def test_resolve_non_reasoner_gets_no_default_effort(monkeypatch):
 def test_watch_maps_exit_codes_to_honest_reasons():
     assert "not on OpenRouter" in watch._EXIT_REASON[E.EXIT_UNRESOLVABLE]
     assert "provider call" in watch._EXIT_REASON[E.EXIT_ALL_FAILED]
+    assert "privacy/data-policy" in watch._EXIT_REASON[E.EXIT_POLICY_BLOCKED]
+
+
+def test_evaluate_exits_policy_blocked_when_every_call_hits_the_guardrail(monkeypatch):
+    # The deepseek-v4-flash-vision-exp case: OpenRouter's own account-level privacy/data-policy
+    # setting excludes every provider for this model — a 404 on every single call, verbatim message.
+    model = {"id": "vision-exp", "label": "Vision Exp", "openrouter_id": "lab/vision-exp"}
+    monkeypatch.setattr(E, "resolve", lambda spec: model)
+    err = ("NotFoundError: Error code: 404 - {'error': {'message': 'No endpoints available matching "
+           "your guardrail restrictions and data policy. Configure: https://openrouter.ai/set")
+    monkeypatch.setattr(E, "run_models", lambda models, n_runs, workers, audit: [{"ok": False, "error": err}])
+    monkeypatch.setattr(E, "merge_into_results", lambda records, n_runs: None)
+    with pytest.raises(SystemExit) as ei:
+        E.evaluate("lab/vision-exp", runs=1)
+    assert ei.value.code == E.EXIT_POLICY_BLOCKED
+
+
+def test_evaluate_exits_all_failed_for_ordinary_errors(monkeypatch):
+    # A mixed-cause or non-guardrail failure still reports the generic (retriable) reason, not
+    # POLICY_BLOCKED — only an all-guardrail failure set gets the account-settings message.
+    model = {"id": "flaky", "label": "Flaky", "openrouter_id": "lab/flaky"}
+    monkeypatch.setattr(E, "resolve", lambda spec: model)
+    monkeypatch.setattr(E, "run_models",
+                        lambda models, n_runs, workers, audit: [{"ok": False, "error": "TimeoutError: slow"}])
+    monkeypatch.setattr(E, "merge_into_results", lambda records, n_runs: None)
+    with pytest.raises(SystemExit) as ei:
+        E.evaluate("lab/flaky", runs=1)
+    assert ei.value.code == E.EXIT_ALL_FAILED
