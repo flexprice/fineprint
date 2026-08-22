@@ -156,9 +156,10 @@ export default function Methodology() {
           <div className="card rounded-xl p-6">
             <div className="font-mono text-[11px] uppercase tracking-[.08em] text-faint mb-2">Provenance</div>
             <p className="text-[14.5px] text-muted leading-relaxed">
-              Real, license-clear public contracts, material-agreement exhibits from <b className="text-text">SEC EDGAR</b>{" "}
-              filings (public records) and the CC-BY-licensed <b className="text-text">CUAD</b> corpus of commercial
-              agreements. No synthetic documents: every contract was signed by real parties.
+              Two sources, both real. A private set of executed commercial agreements, used under their
+              own confidentiality terms and never republished, and material-agreement exhibits filed as
+              public records on <b className="text-text">SEC EDGAR</b>. No synthetic documents: every
+              contract was signed by real parties, and only the private set carries terms we cannot show.
             </p>
           </div>
           <div className="card rounded-xl p-6">
@@ -196,10 +197,12 @@ export default function Methodology() {
             <div>
               <div className="font-mono text-[11px] uppercase tracking-[.08em] mb-1" style={{ color: "rgba(255,255,255,.7)" }}>Scale &amp; roadmap</div>
               <p className="text-[14.5px] leading-relaxed max-w-[58ch]" style={{ color: "rgba(255,255,255,.92)" }}>
-                Results shown here run on a hand-labeled seed. The corpus is expanding toward{" "}
-                <b>~1,000 contracts</b> via a two-tier scheme: a <b>gold</b> human-labeled holdout for scoring,
-                plus a larger <b>silver</b> pool (strong-model drafts, human-adjudicated) for coverage, the
-                standard way credible benchmarks scale labels without sacrificing trust.
+                Scored results run on the <b>gold</b> set: contracts a human labeled field by field. The
+                corpus grows through a two-tier scheme, a gold holdout for scoring plus a larger{" "}
+                <b>silver</b> pool (independent strong-model drafts, kept only where they agree, with
+                disagreements adjudicated by a human) for coverage. It is the standard way credible
+                benchmarks scale labels without sacrificing trust, and we keep the tiers separate rather
+                than reporting one blended figure.
               </p>
             </div>
           </div>
@@ -345,9 +348,11 @@ export default function Methodology() {
           <div className="card rounded-xl p-6">
             <div className="font-mono text-[11px] uppercase tracking-[.08em] text-faint mb-2">Known limitations</div>
             <p className="text-[14.5px] text-muted leading-relaxed">
-              The scored seed is small while we scale to ~1,000; results carry run-to-run variance we report
-              as σ. Extraction sits on an OCR step, so document quality matters. The schema targets commercial
-              billing terms and is English-first today. We publish these limits rather than paper over them.
+              The gold set is still small while the corpus scales, so results carry run-to-run variance we
+              report as σ. Extraction sits on an OCR step, so document quality matters. The schema targets
+              commercial billing terms and is English-first today. Scores are comparable only within a single
+              corpus version; when the corpus changes, every model is re-scored on it rather than mixed with
+              older numbers. We publish these limits rather than paper over them.
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { models, data, money, fmtValue } from "@/lib/data";
+import { models, money, fmtValue } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://fineprint.bench";
@@ -20,7 +20,7 @@ export default function EmbedPage() {
         </div>
         <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] text-muted">
           <span className="size-1.5 rounded-full" style={{ background: "var(--success)" }} />
-          {data.n_models} models · {data.n_contracts} contracts
+          real contracts · private labels
         </span>
       </header>
 

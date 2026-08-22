@@ -48,7 +48,7 @@ export default function OpengraphImage() {
 
         <div style={{ display: "flex", justifyContent: "space-between", color: "#656a72", fontSize: 15, fontFamily: mono }}>
           <div style={{ display: "flex" }}>flexprice · fineprint</div>
-          <div style={{ display: "flex" }}>{data.fields_per_contract} fields / contract · {data.n_runs} runs · private holdout</div>
+          <div style={{ display: "flex" }}>real contracts · repeated runs · private holdout</div>
         </div>
       </div>
     ),
