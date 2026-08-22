@@ -237,12 +237,14 @@ def poll(dry_run: bool = False) -> int:
         ok, err = _run_eval_capped(orid, runs, timeout_s)
         if ok and not _publish_enabled():
             # Benchmarked fine, but the board write is withheld on purpose (see _publish_enabled).
-            # Announce it as held rather than as a missing row, so a deliberate hold never reads
-            # like a failure — and do NOT mark it seen, so it publishes on the poll after the
-            # board and corpus are reconciled.
-            warnings.append((label, orid, "benchmarked OK — board write held "
+            # Mark it seen anyway: evaluate() calls merge_into_results() BEFORE the publish gate, so
+            # the raw runs are already banked in runs.json. Re-polling would re-pay for calls we
+            # already have. When the board and corpus are reconciled, a single export.build() picks
+            # every withheld model up from those saved runs — no re-benchmarking.
+            seen.add(orid)
+            warnings.append((label, orid, "benchmarked OK — runs banked, board write held "
                                           "(FINEPRINT_WATCH_PUBLISH=0 until board/corpus agree)"))
-            print(f"watch: {label} benchmarked; publish withheld by FINEPRINT_WATCH_PUBLISH=0")
+            print(f"watch: {label} benchmarked + banked; publish withheld by FINEPRINT_WATCH_PUBLISH=0")
         elif ok:
             info = _published_row(model_id)
             if info:
