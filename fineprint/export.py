@@ -60,5 +60,48 @@ def build() -> dict:
     return data
 
 
+def add_model(model_id: str) -> dict | None:
+    """Publish ONE model onto the existing board, leaving every other row untouched.
+
+    ``build()`` recomputes the whole board from ``runs.json``. That is only correct while runs.json
+    still covers every published model over the same contracts — not guaranteed for a long-lived
+    board. When it is not true, publishing a single new model silently rewrites everyone else's
+    numbers against whatever contracts happen to be in runs.json. This function exists so the
+    autopilot can add a model without that risk.
+
+    Existing rows are copied verbatim; only ``rank`` moves as the new row is slotted in by accuracy.
+    Returns the published board, or None when the model has no usable runs.
+    """
+    if not WEB_DATA.exists():
+        return build()                       # no board yet — nothing to preserve
+    board = json.loads(WEB_DATA.read_text())
+    existing = [r for r in board.get("rows", []) if r["id"] != model_id]
+
+    models = [m for m in all_models() if m["id"] == model_id]
+    if not models:
+        return None
+    prices = pricing.load()
+    models = [{**m, **{k: prices[m["id"]][k] for k in ("price_in", "price_out")}} if m["id"] in prices else m
+              for m in models]
+    runs = [r for r in load_runs(RESULTS) if r["model"] == model_id]
+    if not runs:
+        return None
+    rows, _ = aggregate(runs, models, SEED_CONTRACTS)
+    new = next((r for r in rows if r["id"] == model_id), None)
+    if not new:
+        return None
+
+    merged = existing + [new]
+    merged.sort(key=lambda r: -r["accuracy"])
+    for i, r in enumerate(merged, 1):
+        r["rank"] = i
+    board["rows"] = merged
+    board["n_models"] = len(merged)
+    board["newest_id"] = model_id
+    WEB_DATA.write_text(json.dumps(board, indent=2))
+    print(f"published {model_id} -> rank #{new['rank']} of {len(merged)} (other rows untouched)")
+    return board
+
+
 if __name__ == "__main__":
     build()

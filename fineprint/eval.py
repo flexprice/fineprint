@@ -101,7 +101,10 @@ def evaluate(spec: str, runs: int = N_RUNS, workers: int = MAX_WORKERS,
              EXIT_ALL_FAILED)
 
     pricing.refresh()                      # price the (possibly new) model from OpenRouter
-    data = export.build() if publish else None
+    # Additive publish: slot THIS model into the board and leave every other row byte-identical.
+    # A full export.build() would recompute the whole board from runs.json, so publishing one new
+    # model would silently rescore every other model against whatever contracts runs.json holds.
+    data = export.add_model(model["id"]) if publish else None
     if not data:
         return
     row = next((r for r in data["rows"] if r["id"] == model["id"]), None)
