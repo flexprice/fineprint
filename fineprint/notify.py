@@ -76,11 +76,15 @@ def build_launch_blocks(row: dict, site_url: str, n_models: int,
 
     text = f"New model on FinePrint: {label} — rank {rank_str}, {accuracy}% accuracy"
 
+    # Free / stealth models list no price on OpenRouter — show NA, never "$None" / "None".
+    cost_str = f"${cost_1k}" if cost_1k is not None else "NA _(free / price unlisted)_"
+    value_str = f"{value}  _(acc pts per $/1k)_" if value is not None else "NA _(no listed price)_"
+
     fields = [
         {"type": "mrkdwn", "text": f"*Rank*\n{rank_str}"},
         {"type": "mrkdwn", "text": f"*Accuracy*\n{accuracy}%{delta}"},
-        {"type": "mrkdwn", "text": f"*Cost / 1k docs*\n${cost_1k}"},
-        {"type": "mrkdwn", "text": f"*Value*\n{value}  _(acc pts per $/1k)_"},
+        {"type": "mrkdwn", "text": f"*Cost / 1k docs*\n{cost_str}"},
+        {"type": "mrkdwn", "text": f"*Value*\n{value_str}"},
         {"type": "mrkdwn", "text": f"*Latency p50 / p90*\n{p50}s / {p90}s"},
         {"type": "mrkdwn", "text": f"*Hallucination*\n{halluc}%  _(confident & wrong)_"},
     ]

@@ -14,8 +14,8 @@ export type ModelRow = {
   convention: number;    // % correct on house-convention fields (timing, period, credit type)
   halluc: number;        // % of HIGH-confidence answers that were wrong
   consistency: number;   // mean run-to-run σ across the N runs
-  cost_1k: number;       // USD per 1,000 contracts
-  cost_contract: number;
+  cost_1k: number | null;       // USD per 1,000 contracts; null = free/stealth (price unlisted) -> NA
+  cost_contract: number | null;
   p50: number;           // median latency, seconds
   p90: number;
   avg_lat: number;
@@ -23,7 +23,7 @@ export type ModelRow = {
   out_tok: number;
   reasoning: number;
   reliability: number;   // % of calls that returned valid structured output
-  value: number;         // accuracy points per $/1k
+  value: number | null;  // accuracy points per $/1k; null when price is unknown/free -> NA
   avg_scored: number;
   calls: number;
   rank: number;
@@ -54,7 +54,12 @@ export const models = data.rows;
 export const byId = (id: string) => models.find((m) => m.id === id);
 export const newest = () => models.find((m) => m.id === data.newest_id) ?? models[0];
 
-export const money = (n: number) =>
-  n >= 100 ? `$${Math.round(n)}` : `$${n.toFixed(n < 10 ? 2 : 1)}`;
+// Free/stealth models publish a null cost/value (price unlisted on OpenRouter) — render "NA", never
+// "$0" / "0", which would read as infinitely cheap or worst-value.
+export const money = (n: number | null) =>
+  n == null ? "NA" : n >= 100 ? `$${Math.round(n)}` : `$${n.toFixed(n < 10 ? 2 : 1)}`;
+
+export const fmtValue = (v: number | null) =>
+  v == null ? "NA" : v >= 10 ? v.toFixed(0) : String(v);
 
 export const BASELINE_LABEL = "GPT-5.5";

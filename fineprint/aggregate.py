@@ -49,7 +49,12 @@ def aggregate(runs: list[dict], models: list[dict], contracts: list[tuple]) -> t
         lat = sorted(r["latency"] for r in ok)
         avg_in = mean(r["in"] for r in ok)
         avg_out = mean(r["out"] for r in ok)
-        cost_1k = (avg_in / 1e6 * m["price_in"] + avg_out / 1e6 * m["price_out"]) * 1000
+        # Free / stealth (cloaked) models list $0 prompt+completion on OpenRouter — that means the
+        # price is UNKNOWN (free while cloaked), not "genuinely free forever". Emitting cost $0 /
+        # value 0.0 would rank them as infinitely cheap yet worst-value; publish cost + value as
+        # None (NA) instead so the board doesn't mislead.
+        priced = bool(m.get("price_in") or m.get("price_out"))
+        cost_1k = (avg_in / 1e6 * m["price_in"] + avg_out / 1e6 * m["price_out"]) * 1000 if priced else None
         accuracy = pct(correct, scored)
         out.append({
             "id": m["id"], "label": m["label"], "family": m["family"], "brand": m.get("brand", "openai"),
@@ -59,15 +64,16 @@ def aggregate(runs: list[dict], models: list[dict], contracts: list[tuple]) -> t
             "convention": pct(cv_correct, cv_scored),
             "halluc": pct(confident_wrong, high),
             "consistency": round(mean(sigmas), 1) if sigmas else 0.0,
-            "cost_1k": round(cost_1k, 1),
-            "cost_contract": round(cost_1k / 1000, 4),
+            "cost_1k": round(cost_1k, 1) if cost_1k is not None else None,
+            "cost_contract": round(cost_1k / 1000, 4) if cost_1k is not None else None,
             "p50": round(_percentile(lat, 0.5), 1),
             "p90": round(_percentile(lat, 0.9), 1),
             "avg_lat": round(mean(lat), 1),
             "in_tok": round(avg_in), "out_tok": round(avg_out),
             "reasoning": round(mean(r["reasoning"] for r in ok)),
             "reliability": pct(len(ok), len(rs)),
-            "value": round(accuracy / cost_1k, 2) if cost_1k else 0.0,  # accuracy points per $/1k
+            # accuracy points per $/1k; None (NA) when price is unknown/free so it isn't ranked worst
+            "value": round(accuracy / cost_1k, 2) if cost_1k else None,
             "avg_scored": round(scored / len(ok), 1),
             "calls": len(rs),
         })

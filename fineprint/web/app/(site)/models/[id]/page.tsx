@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { models, byId, data, money, BASELINE_LABEL } from "@/lib/data";
+import { models, byId, data, money, fmtValue, BASELINE_LABEL } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
 export function generateStaticParams() {
@@ -25,10 +25,11 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
   const kpis: [string, string, string?][] = [
     [`${m.accuracy}%`, "Accuracy", `#${m.rank} of ${data.n_models}`],
     [`${m.halluc}%`, "Hallucination", "HIGH-confidence & wrong"],
-    [`${money(m.cost_1k)}`, "Cost / 1k contracts", `${money(m.cost_contract)} each · via OpenRouter`],
+    [`${money(m.cost_1k)}`, "Cost / 1k contracts",
+      m.cost_contract != null ? `${money(m.cost_contract)} each · via OpenRouter` : "free / price unlisted on OpenRouter"],
     [`${m.p50}s`, "Median latency", `p90 ${m.p90}s`],
     [`±${m.consistency}`, "Run-to-run σ", `${data.n_runs} runs`],
-    [`${m.value}`, "Value", "acc. pts per $/1k"],
+    [`${fmtValue(m.value)}`, "Value", "acc. pts per $/1k"],
   ];
   const tokens: [string, number][] = [["Input", m.in_tok], ["Output", m.out_tok], ["Reasoning", m.reasoning]];
   const maxTok = Math.max(...tokens.map((t) => t[1]));

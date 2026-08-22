@@ -1,4 +1,4 @@
-import { models, data, money } from "@/lib/data";
+import { models, data, money, fmtValue } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://fineprint.bench";
@@ -47,7 +47,7 @@ export default function EmbedPage() {
               </td>
               <td className="px-2 py-2.5 text-right tnum">{m.accuracy}%</td>
               <td className="px-2 py-2.5 text-right tnum">{money(m.cost_1k)}</td>
-              <td className="px-4 py-2.5 text-right tnum">{m.value >= 10 ? m.value.toFixed(0) : m.value}</td>
+              <td className="px-4 py-2.5 text-right tnum">{fmtValue(m.value)}</td>
             </tr>
           ))}
         </tbody>

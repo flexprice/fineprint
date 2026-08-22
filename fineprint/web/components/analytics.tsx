@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { data, models, money, ModelRow } from "@/lib/data";
+import { data, models, money, fmtValue, ModelRow } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
 /* ── icons — one per view, so the grid scans by shape as well as by title ──── */
@@ -148,7 +148,9 @@ function Scatter() {
 /* ── price spread (log dot plot) ──────────────────────────────────────────── */
 function PriceSpread() {
   const W = 640, H = 92, P = { l: 12, r: 12 };
-  const costs = models.map((m) => Math.max(m.cost_1k, 0.5));
+  // Free/stealth models have no listed price — leave them off the cost axis.
+  const priced = models.filter((m) => m.cost_1k != null);
+  const costs = priced.map((m) => Math.max(m.cost_1k!, 0.5));
   const lo = Math.min(...costs), hi = Math.max(...costs);
   const x = (v: number) => P.l + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (W - P.l - P.r);
   const ticks = [1, 5, 10, 50, 100, 300].filter((t) => t >= lo && t <= hi);
@@ -161,8 +163,8 @@ function PriceSpread() {
           <text x={x(t)} y={62} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--faint)">${t}</text>
         </g>
       ))}
-      {models.map((m, i) => (
-        <circle key={m.id} cx={x(Math.max(m.cost_1k, 0.5))} cy={38 - (i % 2 ? 9 : -9)} r={m.new ? 4.5 : 3.5}
+      {priced.map((m, i) => (
+        <circle key={m.id} cx={x(Math.max(m.cost_1k!, 0.5))} cy={38 - (i % 2 ? 9 : -9)} r={m.new ? 4.5 : 3.5}
           fill={hue(m)} stroke="var(--bg)" strokeWidth={1.5} opacity={0.9}>
           <title>{`${short(m)}: ${money(m.cost_1k)}/1k`}</title>
         </circle>
@@ -235,7 +237,8 @@ function ByLab() {
 export function Analytics() {
   const byAcc = [...models].sort((a, b) => b.accuracy - a.accuracy);
   const topAcc = byAcc.slice(0, 15);
-  const byValue = [...models].sort((a, b) => b.value - a.value).slice(0, 12);
+  // Value ranking is meaningful only for priced models — free/stealth (null value) are excluded.
+  const byValue = models.filter((m) => m.value != null).sort((a, b) => b.value! - a.value!).slice(0, 12);
   const lowHall = [...models].filter((m) => m.halluc > 0).sort((a, b) => a.halluc - b.halluc).slice(0, 12);
   const byExtraction = [...models].sort((a, b) => b.extraction - a.extraction).slice(0, 12);
   // Sized to the lab count so this card and "Accuracy by lab" end up the same height
@@ -264,7 +267,7 @@ export function Analytics() {
           <Bars rows={topAcc} val={(m) => m.accuracy} fmt={(m) => `${m.accuracy}%`} max={Math.max(...topAcc.map((m) => m.accuracy))} />
         </Card>
         <Card icon={I.value} title="Best value" sub="Accuracy per dollar spent. Cheap and accurate rises. Top 12.">
-          <Bars rows={byValue} val={(m) => m.value} fmt={(m) => (m.value >= 10 ? m.value.toFixed(0) : m.value.toFixed(1))} max={Math.max(...byValue.map((m) => m.value))} />
+          <Bars rows={byValue} val={(m) => m.value ?? 0} fmt={(m) => fmtValue(m.value)} max={Math.max(...byValue.map((m) => m.value ?? 0))} />
         </Card>
 
         <Card icon={I.speed} title="Speed × accuracy" sub="Median latency against accuracy. Up and to the left wins." wide>

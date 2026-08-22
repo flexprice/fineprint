@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { scaleLog, scaleLinear } from "@visx/scale";
-import { models, byId, money, type ModelRow } from "@/lib/data";
+import { models, byId, money, fmtValue, type ModelRow } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
 const MAX = 4;
@@ -13,7 +13,7 @@ type Metric = {
   label: string;
   hint: string;
   better: "high" | "low";
-  raw: (m: ModelRow) => number;
+  raw: (m: ModelRow) => number | null;   // null = NA (free/stealth cost & value) — never wins a row
   fmt: (m: ModelRow) => string;
 };
 
@@ -21,7 +21,7 @@ const METRICS: Metric[] = [
   { label: "Accuracy", hint: "higher is better", better: "high", raw: (m) => m.accuracy, fmt: (m) => `${m.accuracy}%` },
   { label: "Hallucination", hint: "lower is better", better: "low", raw: (m) => m.halluc, fmt: (m) => `${m.halluc}%` },
   { label: "Cost / 1k", hint: "lower is better", better: "low", raw: (m) => m.cost_1k, fmt: (m) => money(m.cost_1k) },
-  { label: "Value", hint: "acc. pts per $/1k", better: "high", raw: (m) => m.value, fmt: (m) => (m.value >= 10 ? m.value.toFixed(0) : String(m.value)) },
+  { label: "Value", hint: "acc. pts per $/1k", better: "high", raw: (m) => m.value, fmt: (m) => fmtValue(m.value) },
   { label: "p50 latency", hint: "lower is better", better: "low", raw: (m) => m.p50, fmt: (m) => `${m.p50}s` },
   { label: "Run-to-run σ", hint: "lower is better", better: "low", raw: (m) => m.consistency, fmt: (m) => `±${m.consistency}` },
   { label: "Reliability", hint: "higher is better", better: "high", raw: (m) => m.reliability, fmt: (m) => `${m.reliability}%` },
@@ -30,8 +30,9 @@ const METRICS: Metric[] = [
 const HL_BG = "color-mix(in srgb, var(--accent) 12%, transparent)";
 const SEL_BG = "color-mix(in srgb, var(--accent) 14%, transparent)";
 
-const bestOf = (metric: Metric, rows: ModelRow[]) => {
-  const vals = rows.map(metric.raw);
+const bestOf = (metric: Metric, rows: ModelRow[]): number | null => {
+  const vals = rows.map(metric.raw).filter((v): v is number => v != null);  // NA rows don't compete
+  if (!vals.length) return null;
   return metric.better === "high" ? Math.max(...vals) : Math.min(...vals);
 };
 
@@ -127,7 +128,7 @@ export function CompareView({ initial }: { initial: string[] }) {
                         <span className="block font-mono text-[10.5px] text-faint">{metric.hint}</span>
                       </td>
                       {selected.map((m) => {
-                        const win = canCompare && metric.raw(m) === best;
+                        const win = canCompare && best != null && metric.raw(m) === best;
                         return (
                           <td
                             key={m.id}
@@ -165,8 +166,10 @@ const H = 340;
 const M = { top: 22, right: 18, bottom: 46, left: 44 };
 
 function MiniScatter({ selectedIds }: { selectedIds: string[] }) {
-  const costs = models.map((m) => Math.max(m.cost_1k, 0.5));
-  const accs = models.map((m) => m.accuracy);
+  // Free/stealth models have no cost position — plot only priced models on this cost×accuracy view.
+  const priced = models.filter((m) => m.cost_1k != null);
+  const costs = priced.map((m) => Math.max(m.cost_1k!, 0.5));
+  const accs = priced.map((m) => m.accuracy);
   const x = scaleLog({ domain: [Math.min(...costs) * 0.55, Math.max(...costs) * 1.7], range: [M.left, W - M.right] });
   const yLo = Math.min(...accs) - 3;
   const yHi = Math.min(100, Math.max(...accs) + 3);
@@ -178,7 +181,7 @@ function MiniScatter({ selectedIds }: { selectedIds: string[] }) {
   const xt = [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500].filter((v) => v >= x.domain()[0] && v <= x.domain()[1]);
 
   const sel = new Set(selectedIds);
-  const ordered = [...models].sort((a, b) => Number(sel.has(a.id)) - Number(sel.has(b.id)));
+  const ordered = [...priced].sort((a, b) => Number(sel.has(a.id)) - Number(sel.has(b.id)));
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full h-auto select-none" role="img"
@@ -197,7 +200,7 @@ function MiniScatter({ selectedIds }: { selectedIds: string[] }) {
 
       {ordered.map((m) => {
         const on = sel.has(m.id);
-        const cx = x(Math.max(m.cost_1k, 0.5));
+        const cx = x(Math.max(m.cost_1k!, 0.5));
         const cy = y(m.accuracy);
         return (
           <g key={m.id} opacity={on ? 1 : 0.28}>

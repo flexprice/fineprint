@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ModelRow, money } from "@/lib/data";
+import { ModelRow, money, fmtValue } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
 type Col = { key: keyof ModelRow; label: string; render: (m: ModelRow) => React.ReactNode; num: boolean };
@@ -37,7 +37,7 @@ const COLS: Col[] = [
   { key: "cost_1k", label: "$/1k", num: true, render: (m) => <span className="tnum">{money(m.cost_1k)}</span> },
   {
     key: "value", label: "Value", num: true,
-    render: (m) => <span className="tnum" title="accuracy points per $/1k">{m.value >= 10 ? m.value.toFixed(0) : m.value}</span>,
+    render: (m) => <span className="tnum" title="accuracy points per $/1k">{fmtValue(m.value)}</span>,
   },
   { key: "p50", label: "p50", num: true, render: (m) => <span className="tnum">{m.p50}s</span> },
   { key: "reliability", label: "Valid", num: true, render: (m) => <span className="tnum text-faint">{m.reliability}%</span> },
@@ -49,6 +49,9 @@ export function Leaderboard({ models }: { models: ModelRow[] }) {
 
   const rows = [...models].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey];
+    if (av == null || bv == null) {                 // NA (null cost/value) always sinks to the bottom
+      return av == bv ? 0 : av == null ? 1 : -1;
+    }
     const cmp = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv));
     return asc ? cmp : -cmp;
   });

@@ -28,9 +28,12 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
   const [xMetric, setXMetric] = useState<XMetric>("cost");
   const isCost = xMetric === "cost";
 
-  const xVal = (m: ModelRow) => (isCost ? Math.max(m.cost_1k, 0.5) : m.p50);
-  const xs = models.map(xVal);
-  const accs = models.map((m) => m.accuracy);
+  // In cost mode a null-cost (free/stealth) model has no x position — drop it from the plot and the
+  // frontier rather than pinning it at $0. It still appears in the leaderboard table.
+  const plotted = isCost ? models.filter((m) => m.cost_1k != null) : models;
+  const xVal = (m: ModelRow) => (isCost ? Math.max(m.cost_1k ?? 0.5, 0.5) : m.p50);
+  const xs = plotted.map(xVal);
+  const accs = plotted.map((m) => m.accuracy);
 
   let xLo: number, xHi: number;
   if (isCost) { xLo = Math.min(...xs) * 0.55; xHi = Math.max(...xs) * 1.6; }
@@ -46,7 +49,7 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
 
   const front: ModelRow[] = [];
   let best = -Infinity;
-  for (const m of [...models].sort((a, b) => xVal(a) - xVal(b))) {
+  for (const m of [...plotted].sort((a, b) => xVal(a) - xVal(b))) {
     if (m.accuracy > best) { front.push(m); best = m.accuracy; }
   }
   // Only the efficiency frontier gets a label — everything else is quiet context (hover to read).
@@ -105,7 +108,7 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
         <polyline points={front.map((m) => `${x(xVal(m))},${y(m.accuracy)}`).join(" ")}
           fill="none" stroke={V.accent} strokeWidth={2} opacity={0.5} strokeLinejoin="round" strokeLinecap="round" />
 
-        {models.map((m, i) => {
+        {plotted.map((m, i) => {
           const cx = x(xVal(m));
           const cy = y(m.accuracy);
           const hot = m.new;
@@ -141,7 +144,7 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
         </text>
 
         {hover !== null && (() => {
-          const m = models[hover];
+          const m = plotted[hover];
           const cx = x(xVal(m));
           const cy = y(m.accuracy);
           const tw = 198;

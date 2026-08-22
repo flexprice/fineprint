@@ -66,3 +66,34 @@ def test_aggregate_output_has_no_contract_identities():
     rows, _ = aggregate(runs, [MODEL], [("SecretCorp", "SecretCorp")])
     blob = repr(rows)
     assert "SecretCorp" not in blob
+
+
+def test_aggregate_free_model_cost_and_value_are_na_not_zero():
+    # A free/stealth model lists $0 prompt+completion — that's an UNKNOWN price, not "free forever".
+    # cost + value must publish as None (NA), never $0 / value 0 (which would misrank it).
+    free = {**MODEL, "id": "free", "label": "free", "price_in": 0.0, "price_out": 0.0}
+    runs = [_run("free", **_metrics(9, 10, tin=1000, tout=500))]
+    rows, _ = aggregate(runs, [free], [("C", "C")])
+    r = rows[0]
+    assert r["cost_1k"] is None
+    assert r["cost_contract"] is None
+    assert r["value"] is None
+    assert r["accuracy"] == 90.0          # everything else still scores normally
+
+
+def test_aggregate_priced_model_keeps_numeric_cost_and_value():
+    runs = [_run("m1", **_metrics(9, 10, tin=1000, tout=500))]
+    rows, _ = aggregate(runs, [MODEL], [("C", "C")])
+    r = rows[0]
+    assert r["cost_1k"] == 2.0
+    assert r["value"] == round(90.0 / 2.0, 2)
+    assert r["cost_contract"] == round(2.0 / 1000, 4)
+
+
+def test_aggregate_partial_price_is_priced_not_na():
+    # price_out set, price_in zero -> still a priced model (not free/stealth).
+    half = {**MODEL, "id": "half", "label": "half", "price_in": 0.0, "price_out": 2.0}
+    runs = [_run("half", **_metrics(9, 10, tin=1000, tout=500))]
+    rows, _ = aggregate(runs, [half], [("C", "C")])
+    r = rows[0]
+    assert r["cost_1k"] is not None and r["value"] is not None
