@@ -92,8 +92,7 @@ export default function Home() {
               <span className="badge" style={{ padding: "1px 7px", fontSize: 11 }}>v2 preview</span>{" "}
               Rebuilt scoring. <b className="text-text font-medium">Extract</b> covers the economic facts and{" "}
               <b className="text-text font-medium">Conv.</b> covers house conventions, scored separately. Labels are
-              QA&rsquo;d against the contract text, with corrections pending final human sign-off. Every model on
-              this board is scored on the same corpus.
+              QA&rsquo;d against the contract text, with corrections pending final human sign-off.
             </p>
           </div>
           <div className="flex items-center gap-2">

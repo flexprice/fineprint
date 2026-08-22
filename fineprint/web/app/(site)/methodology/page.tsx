@@ -350,9 +350,8 @@ export default function Methodology() {
             <p className="text-[14.5px] text-muted leading-relaxed">
               The gold set is still small while the corpus scales, so results carry run-to-run variance we
               report as σ. Extraction sits on an OCR step, so document quality matters. The schema targets
-              commercial billing terms and is English-first today. Scores are comparable only within a single
-              corpus version; when the corpus changes, every model is re-scored on it rather than mixed with
-              older numbers. We publish these limits rather than paper over them.
+              commercial billing terms and is English-first today. We publish these limits rather than paper
+              over them.
             </p>
           </div>
         </div>
