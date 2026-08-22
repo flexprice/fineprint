@@ -27,18 +27,37 @@ export function ProviderIcon({ brand, size = 17, className = "" }: { brand: stri
         className={`inline-block shrink-0 ${className}`} style={{ objectFit: "contain" }} />
     );
   }
-  const url = `url(/icons/${MONO[b] ?? "openai"}.svg)`;
+  const mono = MONO[b];
+  if (mono) {
+    const url = `url(/icons/${mono}.svg)`;
+    return (
+      <span
+        aria-hidden
+        className={`inline-block shrink-0 ${className}`}
+        style={{
+          width: size, height: size, color: "var(--text)", background: "currentColor",
+          maskImage: url, WebkitMaskImage: url,
+          maskSize: "contain", WebkitMaskSize: "contain",
+          maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat",
+          maskPosition: "center", WebkitMaskPosition: "center",
+        }}
+      />
+    );
+  }
+  // Unmapped lab (a stealth/cloaked model, or a new lab not yet added to COLOR/MONO above) — a
+  // neutral initial badge, never a real competitor's logo. Misattributing an unknown model to
+  // e.g. OpenAI's mark on a public leaderboard is actively misleading, not a harmless fallback.
+  const initial = (brand || "?").trim().charAt(0).toUpperCase() || "?";
   return (
     <span
       aria-hidden
-      className={`inline-block shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center shrink-0 rounded-full ${className}`}
       style={{
-        width: size, height: size, color: "var(--text)", background: "currentColor",
-        maskImage: url, WebkitMaskImage: url,
-        maskSize: "contain", WebkitMaskSize: "contain",
-        maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat",
-        maskPosition: "center", WebkitMaskPosition: "center",
+        width: size, height: size, background: "var(--surface-2)", color: "var(--faint)",
+        fontSize: size * 0.55, fontWeight: 700, lineHeight: 1, fontFamily: "var(--font-sans)",
       }}
-    />
+    >
+      {initial}
+    </span>
   );
 }
