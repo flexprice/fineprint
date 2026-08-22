@@ -116,6 +116,16 @@ def _eval_worker(orid: str, runs: int) -> None:
     evaluate(orid, runs=runs, publish=True)        # runs -> scores -> merges -> republishes site
 
 
+# Exit codes raised by fineprint.eval — kept in sync so the Slack skip-reason is honest instead of
+# always blaming the provider calls.
+from fineprint.eval import EXIT_UNRESOLVABLE, EXIT_ALL_FAILED
+
+_EXIT_REASON = {
+    EXIT_UNRESOLVABLE: "not on OpenRouter anymore (withdrawn / renamed stealth or preview variant)",
+    EXIT_ALL_FAILED: "resolved, but every provider call errored (see eval logs)",
+}
+
+
 def _run_eval_capped(orid: str, runs: int, timeout_s: int) -> tuple[bool, str]:
     """Run the eval in a child process with a wall-clock cap. Returns (ok, error)."""
     ctx = mp.get_context("spawn")
@@ -127,7 +137,8 @@ def _run_eval_capped(orid: str, runs: int, timeout_s: int) -> tuple[bool, str]:
         p.join(10)
         return False, f"timeout after {timeout_s}s (endpoint too slow / hung)"
     if p.exitcode != 0:
-        return False, f"eval failed (exit {p.exitcode}) — likely all provider calls errored"
+        reason = _EXIT_REASON.get(p.exitcode, "likely all provider calls errored")
+        return False, f"eval failed (exit {p.exitcode}) — {reason}"
     return True, ""
 
 
