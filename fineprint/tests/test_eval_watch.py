@@ -92,3 +92,15 @@ def test_evaluate_exits_all_failed_for_ordinary_errors(monkeypatch):
     with pytest.raises(SystemExit) as ei:
         E.evaluate("lab/flaky", runs=1)
     assert ei.value.code == E.EXIT_ALL_FAILED
+
+
+def test_publish_gate_defaults_on_and_can_be_withheld(monkeypatch):
+    # Default (unset) must publish — the gate is opt-in, so existing deployments are unaffected.
+    monkeypatch.delenv("FINEPRINT_WATCH_PUBLISH", raising=False)
+    assert watch._publish_enabled() is True
+    # Explicitly withheld while the board and corpus disagree.
+    for off in ("0", "false", "no"):
+        monkeypatch.setenv("FINEPRINT_WATCH_PUBLISH", off)
+        assert watch._publish_enabled() is False
+    monkeypatch.setenv("FINEPRINT_WATCH_PUBLISH", "1")
+    assert watch._publish_enabled() is True

@@ -109,11 +109,21 @@ def _save_seen(seen_ids: set[str], high_water: int) -> None:
         {"high_water": high_water, "seen": sorted(seen_ids)}, indent=1))
 
 
+# Safety gate: the autopilot may only publish to the public board while the board and the corpus
+# actually agree. If the site's data.json was built from a different contract set than the one this
+# service scores against, an auto-published new model lands beside numbers computed on other
+# documents — models get compared across corpora, which is exactly how a flagship model once
+# surfaced as rank #43. Set FINEPRINT_WATCH_PUBLISH=0 to keep detecting, benchmarking and
+# Slack-announcing while withholding the board write until the two are reconciled.
+def _publish_enabled() -> bool:
+    return (_env("FINEPRINT_WATCH_PUBLISH") or "1") not in ("0", "false", "no")
+
+
 # ── the eval, isolated so a wall-clock cap can terminate a hung endpoint ──────
-def _eval_worker(orid: str, runs: int) -> None:
+def _eval_worker(orid: str, runs: int, publish: bool = True) -> None:
     """Child-process target: the existing single-command eval. Exits nonzero on total failure."""
     from fineprint.eval import evaluate           # imported here so spawn re-import is clean
-    evaluate(orid, runs=runs, publish=True)        # runs -> scores -> merges -> republishes site
+    evaluate(orid, runs=runs, publish=publish)     # runs -> scores -> merges -> (maybe) republishes
 
 
 # Exit codes raised by fineprint.eval — kept in sync so the Slack skip-reason is honest instead of
@@ -132,7 +142,7 @@ _EXIT_REASON = {
 def _run_eval_capped(orid: str, runs: int, timeout_s: int) -> tuple[bool, str]:
     """Run the eval in a child process with a wall-clock cap. Returns (ok, error)."""
     ctx = mp.get_context("spawn")
-    p = ctx.Process(target=_eval_worker, args=(orid, runs), daemon=False)
+    p = ctx.Process(target=_eval_worker, args=(orid, runs, _publish_enabled()), daemon=False)
     p.start()
     p.join(timeout_s)
     if p.is_alive():
@@ -225,7 +235,15 @@ def poll(dry_run: bool = False) -> int:
         label = (m.get("name") or orid).split(":", 1)[-1].strip()
         print(f"\nwatch: evaluating {label} ({orid}) — {runs} runs/contract, cap {timeout_s}s")
         ok, err = _run_eval_capped(orid, runs, timeout_s)
-        if ok:
+        if ok and not _publish_enabled():
+            # Benchmarked fine, but the board write is withheld on purpose (see _publish_enabled).
+            # Announce it as held rather than as a missing row, so a deliberate hold never reads
+            # like a failure — and do NOT mark it seen, so it publishes on the poll after the
+            # board and corpus are reconciled.
+            warnings.append((label, orid, "benchmarked OK — board write held "
+                                          "(FINEPRINT_WATCH_PUBLISH=0 until board/corpus agree)"))
+            print(f"watch: {label} benchmarked; publish withheld by FINEPRINT_WATCH_PUBLISH=0")
+        elif ok:
             info = _published_row(model_id)
             if info:
                 published.append(info)
