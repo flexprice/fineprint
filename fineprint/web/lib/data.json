@@ -833,6 +833,32 @@
       "rank": 32
     },
     {
+      "id": "ox-alpha",
+      "label": "Ox Alpha",
+      "family": "Ox Alpha",
+      "brand": "stealth",
+      "new": true,
+      "est": false,
+      "accuracy": 55.2,
+      "extraction": 59.9,
+      "convention": 48.9,
+      "halluc": 11.1,
+      "consistency": 0.0,
+      "cost_1k": null,
+      "cost_contract": null,
+      "p50": 58.0,
+      "p90": 139.9,
+      "avg_lat": 103.0,
+      "in_tok": 24968,
+      "out_tok": 3712,
+      "reasoning": 0,
+      "reliability": 100.0,
+      "value": null,
+      "avg_scored": 11.2,
+      "calls": 58,
+      "rank": 33
+    },
+    {
       "id": "qwen3.7-flash",
       "label": "Qwen3.7 Flash",
       "family": "Qwen3",
@@ -856,7 +882,7 @@
       "value": 28.74,
       "avg_scored": 10.0,
       "calls": 22,
-      "rank": 33
+      "rank": 34
     },
     {
       "id": "llama-4-maverick",
@@ -882,7 +908,7 @@
       "value": 9.73,
       "avg_scored": 10.6,
       "calls": 22,
-      "rank": 34
+      "rank": 35
     },
     {
       "id": "deepseek-v4-pro",
@@ -908,7 +934,7 @@
       "value": 1.29,
       "avg_scored": 9.8,
       "calls": 22,
-      "rank": 35
+      "rank": 36
     },
     {
       "id": "deepseek-r1-0528",
@@ -934,7 +960,7 @@
       "value": 1.78,
       "avg_scored": 10.1,
       "calls": 22,
-      "rank": 36
+      "rank": 37
     },
     {
       "id": "ministral-14b-2512",
@@ -960,7 +986,7 @@
       "value": 9.43,
       "avg_scored": 9.5,
       "calls": 22,
-      "rank": 37
+      "rank": 38
     },
     {
       "id": "nova-2-lite-v1",
@@ -986,7 +1012,7 @@
       "value": 4.35,
       "avg_scored": 10.1,
       "calls": 22,
-      "rank": 38
+      "rank": 39
     },
     {
       "id": "llama-3.3-70b-instruct",
@@ -1012,7 +1038,7 @@
       "value": 16.49,
       "avg_scored": 10.1,
       "calls": 22,
-      "rank": 39
+      "rank": 40
     },
     {
       "id": "minimax-m3",
@@ -1038,7 +1064,7 @@
       "value": 3.94,
       "avg_scored": 10.2,
       "calls": 22,
-      "rank": 40
+      "rank": 41
     },
     {
       "id": "nova-premier-v1",
@@ -1064,7 +1090,7 @@
       "value": 0.54,
       "avg_scored": 9.7,
       "calls": 22,
-      "rank": 41
+      "rank": 42
     },
     {
       "id": "glm-5.1",
@@ -1090,7 +1116,7 @@
       "value": 0.69,
       "avg_scored": 9.6,
       "calls": 22,
-      "rank": 42
+      "rank": 43
     },
     {
       "id": "glm-5.2",
@@ -1116,7 +1142,7 @@
       "value": 1.32,
       "avg_scored": 9.8,
       "calls": 22,
-      "rank": 43
+      "rank": 44
     },
     {
       "id": "llama-4-scout",
@@ -1142,7 +1168,7 @@
       "value": 16.14,
       "avg_scored": 10.5,
       "calls": 22,
-      "rank": 44
+      "rank": 45
     },
     {
       "id": "command-r-plus-08-2024",
@@ -1168,17 +1194,17 @@
       "value": 0.45,
       "avg_scored": 10.0,
       "calls": 22,
-      "rank": 45
+      "rank": 46
     }
   ],
   "n_runs": 1,
   "n_contracts": 22,
-  "n_models": 45,
+  "n_models": 46,
   "fields_per_contract": 10,
   "total_judgments": 9728,
   "baseline_acc": 82.2,
   "baseline_label": "GPT-5.5",
-  "newest_id": "deepseek-v4-flash-vision-exp",
+  "newest_id": "ox-alpha",
   "contracts": {
     "labels": [
       "Doc A",
