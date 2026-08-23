@@ -26,7 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
-from fineprint import config, leads, playground, store, watch
+from fineprint import config, leads, notify, playground, store, watch
 from fineprint.config import PLAYGROUND_MODELS, SAMPLE_DIR, SITE_ORIGINS, all_models
 from fineprint.ratelimit import Limiter
 
@@ -103,11 +103,24 @@ def eval_model(req: EvalReq, authorization: str | None = Header(None),
         raise HTTPException(status_code=422, detail=f"eval failed for {req.model}: {e}")
     except Exception as e:                        # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
+    row = _row_for(model_id)
+    announced = False
     if req.publish:
         _sync_up()
         watch._trigger_vercel(os.environ.get("VERCEL_DEPLOY_HOOK_URL", "").strip())
-    row = _row_for(model_id)
-    return {"ok": True, "model": req.model, "runs": runs, "published": req.publish, "row": row}
+        # Announce the launch, same card the autopilot posts. Without this an on-demand eval lands
+        # on the board silently, or — worse — the only Slack message about the model is a warning,
+        # which reads as a failure even though the benchmark succeeded.
+        slack = os.environ.get("SLACK_WEBHOOK_URL", "").strip()
+        if slack and row:
+            data = json.loads(Path(config.WEB_DATA).read_text()) if Path(config.WEB_DATA).exists() else {}
+            text, blocks = notify.build_launch_blocks(
+                row, os.environ.get("FINEPRINT_SITE_URL", "https://fineprint.flexprice.io"),
+                data.get("n_models") or 0, data.get("baseline_label"), data.get("baseline_acc"))
+            notify.post_slack(slack, text, blocks)
+            announced = True
+    return {"ok": True, "model": req.model, "runs": runs, "published": req.publish,
+            "announced": announced, "row": row}
 
 
 @app.post("/watch")
