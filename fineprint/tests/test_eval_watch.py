@@ -104,3 +104,16 @@ def test_publish_gate_defaults_on_and_can_be_withheld(monkeypatch):
         assert watch._publish_enabled() is False
     monkeypatch.setenv("FINEPRINT_WATCH_PUBLISH", "1")
     assert watch._publish_enabled() is True
+
+
+def test_translation_models_are_not_eligible():
+    # Hunyuan-MT and friends are chat-shaped, so the generic filters pass them, but they are
+    # translation models: Hy-MT2-7B scored 1.2% with 100% hallucination on contract extraction.
+    for orid in ("tencent/hy-mt2-7b", "tencent/hy-mt2-1.8b", "tencent/hy-mt2-30b-a3b",
+                 "lab/some-translate-8b", "helsinki/opus-mt-en-de"):
+        assert watch._eligible({"id": orid, "architecture": {"modality": "text->text"}}, set()) is False, orid
+
+
+def test_real_chat_models_still_eligible():
+    for orid in ("google/gemini-3.7-flash", "z-ai/glm-5.3", "anthropic/claude-opus-5"):
+        assert watch._eligible({"id": orid, "architecture": {"modality": "text->text"}}, set()) is True, orid

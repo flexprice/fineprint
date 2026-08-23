@@ -51,7 +51,16 @@ SEEN_FILE = Path(os.environ.get("FINEPRINT_SEEN_FILE", str(HERE / "data" / "seen
 _SKIP_SUBSTR = (
     "whisper", "tts", "embed", "moderation", "rerank", "-image", "image-", "dall-e",
     "sora", "-video", "video-", "-audio", "audio-", "vision-only", "guard", "ocr",
+    # Purpose-built machine-translation models. They are chat-shaped, so the catalog filter lets
+    # them through, but they are not document-extraction models and score near zero for reasons
+    # that say nothing useful — Hy-MT2-7B read 1.2% of fields with 100% hallucination. Publishing
+    # them is noise on the board and wastes a benchmark run per release.
+    "-mt2", "mt2-", "-mt-", "translate", "translation", "opus-mt", "nllb", "madlad",
 )
+
+# Models excluded by exact OpenRouter id, for cases a substring can't express safely.
+# Set FINEPRINT_EXCLUDE_MODELS to a comma-separated list to add more without a deploy.
+_EXCLUDE_IDS = {"tencent/hy-mt2-1.8b", "tencent/hy-mt2-7b", "tencent/hy-mt2-30b-a3b"}
 
 
 def _env(name: str, default: str = "") -> str:
@@ -87,6 +96,8 @@ def _eligible(m: dict, providers: set[str]) -> bool:
         return False
     low = orid.lower()
     if any(s in low for s in _SKIP_SUBSTR):
+        return False
+    if low in _EXCLUDE_IDS or low in {x.strip().lower() for x in _env("FINEPRINT_EXCLUDE_MODELS").split(",") if x.strip()}:
         return False
     if "preview" in low or "-beta" in low:
         return False
