@@ -41,7 +41,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "medium"
+      "confidence": "medium",
+      "our_findings": "We ran it over 58 real signed contracts: 98s median per contract, and verbose, averaging 14,311 output tokens against a 5,706 median, returning usable output on 57 of 58 contracts (1 malformed JSON). It reads 57.9% of the billing fields correctly, and is confidently wrong on 13.9% of the ones it is sure about."
     },
     {
       "id": "ox-alpha",
@@ -83,7 +84,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "low"
+      "confidence": "low",
+      "our_findings": "We ran it over 58 real signed contracts: 58s median per contract, returning usable structured output on all 58 contracts. It reads 55.2% of the billing fields correctly, and is confidently wrong on 11.1% of the ones it is sure about."
     },
     {
       "id": "glm-5.3",
@@ -124,7 +126,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "high"
+      "confidence": "high",
+      "our_findings": "We ran it over 30 real signed contracts: 33s median per contract, returning usable structured output on all 30 contracts. It reads 53.7% of the billing fields correctly, and is confidently wrong on 5.5% of the ones it is sure about."
     },
     {
       "id": "gemini-3.7-flash",
@@ -166,7 +169,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "high"
+      "confidence": "high",
+      "our_findings": "We ran it over 30 real signed contracts: fast, 29s median per contract, returning usable structured output on all 30 contracts. It reads 71.6% of the billing fields correctly, and is confidently wrong on 18.2% of the ones it is sure about."
     },
     {
       "id": "qwen3.8-2.4t-a95b",
@@ -208,7 +212,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "medium"
+      "confidence": "medium",
+      "our_findings": "We ran it over 30 real signed contracts: 86s median per contract, and verbose, averaging 9,850 output tokens against a 5,706 median, returning usable structured output on all 30 contracts. It reads 54.4% of the billing fields correctly, and is confidently wrong on 30.6% of the ones it is sure about."
     },
     {
       "id": "deepseek-v4-pro-0813",
@@ -251,7 +256,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "medium"
+      "confidence": "medium",
+      "our_findings": "We ran it over 30 real signed contracts: 76s median per contract, and verbose, averaging 9,792 output tokens against a 5,706 median, returning usable structured output on all 30 contracts. It reads 44.6% of the billing fields correctly, and is confidently wrong on 14.3% of the ones it is sure about."
     },
     {
       "id": "nemotron-3.5-lightning",
@@ -293,7 +299,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "medium"
+      "confidence": "medium",
+      "our_findings": "We ran it over 30 real signed contracts: 53s median per contract, and verbose, averaging 10,904 output tokens against a 5,706 median, returning usable output on 29 of 30 contracts (1 malformed JSON). It reads 31.1% of the billing fields correctly, and is confidently wrong on 28.4% of the ones it is sure about."
     },
     {
       "id": "muse-spark-1.2",
@@ -336,7 +343,8 @@
         }
       ],
       "coverage": "good",
-      "confidence": "high"
+      "confidence": "high",
+      "our_findings": "We ran it over 58 real signed contracts: fast, 30s median per contract, returning usable structured output on all 58 contracts. It reads 55.4% of the billing fields correctly, and is confidently wrong on 16.9% of the ones it is sure about."
     }
   ]
 }

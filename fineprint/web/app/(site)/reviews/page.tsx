@@ -15,6 +15,7 @@ type Review = {
   launched: string; price_in: number | null; price_out: number | null; price_note?: string;
   context: number; headline: string; one_liner: string; points: string[];
   sources: { title: string; url: string }[]; coverage: string; confidence?: string;
+  our_findings?: string;
 };
 
 const fmtDate = (iso: string) =>
@@ -113,6 +114,17 @@ export default function ReviewsPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {/* what WE measured — the part of this page nobody else can write */}
+              {m.our_findings && (
+                <div className="mx-6 mt-5 rounded-xl border-l-2 bg-surface-2 px-4 py-3.5"
+                  style={{ borderLeftColor: "var(--accent)" }}>
+                  <div className="font-mono text-[10px] uppercase tracking-[.09em] text-accent mb-1.5">
+                    From our runs
+                  </div>
+                  <p className="text-[14px] leading-relaxed">{m.our_findings}</p>
+                </div>
               )}
 
               {/* pricing + sources */}
