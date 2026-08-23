@@ -89,6 +89,25 @@ def healthz() -> dict:
             "bucket": store.BUCKET or None}
 
 
+@app.get("/board")
+def board(authorization: str | None = Header(None),
+          x_fineprint_token: str | None = Header(None)) -> dict:
+    """The published leaderboard, so the site build can fetch what the autopilot published.
+
+    The site builds from a committed data.json, while the autopilot publishes into GCS — without
+    this endpoint a cron publish reaches Slack but never the website. Serving it from here keeps
+    the corpus bucket private and needs no GCP credentials in CI: the deploy workflow already holds
+    FINEPRINT_URL and FINEPRINT_API_TOKEN. Content is per-model aggregates only, the same anonymized
+    data the site already serves — no contract identities.
+    """
+    _auth(authorization, x_fineprint_token)
+    _sync_down()
+    p = Path(config.WEB_DATA)
+    if not p.exists():
+        raise HTTPException(404, "no published board yet")
+    return json.loads(p.read_text())
+
+
 @app.post("/eval")
 def eval_model(req: EvalReq, authorization: str | None = Header(None),
                x_fineprint_token: str | None = Header(None)) -> dict:

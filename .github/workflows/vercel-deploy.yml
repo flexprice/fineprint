@@ -128,6 +128,44 @@ jobs:
       - name: Pull Vercel project settings + env
         run: vercel pull --yes --environment=${{ steps.target.outputs.env }} --token "$VERCEL_TOKEN"
 
+      # Pull whatever the autopilot has published so the site shows models it benchmarked since the
+      # last commit. The board lives in a private bucket (it sits beside the contract corpus), so we
+      # read it through the service rather than granting CI any GCS access. Non-fatal on purpose: if
+      # the service is down or the secrets are absent we ship the committed board rather than block
+      # a deploy, and say so in the log.
+      - name: Refresh leaderboard from the benchmark service
+        continue-on-error: true
+        env:
+          FINEPRINT_URL: ${{ secrets.FINEPRINT_URL }}
+          FINEPRINT_API_TOKEN: ${{ secrets.FINEPRINT_API_TOKEN }}
+        run: |
+          if [ -z "${FINEPRINT_URL:-}" ] || [ -z "${FINEPRINT_API_TOKEN:-}" ]; then
+            echo "::notice::FINEPRINT_URL/TOKEN unset — building with the committed board"; exit 0
+          fi
+          code=$(curl -sS -o /tmp/board.json -w '%{http_code}' --max-time 120 \
+            -H "X-FinePrint-Token: $FINEPRINT_API_TOKEN" "${FINEPRINT_URL%/}/board" || echo 000)
+          if [ "$code" != "200" ]; then
+            echo "::warning::/board returned HTTP $code — building with the committed board"; exit 0
+          fi
+          python3 - <<'PY'
+          import json, pathlib, sys
+          new = json.load(open("/tmp/board.json"))
+          dest = pathlib.Path("lib/data.json")
+          old = json.loads(dest.read_text())
+          # Refuse a board that lost models or arrived malformed — a bad refresh must never
+          # silently shrink the public leaderboard.
+          if not new.get("rows") or len(new["rows"]) < len(old.get("rows", [])):
+              print(f"::warning::service board has {len(new.get('rows', []))} rows vs committed "
+                    f"{len(old.get('rows', []))} — keeping committed board")
+              sys.exit(0)
+          if new == old:
+              print("::notice::leaderboard already current"); sys.exit(0)
+          dest.write_text(json.dumps(new, indent=2) + "\n")
+          added = {r["id"] for r in new["rows"]} - {r["id"] for r in old.get("rows", [])}
+          print(f"::notice::leaderboard refreshed — {len(new['rows'])} models"
+                + (f", added: {', '.join(sorted(added))}" if added else ""))
+          PY
+
       # Build the app HERE, not on Vercel: the remote source-build stalls indefinitely at
       # "Building…" for this project (hangs past a 10-min timeout, though it builds in seconds
       # locally). So we produce the prebuilt output in CI and upload it. Trade-off: this uploads
