@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { data, models, money, fmtValue, ModelRow } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
@@ -111,6 +111,7 @@ function Heatmap() {
 /* ── speed × accuracy scatter ─────────────────────────────────────────────── */
 function Scatter() {
   const W = 640, H = 300, P = { t: 14, r: 14, b: 34, l: 36 };
+  const [hover, setHover] = useState<string | null>(null);
   const acc = models.map((m) => m.accuracy);
   const lo = Math.max(1, Math.min(...models.map((m) => m.p50)) * 0.85);
   const hi = Math.max(...models.map((m) => m.p50)) * 1.1;    // log x — one slow model shouldn't crush the rest
@@ -119,8 +120,14 @@ function Scatter() {
   const y = (v: number) => H - P.b - (v - yLo) / (yHi - yLo) * (H - P.t - P.b);
   const yt = [yLo, (yLo + yHi) / 2, yHi].map((v) => Math.round(v));
   const xt = [10, 20, 50, 100, 200, 500].filter((t) => t >= lo && t <= hi);
+  const active = hover ? models.find((m) => m.id === hover) ?? null : null;
+  // Draw the hovered point last so it is never occluded by a neighbour in a dense cluster.
+  const ordered = [...models].sort((a, b) => Number(a.id === hover) - Number(b.id === hover));
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none" role="img"
+      aria-label="Median latency against accuracy for every model"
+      onMouseLeave={() => setHover(null)}>
       {yt.map((t) => (
         <g key={`y${t}`}>
           <line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="var(--line)" />
@@ -134,16 +141,51 @@ function Scatter() {
         </g>
       ))}
       <text x={(P.l + W - P.r) / 2} y={H - 3} textAnchor="middle" fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">lower is faster · median latency (log)</text>
-      {models.map((m) => (
-        <g key={m.id}>
-          <circle cx={x(m.p50)} cy={y(m.accuracy)} r={m.new ? 5 : 4} fill={hue(m)} stroke="var(--bg)" strokeWidth={1.5}>
-            <title>{`${short(m)}: ${m.accuracy}% · ${m.p50}s`}</title>
-          </circle>
+
+      {/* crosshair to the axes, so a hovered point can be read off the scales */}
+      {active && (
+        <g opacity={0.4}>
+          <line x1={P.l} x2={x(active.p50)} y1={y(active.accuracy)} y2={y(active.accuracy)}
+            stroke="var(--accent)" strokeDasharray="3 3" />
+          <line x1={x(active.p50)} x2={x(active.p50)} y1={y(active.accuracy)} y2={H - P.b}
+            stroke="var(--accent)" strokeDasharray="3 3" />
         </g>
-      ))}
+      )}
+
+      {ordered.map((m) => {
+        const on = m.id === hover;
+        const dim = hover !== null && !on;
+        return (
+          <g key={m.id} opacity={dim ? 0.25 : 1} style={{ transition: "opacity .12s" }}>
+            {on && <circle cx={x(m.p50)} cy={y(m.accuracy)} r={9} fill="var(--accent)" opacity={0.18} />}
+            <circle cx={x(m.p50)} cy={y(m.accuracy)} r={on ? 6 : m.new ? 5 : 4}
+              fill={on ? "var(--accent)" : hue(m)} stroke="var(--bg)" strokeWidth={1.5} />
+            {/* generous invisible hit area — 4px dots are near-impossible to hover reliably */}
+            <circle cx={x(m.p50)} cy={y(m.accuracy)} r={12} fill="transparent" style={{ cursor: "pointer" }}
+              onMouseEnter={() => setHover(m.id)} onFocus={() => setHover(m.id)} tabIndex={-1} />
+          </g>
+        );
+      })}
+
+      {active && (() => {
+        const cx = x(active.p50), cy = y(active.accuracy);
+        const tw = 176, th = 40;
+        const tx = Math.min(Math.max(cx - tw / 2, P.l), W - P.r - tw);   // keep inside the plot
+        const ty = cy - th - 12 < P.t ? cy + 14 : cy - th - 12;          // flip below when near the top
+        return (
+          <g pointerEvents="none">
+            <rect x={tx} y={ty} width={tw} height={th} rx={7} fill="var(--surface)" stroke="var(--line-2)" />
+            <text x={tx + 9} y={ty + 16} fontSize="11.5" fontWeight="600" fill="var(--text)">{short(active)}</text>
+            <text x={tx + 9} y={ty + 31} fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">
+              {active.accuracy}% accuracy · {active.p50}s median
+            </text>
+          </g>
+        );
+      })()}
     </svg>
   );
 }
+
 
 /* ── price spread (log dot plot) ──────────────────────────────────────────── */
 function PriceSpread() {

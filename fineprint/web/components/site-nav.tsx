@@ -42,7 +42,7 @@ export function SiteNav() {
       {/* Three tracks so the nav is optically centred in the page, not just after the logo. */}
       <div className="shell grid grid-cols-[auto_1fr_auto] items-center gap-5 py-5">
         <Brand />
-        <nav className="hidden md:flex items-center justify-center gap-7 text-sm font-medium text-muted">
+        <nav className="hidden lg:flex items-center justify-center gap-5 xl:gap-7 text-sm font-medium text-muted whitespace-nowrap">
           {LINKS.map(([label, href]) => (
             <Link key={label} href={href} className="hover:text-text transition-colors whitespace-nowrap">{label}</Link>
           ))}

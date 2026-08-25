@@ -344,13 +344,26 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* Playground extraction loader — a document "scanner" sweep + a shimmer skeleton, so a 30–80s
    live run reads as "working", not "stuck". The reduced-motion reset below stills them. */
-@keyframes fp-scan { 0% { transform: translateY(-14%); } 100% { transform: translateY(114%); } }
+/* Document scan sweep. The band must be the FULL height of the panel: a percentage translateY
+   resolves against the element's OWN height, so a 40px-tall band only ever travelled ~46px and
+   appeared to twitch near the top. Full-height element + gradient band = one smooth pass, and
+   transform keeps it on the compositor. */
+@keyframes fp-sweep { 0% { transform: translateY(-55%); } 100% { transform: translateY(55%); } }
+/* Soft radar ping for the running indicator dot (it used to borrow the sweep keyframe and slide). */
+@keyframes fp-ping { 0% { transform: scale(.85); opacity: .75; } 70%, 100% { transform: scale(2.4); opacity: 0; } }
 @keyframes fp-shimmer { 0% { background-position: -420px 0; } 100% { background-position: 420px 0; } }
-.fp-scanline { position: absolute; left: 0; right: 0; top: 0; height: 40px; pointer-events: none; z-index: 5;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 14%, transparent) 55%, color-mix(in srgb, var(--accent) 30%, transparent));
-  border-bottom: 2px solid var(--accent);
-  box-shadow: 0 0 16px 3px color-mix(in srgb, var(--accent) 40%, transparent);
-  animation: fp-scan 2.1s cubic-bezier(.45,0,.2,1) infinite; }
+.fp-scanline { position: absolute; inset: 0; pointer-events: none; z-index: 5; will-change: transform;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 4%, transparent) 34%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 45%,
+    color-mix(in srgb, var(--accent) 38%, transparent) 49.2%,
+    var(--accent) 50%,
+    color-mix(in srgb, var(--accent) 38%, transparent) 50.8%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 55%,
+    color-mix(in srgb, var(--accent) 4%, transparent) 66%,
+    transparent 100%);
+  animation: fp-sweep 2.9s cubic-bezier(.37,0,.63,1) infinite; }
 .fp-shimmer { background: linear-gradient(90deg, var(--surface-2) 25%, color-mix(in srgb, var(--surface-2) 55%, var(--bg)) 50%, var(--surface-2) 75%);
   background-size: 800px 100%; animation: fp-shimmer 1.25s linear infinite; border-radius: 7px; }
 @media (prefers-reduced-motion: reduce) {

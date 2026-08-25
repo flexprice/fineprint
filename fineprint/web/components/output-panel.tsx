@@ -33,7 +33,7 @@ export function OutputPanel({ result, revealed, running, model, hot, setHot }: {
     <div className="panel rounded-2xl overflow-hidden flex flex-col">
       <div className="px-4 py-3 flex items-center justify-between border-b border-line">
         <span className="inline-flex items-center gap-2 text-[13px] font-semibold">
-          <span className="size-2 rounded-full" style={{ background: show || running ? "var(--accent)" : "var(--faint)", animation: running ? "fp-shimmer 1s linear infinite" : undefined }} />
+          <span className="size-2 rounded-full" style={{ background: show || running ? "var(--accent)" : "var(--faint)", animation: running ? "fp-ping 1.6s cubic-bezier(0,0,.2,1) infinite" : undefined }} />
           Extracted schema
         </span>
         <div className="flex gap-0.5 bg-surface-2 rounded-lg p-0.5">
@@ -117,7 +117,7 @@ function RunningState({ model }: { model?: string }) {
       </div>
       <div className="mt-auto flex items-center gap-2.5 px-4 py-3 border-t border-line">
         <span className="relative flex size-2.5">
-          <span className="absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: "var(--accent)", animation: "fp-scan 1.4s ease-in-out infinite" }} />
+          <span className="absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: "var(--accent)", animation: "fp-ping 1.6s cubic-bezier(0,0,.2,1) infinite" }} />
           <span className="relative inline-flex rounded-full size-2.5" style={{ background: "var(--accent)" }} />
         </span>
         <span className="text-[12.5px] text-muted font-mono">{steps[i]}</span>

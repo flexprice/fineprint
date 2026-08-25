@@ -29,6 +29,27 @@ const daysAgo = (iso: string) => {
 
 const fmtCtx = (n: number) => (n >= 1_000_000 ? `${Math.round(n / 1_048_576)}M` : `${Math.round(n / 1024)}K`);
 
+function Chip({ label, value, mono, tone }: {
+  label: string; value: string; mono?: boolean; tone?: "good" | "bad";
+}) {
+  const color = tone === "good" ? "var(--success)" : tone === "bad" ? "var(--warning)" : "var(--text)";
+  return (
+    <span className="inline-flex items-baseline gap-1.5 rounded-md border border-line bg-surface px-2 py-1">
+      <span className="font-mono text-[9.5px] uppercase tracking-[.08em] text-faint">{label}</span>
+      <span className={`text-[12px] font-medium ${mono ? "tnum" : ""}`} style={{ color }}>{value}</span>
+    </span>
+  );
+}
+
+function Point({ text }: { text: string }) {
+  return (
+    <li className="flex gap-2.5 text-[14px] leading-[1.55] text-muted">
+      <span className="mt-[8px] size-1 rounded-full shrink-0" style={{ background: "var(--faint)" }} />
+      <span>{text}</span>
+    </li>
+  );
+}
+
 export default function ReviewsPage() {
   const list = reviews.models as Review[];
   // Our own benchmark result, when the model has already been scored — the one number here that is ours.
@@ -91,11 +112,20 @@ export default function ReviewsPage() {
               </div>
 
               {m.one_liner && (
-                <p className="px-6 mt-4 text-[15px] leading-relaxed text-muted max-w-[70ch]">{m.one_liner}</p>
+                <p className="px-6 mt-4 text-[15.5px] leading-[1.55] text-text/90 max-w-[68ch]">{m.one_liner}</p>
               )}
 
-              {/* Say plainly when the public record is weak, instead of letting a confident-sounding
-                  review imply more certainty than the sources support. */}
+              {/* Scannable facts. These were buried inside prose bullets, which is most of why the
+                  card read as a wall of text — the numbers a reader actually compares belong in
+                  chips they can skim, not sentences they have to parse. */}
+              <div className="px-6 mt-4 flex flex-wrap gap-1.5">
+                <Chip label="price" value={free ? "NA" : `$${m.price_in} / $${m.price_out}`} mono />
+                <Chip label="context" value={fmtCtx(m.context)} mono />
+                {row && <Chip label="median" value={`${row.p50}s`} mono />}
+                {row && <Chip label="halluc" value={`${row.halluc}%`} mono
+                  tone={row.halluc <= 10 ? "good" : row.halluc >= 25 ? "bad" : undefined} />}
+              </div>
+
               {m.confidence === "low" && (
                 <p className="mx-6 mt-4 rounded-lg border border-line-2 bg-surface-2 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-muted">
                   <b className="text-text">Low confidence.</b> Little of this is independently verifiable —
@@ -104,26 +134,40 @@ export default function ReviewsPage() {
                 </p>
               )}
 
-              {/* the review itself */}
-              {m.points.length > 0 && (
-                <ul className="px-6 mt-4 flex flex-col gap-2.5">
-                  {m.points.map((p, i) => (
-                    <li key={i} className="flex gap-3 text-[14.5px] leading-relaxed">
-                      <span className="mt-[9px] size-1.5 rounded-full shrink-0" style={{ background: "var(--accent)" }} />
-                      <span>{p}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {/* what WE measured — the part of this page nobody else can write */}
+              {/* Our measurements sit ABOVE the third-party review: it is the shorter, harder claim
+                  and the only part of this page nobody else can publish. */}
               {m.our_findings && (
-                <div className="mx-6 mt-5 rounded-xl border-l-2 bg-surface-2 px-4 py-3.5"
+                <div className="mx-6 mt-4 rounded-xl border-l-2 bg-surface-2 px-4 py-3.5"
                   style={{ borderLeftColor: "var(--accent)" }}>
                   <div className="font-mono text-[10px] uppercase tracking-[.09em] text-accent mb-1.5">
                     From our runs
                   </div>
                   <p className="text-[14px] leading-relaxed">{m.our_findings}</p>
+                </div>
+              )}
+
+              {/* Progressive disclosure: three points to skim, the rest a click away. <details> keeps
+                  this a server component and leaves every point in the DOM for search and a11y. */}
+              {m.points.length > 0 && (
+                <div className="px-6 mt-5">
+                  <div className="font-mono text-[10px] uppercase tracking-[.09em] text-faint mb-2.5">
+                    What reviewers found
+                  </div>
+                  <ul className="flex flex-col gap-2.5">
+                    {m.points.slice(0, 3).map((pt, i) => <Point key={i} text={pt} />)}
+                  </ul>
+                  {m.points.length > 3 && (
+                    <details className="group mt-2.5">
+                      <summary className="cursor-pointer list-none text-[12.5px] font-medium text-accent hover:underline">
+                        {m.points.length - 3} more
+                        <span className="group-open:hidden"> ↓</span>
+                        <span className="hidden group-open:inline"> ↑</span>
+                      </summary>
+                      <ul className="flex flex-col gap-2.5 mt-2.5">
+                        {m.points.slice(3).map((pt, i) => <Point key={i} text={pt} />)}
+                      </ul>
+                    </details>
+                  )}
                 </div>
               )}
 
