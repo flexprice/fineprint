@@ -70,6 +70,10 @@
   --font-mono: var(--font-geist-sans);
 }
 
+/* Header height, in one place: the sticky nav sets it, and the mobile menu sheet
+   anchors to it. py-5 (40px) around a 36px control row, plus the 1px rule. */
+:root { --nav-h: 77px; }
+
 /* ── Shell — the single page measure. Every section, the header and the footer use
    this, so nothing steps in or out of the column. Change the width once, here. ── */
 .shell { width: 100%; margin-inline: auto; max-width: 82rem; padding-inline: 24px; }

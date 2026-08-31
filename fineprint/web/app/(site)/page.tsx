@@ -19,7 +19,7 @@ export default function Home() {
     <>
       {/* Hero. The artwork sits on the right and is washed into the page background on
           every edge, so the copy runs on plain paper instead of over a scrim. */}
-      <section className="relative isolate overflow-hidden">
+      <section className="relative isolate overflow-hidden [--band:270px] sm:[--band:340px] lg:[--band:0px]">
         {/* Full-bleed so the wash is measured against the viewport, not a nested box.
             The copy column ends around 44%, so the background stays solid to there and
             only then starts to reveal the artwork. */}
@@ -27,21 +27,33 @@ export default function Home() {
           {/* Two levers push the artwork right: the box is inset from the left, and at
               this box aspect object-cover is height-driven, which leaves horizontal
               slack for objectPosition's X to pan within. (At full-bleed width there is
-              zero slack and X does nothing, which is why the inset is needed too.) */}
-          <div className="absolute inset-y-0 right-0 w-[72%]">
+              zero slack and X does nothing, which is why the inset is needed too.)
+              Below lg there is no room to run copy beside the artwork, so it moves to
+              the bottom band of the section and the copy sits above it on plain paper. */}
+          {/* --band is the mobile artwork height; the copy column reserves the same
+              amount of bottom padding, so the two never overlap at any viewport
+              height. A percentage would not do: % padding resolves against WIDTH
+              while a % height resolves against HEIGHT, and the two drift apart. */}
+          <div className="absolute inset-x-0 bottom-0 h-[var(--band)] lg:inset-y-0 lg:left-auto lg:right-0 lg:h-auto lg:w-[72%]">
             <Image src="/hero/style-archive.webp" alt="A vivid vermilion temple archive of rolled contracts, a robed scholar reading a scroll of fine print cascading down the steps, in a lush orange garden under a cobalt sky"
-              fill priority sizes="90vw" className="object-cover" style={{ objectPosition: "0% 46%" }} />
+              fill priority sizes="(max-width: 1024px) 100vw, 90vw" className="object-cover" style={{ objectPosition: "0% 46%" }} />
+            {/* Softens the band's top edge into the page. Desktop uses the
+                horizontal wash below instead, so this is scoped out there. */}
+            <div aria-hidden className="absolute inset-0 lg:hidden"
+              style={{ background: "linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 26%, transparent 58%)" }} />
           </div>
-          {/* Washes stay on the full section so their stops are viewport-relative. */}
-          <div aria-hidden className="absolute inset-0"
+          {/* Washes stay on the full section so their stops are viewport-relative.
+              The horizontal one only makes sense once the copy has a column of its
+              own; on narrow screens it would sit over the copy instead of beside it. */}
+          <div aria-hidden className="absolute inset-0 hidden lg:block"
             style={{ background: "linear-gradient(90deg, var(--bg) 0%, var(--bg) 44%, color-mix(in srgb, var(--bg) 80%, transparent) 50%, color-mix(in srgb, var(--bg) 52%, transparent) 56%, color-mix(in srgb, var(--bg) 26%, transparent) 61%, color-mix(in srgb, var(--bg) 8%, transparent) 66%, transparent 71%)" }} />
-          <div aria-hidden className="absolute inset-x-0 top-0 h-44"
+          <div aria-hidden className="absolute inset-x-0 top-0 h-44 hidden lg:block"
             style={{ background: "linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 45%, transparent) 58%, transparent 100%)" }} />
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-36"
             style={{ background: "linear-gradient(0deg, var(--bg) 0%, transparent 100%)" }} />
         </div>
 
-        <div className="shell flex flex-col justify-center min-h-[82vh] py-20">
+        <div className="shell flex flex-col justify-center min-h-[70vh] lg:min-h-[82vh] pt-16 pb-[calc(var(--band)+28px)] lg:py-20">
           {/* self-start: the shell is a flex column, so a bare inline-flex chip would
               otherwise stretch the full width. */}
           <h1 className="display text-[clamp(2.2rem,4.6vw,3.5rem)] max-w-[20ch] fp-up" style={{ animationDelay: ".07s" }}>

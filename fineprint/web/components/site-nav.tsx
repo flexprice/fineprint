@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MobileNav } from "@/components/mobile-nav";
 
 export const REPO_URL = "https://github.com/flexprice/fineprint";
 
@@ -27,20 +28,24 @@ export function Brand({ size = 21 }: { size?: number }) {
   return (
     <Link href="/" className="flex items-center gap-2.5 shrink-0">
       <span className="wordmark" style={{ fontSize: size }}>FinePrint</span>
-      <span className="text-faint text-[12px]">by</span>
-      {/* eslint-disable @next/next/no-img-element */}
-      <img src="/icons/flexprice-wordmark-dark.svg" alt="Flexprice" className="fp-logo-light" style={{ height: 16 }} />
-      <img src="/icons/flexprice-wordmark-light.svg" alt="" aria-hidden className="fp-logo-dark" style={{ height: 16 }} />
-      {/* eslint-enable @next/next/no-img-element */}
+      {/* The attribution needs ~90px it does not have on a phone, where it collided
+          with the theme/GitHub/menu controls. The footer still carries it in full. */}
+      <span className="hidden sm:flex items-center gap-2.5">
+        <span className="text-faint text-[12px]">by</span>
+        {/* eslint-disable @next/next/no-img-element */}
+        <img src="/icons/flexprice-wordmark-dark.svg" alt="Flexprice" className="fp-logo-light" style={{ height: 16 }} />
+        <img src="/icons/flexprice-wordmark-light.svg" alt="" aria-hidden className="fp-logo-dark" style={{ height: 16 }} />
+        {/* eslint-enable @next/next/no-img-element */}
+      </span>
     </Link>
   );
 }
 
 export function SiteNav() {
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-md border-b border-line" style={{ background: "color-mix(in srgb, var(--bg) 78%, transparent)" }}>
+    <header className="sticky top-0 z-50 backdrop-blur-md border-b border-line h-[var(--nav-h)]" style={{ background: "color-mix(in srgb, var(--bg) 78%, transparent)" }}>
       {/* Three tracks so the nav is optically centred in the page, not just after the logo. */}
-      <div className="shell grid grid-cols-[auto_1fr_auto] items-center gap-5 py-5">
+      <div className="shell grid h-full grid-cols-[auto_1fr_auto] items-center gap-5">
         <Brand />
         <nav className="hidden lg:flex items-center justify-center gap-5 xl:gap-7 text-sm font-medium text-muted whitespace-nowrap">
           {LINKS.map(([label, href]) => (
@@ -49,9 +54,12 @@ export function SiteNav() {
         </nav>
         <div className="flex items-center gap-2.5 justify-end">
           <ThemeToggle />
+          {/* The GitHub button is the one action worth keeping at every width; the
+              rest of the links move into the disclosure below lg. */}
           <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-            <GitHubIcon /> GitHub
+            <GitHubIcon /> <span className="hidden sm:inline">GitHub</span>
           </a>
+          <MobileNav links={LINKS} />
         </div>
       </div>
     </header>
