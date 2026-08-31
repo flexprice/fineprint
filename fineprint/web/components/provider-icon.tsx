@@ -8,7 +8,7 @@ const COLOR: Record<string, string> = {
   mistral: "mistral", mistralai: "mistral",
   deepseek: "deepseek", qwen: "qwen",
   cohere: "cohere", perplexity: "perplexity",
-  moonshot: "moonshot", moonshotai: "moonshot", kimi: "moonshot",
+  // moonshot / kimi: theme-split assets below (black K on light, light K on dark)
   zhipu: "zhipu", "z-ai": "zhipu", glm: "zhipu",
   amazon: "amazon", aws: "amazon", nova: "amazon",
   minimax: "minimax", nvidia: "nvidia", nemotron: "nvidia",
@@ -19,6 +19,19 @@ const MONO: Record<string, string> = {
 
 export function ProviderIcon({ brand, size = 17, className = "" }: { brand: string; size?: number; className?: string }) {
   const b = brand?.toLowerCase();
+  // Kimi's mark uses a solid K — black on light, light on dark — so it needs both assets.
+  if (b === "moonshot" || b === "moonshotai" || b === "kimi") {
+    return (
+      <span className={`inline-grid shrink-0 ${className}`} style={{ width: size, height: size }} aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/color/moonshot.svg" alt="" width={size} height={size}
+          className="fp-logo-light col-start-1 row-start-1" style={{ objectFit: "contain" }} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/color/moonshot-dark.svg" alt="" width={size} height={size}
+          className="fp-logo-dark col-start-1 row-start-1" style={{ objectFit: "contain" }} />
+      </span>
+    );
+  }
   const color = COLOR[b];
   if (color) {
     // eslint-disable-next-line @next/next/no-img-element

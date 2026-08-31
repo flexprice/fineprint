@@ -1,12 +1,10 @@
-// A leading * marks a word that settles on the accent blue instead of the text color,
-// so the copy stays readable in source.
+import { LaunchVideo } from "@/components/launch-video";
+
+// A leading * marks a word that settles on the accent blue instead of the text color.
 const PROBLEM =
   "Every invoice begins as a sentence in a contract. Read the *fee, the *cycle or the " +
   "*currency wrong and the bill goes out wrong. The best model still misses *a *fifth of them.";
 
-// Percentages along the paragraph's `cover` range. The last word finishes at
-// START + SPREAD + DWELL, kept near 50% so the fill completes while the paragraph is
-// around the middle of the viewport rather than as it disappears under the header.
 const START = 8;
 const SPREAD = 32;
 const DWELL = 8;
@@ -14,10 +12,16 @@ const DWELL = 8;
 export function ProblemStatement() {
   const words = PROBLEM.split(" ");
   return (
-    <section id="why" className="shell pt-28 pb-24">
-      <p className="eyebrow mb-10">Why this exists</p>
+    <section id="why" className="shell pt-14 sm:pt-20 pb-10 sm:pb-14">
+      <h2 className="display text-[clamp(1.45rem,3.6vw,2.3rem)] max-w-[28ch]">
+        What brought FinePrint to life
+      </h2>
 
-      <p className="fill-para display text-[clamp(2rem,4.8vw,3.3rem)] leading-[1.32] max-w-[26ch]">
+      <div className="mt-12 sm:mt-16 md:mt-[108px]">
+        <LaunchVideo />
+      </div>
+
+      <p className="fill-para display text-[clamp(1.55rem,4.2vw,2.9rem)] leading-[1.32] max-w-[26ch] mt-12 sm:mt-20 md:mt-32">
         {words.map((w, i) => {
           const hl = w.startsWith("*");
           const from = START + (i / words.length) * SPREAD;
@@ -34,12 +38,6 @@ export function ProblemStatement() {
             </span>
           );
         })}
-      </p>
-
-      {/* Disclosure, not a pitch: a billing vendor publishing a benchmark has an obvious
-          interest, so state it plainly rather than letting the reader infer it. */}
-      <p className="mt-12 text-[16px] leading-relaxed text-muted max-w-[56ch]">
-        We build billing software. Nobody had measured this step, so we did.
       </p>
     </section>
   );

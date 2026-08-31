@@ -7,16 +7,27 @@ import { ProviderIcon } from "@/components/provider-icon";
 
 type Col = { key: keyof ModelRow; label: string; render: (m: ModelRow) => React.ReactNode; num: boolean };
 
+const PREVIEW = 15;
+
+const LinkArrow = () => (
+  <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round"
+    className="size-3.5 shrink-0 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
+    <path d="M7 17 17 7M17 7H9M17 7v8" />
+  </svg>
+);
+
 const COLS: Col[] = [
   { key: "rank", label: "#", num: true, render: (m) => <span className="text-faint tnum">{m.rank}</span> },
   {
     key: "label", label: "Model", num: false,
     render: (m) => (
-      <Link href={`/models/${m.id}`} className="flex items-center gap-2.5 group">
+      <Link href={`/models/${m.id}`} className="flex items-center gap-2.5 group w-fit">
         <ProviderIcon brand={m.brand} />
         <b className="font-medium group-hover:text-accent transition-colors">{m.label}</b>
         {m.new && <span className="badge badge-new" style={{ padding: "1px 7px", fontSize: 11 }}>New</span>}
         <span className="text-[11.5px] text-faint">{m.family}</span>
+        <LinkArrow />
       </Link>
     ),
   },
@@ -46,6 +57,7 @@ const COLS: Col[] = [
 export function Leaderboard({ models }: { models: ModelRow[] }) {
   const [sortKey, setSortKey] = useState<keyof ModelRow>("accuracy");
   const [asc, setAsc] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const rows = [...models].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey];
@@ -56,44 +68,89 @@ export function Leaderboard({ models }: { models: ModelRow[] }) {
     return asc ? cmp : -cmp;
   });
 
+  const canCollapse = rows.length > PREVIEW;
+  // One peek row past the cut so the veil lands mid-16th and shows there's more.
+  const visible = expanded || !canCollapse ? rows : rows.slice(0, PREVIEW + 1);
+  const hidden = canCollapse && !expanded ? rows.length - PREVIEW : 0;
+
   const onSort = (k: keyof ModelRow) => {
     if (k === sortKey) setAsc(!asc);
     else { setSortKey(k); setAsc(false); }
   };
 
   return (
-    <div className="panel overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr>
-            {COLS.map((c) => (
-              <th key={String(c.key)} onClick={() => onSort(c.key)}
-                className={`px-4 py-3 text-[11px] font-medium uppercase tracking-[.07em] text-faint cursor-pointer hover:text-muted select-none whitespace-nowrap ${c.num ? "text-right" : "text-left"}`}>
-                {c.label}
-                {sortKey === c.key && (
-                  // Drawn, not typed: arrow glyphs fall back inconsistently across fonts.
-                  <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round"
-                    className={`inline-block size-3 ml-1 align-middle ${asc ? "rotate-180" : ""}`}>
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((m) => (
-            <tr key={m.id} className="border-t border-line hover:bg-surface-2/70 transition-colors">
+    <div className={`fp-lb${canCollapse && !expanded ? " fp-lb--collapsed" : ""}`}>
+      <div className="panel overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr>
               {COLS.map((c) => (
-                <td key={String(c.key)} className={`px-4 py-3 whitespace-nowrap ${c.num ? "text-right" : "text-left"}`}>
-                  {c.render(m)}
-                </td>
+                <th key={String(c.key)} onClick={() => onSort(c.key)}
+                  className={`px-4 py-3 text-[11px] font-medium uppercase tracking-[.07em] text-faint cursor-pointer hover:text-muted select-none whitespace-nowrap ${c.num ? "text-right" : "text-left"}`}>
+                  {c.label}
+                  {sortKey === c.key && (
+                    // Drawn, not typed: arrow glyphs fall back inconsistently across fonts.
+                    <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      className={`inline-block size-3 ml-1 align-middle ${asc ? "rotate-180" : ""}`}>
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  )}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {visible.map((m) => (
+              <tr key={m.id} className="border-t border-line hover:bg-surface-2/70 transition-colors">
+                {COLS.map((c) => (
+                  <td key={String(c.key)} className={`px-4 py-3 whitespace-nowrap ${c.num ? "text-right" : "text-left"}`}>
+                    {c.render(m)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Meta sits under the table; when collapsed the veil paints over it. */}
+      <div className="fp-lb-meta">
+        <p className="text-[12px] text-faint">
+          Value = accuracy points per $/1k. Pricing from OpenRouter, updated continuously.
+        </p>
+        <span className="text-[12px] text-faint hidden sm:block">Click a column to sort.</span>
+      </div>
+
+      {canCollapse && !expanded && (
+        <div className="fp-lb-veil">
+          <button
+            type="button"
+            className="fp-lb-more-btn"
+            onClick={() => setExpanded(true)}
+            aria-label={`Show more, ${hidden} remaining`}
+          >
+            <span className="fp-lb-more-label">Show more</span>
+            <span className="fp-lb-more-count">{hidden} more</span>
+            <svg className="fp-lb-more-arrow" viewBox="0 0 24 24" width="16" height="16" aria-hidden fill="none"
+              stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {canCollapse && expanded && (
+        <div className="fp-lb-less">
+          <button type="button" className="fp-lb-more-btn" onClick={() => setExpanded(false)}>
+            <span className="fp-lb-more-label">Show less</span>
+            <svg className="fp-lb-more-arrow" viewBox="0 0 24 24" width="16" height="16" aria-hidden fill="none"
+              stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m18 15-6-6-6 6" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

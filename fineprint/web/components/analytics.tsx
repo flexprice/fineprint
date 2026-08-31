@@ -293,14 +293,15 @@ export function Analytics() {
     <section id="analytics" className="shell py-10">
       <div className="mb-8">
         <p className="eyebrow mb-3">Going deeper</p>
-        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)]">Ten ways to read the field.</h2>
-        <p className="text-[15px] leading-relaxed text-muted mt-4 max-w-[66ch]">
-          Accuracy alone hides how a model fails. Ten views covering what it gets right, what it
-          invents, how much it moves between runs, and what it costs in money and seconds.
+        <h2 className="display text-[clamp(1.9rem,4.2vw,2.6rem)] max-w-[22ch]">
+          Ten other ways to compare them.
+        </h2>
+        <p className="mt-3 text-[14.5px] text-muted max-w-[54ch]">
+          Beyond the headline rank, we score speed, value, and hallucinations separately. Here is
+          how the field looks on each axis.
         </p>
-        <p className="text-[13px] text-faint mt-3">
-          {`${models.length} models · ${new Set(models.map((m) => m.brand)).size} labs · the same private contracts.`}
-          {" "}Blue marks this generation&apos;s new releases.
+        <p className="text-[13px] text-faint mt-2">
+          {`${models.length} models · ${new Set(models.map((m) => m.brand)).size} labs`}
         </p>
       </div>
 

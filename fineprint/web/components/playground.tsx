@@ -16,7 +16,6 @@ import { byId } from "@/lib/data";
 const PLAYGROUND_MODEL_IDS = ["gpt-5.5", "claude-fable-5", "grok-4.6", "gemini-3.5-flash-lite", "gpt-5.6-luna", "deepseek-v3.2"];
 const DEFAULT_MODEL = PLAYGROUND_MODEL_IDS[0];
 const GUIDEWIRE_ID = samples[0].id; // "guidewire"
-const GUIDEWIRE_META = samples.find((s) => s.id === GUIDEWIRE_ID)! as SampleMeta;
 // Team feedback: MSA reads cleaner as the first thing people see than the license agreement.
 const DEFAULT_SAMPLE_ID = "msa";
 
@@ -51,16 +50,13 @@ export function Playground() {
   const [err, setErr] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [gate, setGate] = useState(false);
-  // Chips render only genuinely-available samples: the offline Guidewire, plus whatever the
-  // backend reports as prepped. No dead placeholder buttons.
-  const [available, setAvailable] = useState<SampleMeta[]>([GUIDEWIRE_META]);
+  // Always show every sample chip from the catalog. Guidewire works fully offline; the rest
+  // need the playground API for page previews / extraction (empty preview if the API is down).
+  const catalog = samples as SampleMeta[];
 
   useEffect(() => {
-    fetchAvailableSamples()
-      .then((list) => setAvailable([GUIDEWIRE_META, ...list.filter((s) => s.id !== GUIDEWIRE_ID)]))
-      .catch(() => {});   // backend down / none prepped → just the offline Guidewire
-    // The default sample (MSA) isn't the offline-baked one, so its contract still needs a
-    // fetch on first paint — same path pickSample() takes for any non-Guidewire sample.
+    // Warm the availability probe so a live backend can serve previews; chips don't wait on it.
+    fetchAvailableSamples().catch(() => {});
     if (!isGuidewireDefault) {
       fetchSamplePages(DEFAULT_SAMPLE_ID)
         .then(setPages)
@@ -111,31 +107,37 @@ export function Playground() {
   }
 
   const running = status === "running";
+  const row1 = catalog.slice(0, 3);
+  const row2 = catalog.slice(3);
+
+  const chip = (s: SampleMeta) => (
+    <button key={s.id} onClick={() => pickSample(s.id)}
+      className={`text-[12.5px] px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors ${
+        mode === "sample" && sampleId === s.id
+          ? "border-accent bg-accent/5 text-text font-semibold"
+          : "border-line bg-surface text-muted hover:text-text"}`}>
+      {s.title}</button>
+  );
 
   return (
     <div>
-      {/* controls: sample chips + upload + model + run */}
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="flex flex-wrap gap-2">
-          {available.map((s) => (
-            <button key={s.id} onClick={() => pickSample(s.id)}
+      <div className="mb-6 space-y-4">
+        <div className="space-y-2.5 min-w-0">
+          <div className="flex flex-wrap gap-2">{row1.map(chip)}</div>
+          <div className="flex flex-wrap gap-2">
+            {row2.map(chip)}
+            <button onClick={pickUpload}
               className={`text-[12.5px] px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors ${
-                mode === "sample" && sampleId === s.id
+                mode === "upload"
                   ? "border-accent bg-accent/5 text-text font-semibold"
                   : "border-line bg-surface text-muted hover:text-text"}`}>
-              {s.title}</button>
-          ))}
-          <button onClick={pickUpload}
-            className={`text-[12.5px] px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors ${
-              mode === "upload"
-                ? "border-accent bg-accent/5 text-text font-semibold"
-                : "border-line bg-surface text-muted hover:text-text"}`}>
-            Upload your own</button>
+              Upload your own</button>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5 ml-auto">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2.5 w-full">
           <ModelPicker ids={PLAYGROUND_MODEL_IDS} value={model} onChange={setModel} />
           <button onClick={() => run()} disabled={running}
-            className="bg-primary text-bg rounded-xl px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-60 whitespace-nowrap">
+            className="bg-primary text-bg rounded-xl px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-60 whitespace-nowrap w-full sm:w-auto">
             {running ? "Reading…" : revealed ? "Re-run" : "Run extraction"}</button>
         </div>
       </div>
