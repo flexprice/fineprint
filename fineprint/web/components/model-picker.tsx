@@ -29,10 +29,10 @@ export function ModelPicker({ ids, value, onChange }: {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full sm:w-auto">
       <button type="button" onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox" aria-expanded={open}
-        className="flex items-center gap-2 border border-line bg-surface rounded-lg pl-2.5 pr-2 py-2 text-[13px] font-semibold min-w-[188px]">
+        className="flex items-center gap-2 border border-line bg-surface rounded-lg pl-2.5 pr-2 py-2 text-[13px] font-semibold w-full sm:w-auto sm:min-w-[188px]">
         <ProviderIcon brand={sel.brand} size={16} />
         <span className="truncate flex-1 text-left">{sel.label}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="text-faint shrink-0">
@@ -41,7 +41,7 @@ export function ModelPicker({ ids, value, onChange }: {
       </button>
       {open && (
         <ul role="listbox" aria-label="Model"
-          className="absolute right-0 z-30 mt-1.5 w-[248px] max-h-[300px] overflow-auto rounded-xl border border-line bg-surface p-1 shadow-xl">
+          className="absolute left-0 sm:left-auto sm:right-0 z-30 mt-1.5 w-full min-w-[248px] max-w-[min(100vw-2rem,248px)] max-h-[300px] overflow-auto rounded-xl border border-line bg-surface p-1 shadow-xl">
           {ids.map((id) => {
             const m = resolve(id);
             const on = id === value;

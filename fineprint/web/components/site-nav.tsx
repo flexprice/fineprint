@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -13,16 +16,12 @@ export function GitHubIcon({ size = 16 }: { size?: number }) {
 
 const LINKS: [string, string][] = [
   ["Leaderboard", "/#leaderboard"],
-  ["Reviews", "/reviews"],
   ["Charts", "/#analytics"],
   ["Compare", "/compare"],
   ["Try it", "/#try"],
   ["Methodology", "/methodology"],
 ];
 
-// FinePrint is the product; Flexprice is the maker. Only one of the two wordmark
-// images is visible at a time (CSS theme swap), so the hidden one must not also
-// announce itself to a screen reader.
 export function Brand({ size = 21 }: { size?: number }) {
   return (
     <Link href="/" className="flex items-center gap-2.5 shrink-0">
@@ -36,24 +35,77 @@ export function Brand({ size = 21 }: { size?: number }) {
   );
 }
 
+function MenuIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" aria-hidden>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  ) : (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" aria-hidden>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
 export function SiteNav() {
+  const [open, setOpen] = useState(false);
+
+  const close = () => setOpen(false);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.matchMedia("(min-width: 1024px)").matches) setOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md border-b border-line" style={{ background: "color-mix(in srgb, var(--bg) 78%, transparent)" }}>
-      {/* Three tracks so the nav is optically centred in the page, not just after the logo. */}
-      <div className="shell grid grid-cols-[auto_1fr_auto] items-center gap-5 py-5">
+      {/* Three tracks on lg+ so the nav is optically centred in the page, not just after the logo. */}
+      <div className="shell grid grid-cols-[1fr_auto] lg:grid-cols-[auto_1fr_auto] items-center gap-3 lg:gap-5 py-4 lg:py-5">
         <Brand />
         <nav className="hidden lg:flex items-center justify-center gap-5 xl:gap-7 text-sm font-medium text-muted whitespace-nowrap">
           {LINKS.map(([label, href]) => (
             <Link key={label} href={href} className="hover:text-text transition-colors whitespace-nowrap">{label}</Link>
           ))}
         </nav>
-        <div className="flex items-center gap-2.5 justify-end">
+        <div className="flex items-center gap-2 lg:gap-2.5 justify-end">
           <ThemeToggle />
-          <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-            <GitHubIcon /> GitHub
-          </a>
+          {/* lg+ — full GitHub label. Wrapper avoids .btn overriding Tailwind visibility. */}
+          <div className="hidden lg:flex">
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+              <GitHubIcon /> GitHub
+            </a>
+          </div>
+          {/* below lg — icon only */}
+          <div className="hidden max-lg:flex">
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-icon btn-primary" aria-label="GitHub">
+              <GitHubIcon />
+            </a>
+          </div>
+          <div className="hidden max-lg:flex">
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-label={open ? "Close menu" : "Open menu"}
+            >
+              <MenuIcon open={open} />
+            </button>
+          </div>
         </div>
       </div>
+      {open && (
+        <nav className="fp-mobile-nav shell pb-4 hidden max-lg:grid" aria-label="Mobile">
+          {LINKS.map(([label, href]) => (
+            <Link key={label} href={href} onClick={close} className="fp-mobile-nav-link">{label}</Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

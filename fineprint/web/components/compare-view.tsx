@@ -88,7 +88,7 @@ export function CompareView({ initial }: { initial: string[] }) {
             </button>
           );
         })}
-        <span className="ml-auto font-mono text-[11px] text-faint">{ids.length}/{MAX} selected</span>
+        <span className="w-full sm:w-auto sm:ml-auto font-mono text-[11px] text-faint">{ids.length}/{MAX} selected</span>
       </div>
 
       {selected.length === 0 ? (
