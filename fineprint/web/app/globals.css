@@ -1608,6 +1608,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   animation: fp-sweep 2.9s cubic-bezier(.37,0,.63,1) infinite; }
 .fp-shimmer { background: linear-gradient(90deg, var(--surface-2) 25%, color-mix(in srgb, var(--surface-2) 55%, var(--bg)) 50%, var(--surface-2) 75%);
   background-size: 800px 100%; animation: fp-shimmer 1.25s linear infinite; border-radius: 7px; }
+/* Try-it panels swap their whole body between states (skeleton → fields → JSON → drop zone).
+   The shells are a fixed height so nothing moves; this just keeps the content from popping. */
+@keyframes fp-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fp-fade { animation: fp-fade-in .18s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .fp-fade { animation: none; } }
 /* Lab logo strip under the hero */
 .fp-marquee {
   overflow: hidden;

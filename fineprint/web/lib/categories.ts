@@ -18,3 +18,11 @@ export const CAT_COLOR: Record<string, string> = {
   Payment: "#d59030", Penalty: "#e06a6a", Override: "#d081a8", Discount: "#d081a8",
   Other: "#98a0ab",
 };
+
+// One height for BOTH halves of the Try-it section, set on the panel shells so the two
+// columns are always exactly as tall as each other — no ragged bottom edge — and no state
+// change resizes the section: picking a sample, an OCR skeleton, the drop zone, revealing
+// results, flipping Fields/JSON. Inside each shell the header and status bar are fixed and
+// the body takes the remainder (`flex-1 min-h-0`), which is what makes it scroll instead of
+// stretching its panel.
+export const PANEL_H = "h-[460px] sm:h-[600px]";

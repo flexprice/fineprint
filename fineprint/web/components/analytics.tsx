@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { data, models, money, fmtValue, ModelRow } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
 
+// Quantise every computed SVG coordinate. Math.log10 is not required to be correctly rounded,
+// so Node and the browser can disagree in the last bit — enough for React to flag a hydration
+// mismatch on cx/cy ("225.92941811477834" vs 225.9294181147783). Three decimals is far finer
+// than a pixel at these viewBox sizes and serialises identically in both.
+const px = (n: number) => Math.round(n * 1e3) / 1e3;
+
 function useNarrow(query = "(max-width: 640px)") {
   const [narrow, setNarrow] = useState(false);
   useEffect(() => {
@@ -135,8 +141,8 @@ function Scatter() {
   const lo = Math.max(1, Math.min(...models.map((m) => m.p50)) * 0.85);
   const hi = Math.max(...models.map((m) => m.p50)) * 1.1;    // log x — one slow model shouldn't crush the rest
   const yLo = Math.min(...acc) - 3, yHi = Math.min(100, Math.max(...acc) + 3);
-  const x = (v: number) => P.l + (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (W - P.l - P.r);
-  const y = (v: number) => H - P.b - (v - yLo) / (yHi - yLo) * (H - P.t - P.b);
+  const x = (v: number) => px(P.l + (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (W - P.l - P.r));
+  const y = (v: number) => px(H - P.b - (v - yLo) / (yHi - yLo) * (H - P.t - P.b));
   const yt = [yLo, (yLo + yHi) / 2, yHi].map((v) => Math.round(v));
   const xt = [10, 20, 50, 100, 200, 500].filter((t) => t >= lo && t <= hi);
   const active = hover ? models.find((m) => m.id === hover) ?? null : null;
@@ -217,7 +223,7 @@ function PriceSpread() {
   const priced = models.filter((m) => m.cost_1k != null);
   const costs = priced.map((m) => Math.max(m.cost_1k!, 0.5));
   const lo = Math.min(...costs), hi = Math.max(...costs);
-  const x = (v: number) => P.l + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (W - P.l - P.r);
+  const x = (v: number) => px(P.l + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (W - P.l - P.r));
   const ticks = [1, 5, 10, 50, 100, 300].filter((t) => t >= lo && t <= hi);
   const active = hover ? priced.find((m) => m.id === hover) ?? null : null;
   // Draw hovered last so a dense stack never occludes the annotation target.
@@ -302,7 +308,7 @@ function Dumbbell({ rows }: { rows: ModelRow[] }) {
   // Log scale — one model's huge p90 tail shouldn't crush everyone else's range.
   const lo = Math.max(1, Math.min(...rows.map((m) => m.p50)) * 0.85);
   const hi = Math.max(...rows.map((m) => m.p90)) * 1.15;
-  const pos = (v: number) => (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * 100;
+  const pos = (v: number) => px((Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * 100);
   return (
     <div className="fp-chart-scroll max-sm:-mx-1 max-sm:px-1">
       <div className="flex flex-col gap-2.5 h-full justify-between max-sm:min-w-[300px]">
