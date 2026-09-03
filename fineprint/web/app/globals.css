@@ -203,6 +203,14 @@ body {
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .panel { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-card); }
 
+/* Wide chart content: scroll inside the card, don't crush it */
+.fp-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
 /* Leaderboard collapse — veil covers table bottom + meta; CTA lives in the solid band */
 .fp-lb { position: relative; }
 .fp-lb-meta {
@@ -359,7 +367,8 @@ body {
 
 /* Private vault visual */
 .fp-vault {
-  flex-direction: column; gap: 10px; width: 100%; max-width: 5.75rem; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; width: 5.75rem; flex: none;
 }
 .fp-vault-lock { width: 30px; height: 30px; color: var(--accent); opacity: 0.92; flex: none; }
 .fp-vault-lines { width: 100%; display: flex; flex-direction: column; gap: 4px; }

@@ -1,12 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { scaleLog, scaleLinear } from "@visx/scale";
 import { ModelRow, money } from "@/lib/data";
-
-const W = 900;
-const H = 520;
-const M = { top: 30, right: 128, bottom: 54, left: 58 };
 
 const V = {
   text: "var(--text)", muted: "var(--muted)", faint: "var(--faint)",
@@ -21,12 +17,32 @@ const accTicks = (lo: number, hi: number) => {
   return out;
 };
 
+function useNarrow() {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return narrow;
+}
+
 type XMetric = "cost" | "latency";
 
 export function QuadrantChart({ models }: { models: ModelRow[] }) {
+  const narrow = useNarrow();
   const [hover, setHover] = useState<number | null>(null);
   const [xMetric, setXMetric] = useState<XMetric>("cost");
   const isCost = xMetric === "cost";
+
+  // Taller aspect + tighter gutters on phone so the plot isn't a postage stamp.
+  const W = narrow ? 640 : 900;
+  const H = narrow ? 560 : 520;
+  const M = narrow
+    ? { top: 28, right: 18, bottom: 52, left: 40 }
+    : { top: 30, right: 128, bottom: 54, left: 58 };
 
   // In cost mode a null-cost (free/stealth) model has no x position — drop it from the plot and the
   // frontier rather than pinning it at $0. It still appears in the leaderboard table.
@@ -64,12 +80,12 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
 
   return (
     <div className="relative">
-      <div className="mb-3 flex items-center justify-end gap-2">
+      <div className="mb-3 flex items-center justify-between gap-2 sm:justify-end">
         <span className="font-mono text-[11px] text-faint">x-axis</span>
-        <div className="inline-flex rounded-lg border border-line-2 p-0.5 font-mono text-[11px]">
+        <div className="inline-flex rounded-lg border border-line-2 p-0.5 font-mono text-[12px] sm:text-[11px]">
           {([["cost", "Cost"], ["latency", "Latency"]] as const).map(([k, lbl]) => (
             <button key={k} onClick={() => setXMetric(k)} aria-pressed={xMetric === k}
-              className={`rounded-md px-2.5 py-1 transition-colors ${xMetric === k ? "text-text" : "text-muted hover:text-text"}`}
+              className={`rounded-md px-3 py-1.5 sm:px-2.5 sm:py-1 transition-colors ${xMetric === k ? "text-text" : "text-muted hover:text-text"}`}
               style={xMetric === k ? { background: "var(--surface-2)" } : undefined}>
               {lbl}
             </button>
@@ -77,7 +93,7 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none" role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none touch-manipulation" role="img"
         aria-label="Quality versus cost. Up and to the left is better.">
         {/* "good corner" cue — top-left (cheaper + more accurate) glows. No boxes, no crosshairs. */}
         <defs>
@@ -87,20 +103,20 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
           </linearGradient>
         </defs>
         <rect x={M.left} y={M.top} width={W - M.right - M.left} height={H - M.bottom - M.top} fill="url(#fp-good)" />
-        <text x={M.left + 10} y={M.top + 17} fill={V.accent} fontFamily="var(--font-mono)" fontSize="11" fontWeight={600} letterSpacing="0.02em">
+        <text x={M.left + 10} y={M.top + 17} fill={V.accent} fontFamily="var(--font-mono)" fontSize={narrow ? 12 : 11} fontWeight={600} letterSpacing="0.02em">
           ↖ better value
         </text>
 
         {yt.map((t) => (
           <g key={`y${t}`}>
             <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke={V.line} />
-            <text x={M.left - 9} y={y(t) + 3} textAnchor="end" fill={V.faint} fontSize="11" fontFamily="var(--font-mono)">{t}%</text>
+            <text x={M.left - 8} y={y(t) + 3} textAnchor="end" fill={V.faint} fontSize={narrow ? 12 : 11} fontFamily="var(--font-mono)">{t}%</text>
           </g>
         ))}
         {xt.map((t) => (
           <g key={`x${t}`}>
             <line x1={x(t)} x2={x(t)} y1={M.top} y2={H - M.bottom} stroke={V.line} opacity={0.5} />
-            <text x={x(t)} y={H - M.bottom + 17} textAnchor="middle" fill={V.faint} fontSize="11" fontFamily="var(--font-mono)">{xLabel(t)}</text>
+            <text x={x(t)} y={H - M.bottom + 18} textAnchor="middle" fill={V.faint} fontSize={narrow ? 12 : 11} fontFamily="var(--font-mono)">{xLabel(t)}</text>
           </g>
         ))}
 
@@ -116,19 +132,37 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
           const fr = frontRank.get(m.id);
           const isF = fr !== undefined;
           const showLabel = isF || on;
-          const r = on ? 7 : isF ? 6 : hot ? 4.5 : 3.5;
+          const r = on ? (narrow ? 9 : 7) : isF ? (narrow ? 7.5 : 6) : hot ? (narrow ? 5.5 : 4.5) : (narrow ? 4.5 : 3.5);
           const dy = isF && fr! % 2 === 1 ? -15 : 9;   // split the two close frontier labels (Luna/DeepSeek)
+          // On phone, flip labels left when near the right edge (no label gutter).
+          const labelRight = !narrow || cx < W - M.right - 110;
           return (
-            <g key={m.id} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+            <g key={m.id}
+              onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+              onFocus={() => setHover(i)} onBlur={() => setHover(null)}
+              tabIndex={0}
               style={{ cursor: "pointer", animation: `fp-pop .5s cubic-bezier(.2,.7,.2,1) ${(0.1 + i * 0.04).toFixed(2)}s both` }}>
+              {/* Invisible fat hit target for fingers */}
+              <circle cx={cx} cy={cy} r={narrow ? 16 : 10} fill="transparent" />
               {isF && hot && <circle cx={cx} cy={cy} r={9} fill={V.accent} opacity={0.16}
                 style={{ transformBox: "fill-box", transformOrigin: "center", animation: "fp-pulse 3.2s ease-in-out infinite" }} />}
               {on && <circle cx={cx} cy={cy} r={12} fill="none" stroke={hot ? V.accent : V.muted} strokeWidth={1} opacity={0.4} />}
               <circle cx={cx} cy={cy} r={r} fill={hot ? V.accent : V.muted} stroke={V.bg} strokeWidth={1.8}
                 opacity={isF ? 1 : hot ? 0.8 : 0.4} />
               {showLabel && (
-                <text x={cx + 10} y={cy + 4 + dy} fill={hot ? V.text : V.muted} fontSize="12" fontWeight={hot ? 600 : 500}
-                  fontFamily="var(--font-mono)" paintOrder="stroke" stroke={V.bg} strokeWidth={3.5} strokeLinejoin="round">
+                <text
+                  x={labelRight ? cx + 10 : cx - 10}
+                  y={cy + 4 + dy}
+                  textAnchor={labelRight ? "start" : "end"}
+                  fill={hot ? V.text : V.muted}
+                  fontSize={narrow ? 13 : 12}
+                  fontWeight={hot ? 600 : 500}
+                  fontFamily="var(--font-mono)"
+                  paintOrder="stroke"
+                  stroke={V.bg}
+                  strokeWidth={3.5}
+                  strokeLinejoin="round"
+                >
                   {m.label}
                 </text>
               )}
@@ -136,10 +170,10 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
           );
         })}
 
-        <text x={(M.left + W - M.right) / 2} y={H - 4} textAnchor="middle" fill={V.muted} fontSize="11.5" fontFamily="var(--font-mono)">
+        <text x={(M.left + W - M.right) / 2} y={H - 6} textAnchor="middle" fill={V.muted} fontSize={narrow ? 12.5 : 11.5} fontFamily="var(--font-mono)">
           {isCost ? "cost per 1,000 contracts (log)" : "median latency, seconds (log)"}
         </text>
-        <text transform="rotate(-90)" x={-(M.top + H - M.bottom) / 2} y={15} textAnchor="middle" fill={V.muted} fontSize="11.5" fontFamily="var(--font-mono)">
+        <text transform="rotate(-90)" x={-(M.top + H - M.bottom) / 2} y={14} textAnchor="middle" fill={V.muted} fontSize={narrow ? 12.5 : 11.5} fontFamily="var(--font-mono)">
           accuracy
         </text>
 
@@ -147,9 +181,9 @@ export function QuadrantChart({ models }: { models: ModelRow[] }) {
           const m = plotted[hover];
           const cx = x(xVal(m));
           const cy = y(m.accuracy);
-          const tw = 198;
+          const tw = narrow ? 176 : 198;
           const th = 76;
-          const tx = Math.min(cx + 14, W - tw - 4);
+          const tx = Math.min(Math.max(cx + 14, M.left), W - tw - 4);
           const ty = Math.max(cy - th - 10, 4);
           return (
             <g pointerEvents="none">
