@@ -33,12 +33,9 @@ export function ContractViewer({
       <div className="relative flex-1 min-h-0">
         {hasPages ? (
           <>
-            <div className="h-full overflow-auto bg-[#f1efe8] p-3 sm:p-4 flex flex-col gap-4">
-              {/* Each page sits on the desk rather than bleeding to the panel edge. The overlay
-                  wrapper must stay exactly the image's box — the citation boxes are positioned
-                  in percentages of it — so the padding goes on the scroller, not in here. */}
+            <div className="h-full overflow-auto bg-[#f4f2ec]">
               {pages.map((pg, pi) => (
-                <div key={pi} className="relative shrink-0 rounded-md overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,.08),0_6px_16px_-6px_rgba(0,0,0,.18)] ring-1 ring-black/[.07]">
+                <div key={pi} className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={pg.image} alt={`page ${pi + 1}`} className="w-full block select-none" draggable={false} />
                   {(fields ?? []).flatMap((f, fi) =>
