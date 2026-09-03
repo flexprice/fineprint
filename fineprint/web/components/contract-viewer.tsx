@@ -4,8 +4,18 @@
 // Once a run reveals results, every field's citation box is drawn over the page; hovering a
 // box lights up its row in the OutputPanel (shared `hot`), and vice-versa. While a run is in
 // flight, a scanner sweep animates over the document so a 30–80s extraction reads as "working".
+import dynamic from "next/dynamic";
 import type { Page, Field } from "@/lib/playground-api";
 import { CAT_COLOR, PANEL_H } from "@/lib/categories";
+
+// Lazy: keeps lottie-web and the animation JSON out of the initial bundle. The fallback is the
+// plain label this replaced, so the panel reads the same in the instant before the chunk lands.
+const DocumentLoader = dynamic(() => import("@/components/document-loader"), {
+  ssr: false,
+  // Empty, not a label: the chunk lands in a blink and a word that flashes by is worse than
+  // nothing. The panel is a fixed height, so this holds the space either way.
+  loading: () => <div className="h-full" />,
+});
 
 export function ContractViewer({
   pages, fields, revealed, hot, setHot, mode, file, onFile, loading, running, source,
@@ -74,16 +84,14 @@ export function ContractViewer({
             <span className="text-[11.5px] text-faint">Processed to extract terms, then discarded — your file is not stored.</span>
           </label>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 h-full px-6 text-center">
-            {loading ? (
-              <span className="text-[13px] text-faint font-mono">rendering the document…</span>
-            ) : (
-              <>
-                <span className="text-[13px] text-muted">Page preview didn&rsquo;t load for this contract.</span>
-                <span className="text-[12px] text-faint">Run extraction still works — the pages appear with the results.</span>
-              </>
-            )}
-          </div>
+          loading ? (
+            <DocumentLoader />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 h-full px-6 text-center">
+              <span className="text-[13px] text-muted">Page preview didn&rsquo;t load for this contract.</span>
+              <span className="text-[12px] text-faint">Run extraction still works — the pages appear with the results.</span>
+            </div>
+          )
         )}
       </div>
     </div>
