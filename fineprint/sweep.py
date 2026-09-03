@@ -34,6 +34,20 @@ _STATE = {
 }
 
 
+def apply_max_tokens(models: list[dict], cap: int) -> None:
+    """Give every model without its own cap a generation ceiling.
+
+    OpenRouter reserves each in-flight request against the model's maximum output, so models that
+    send no ``max_tokens`` reserve their entire window. A few dozen concurrent calls then exceed the
+    account balance and the whole sweep 402s with "would exceed your available credits given your
+    current in-flight requests" — which is a concurrency problem wearing a billing error's clothes.
+    Bounding it keeps the reservation small without truncating this schema (~5-7k tokens in
+    practice). Models carrying an explicit cap keep it.
+    """
+    for m in models:
+        m.setdefault("max_tokens", cap)
+
+
 def _sync_up() -> None:
     for obj, local in _STATE.items():
         if Path(local).exists():
@@ -60,6 +74,9 @@ def main() -> None:
     ap.add_argument("--force", action="store_true", help="run even if preflight finds bad ids")
     ap.add_argument("--contracts", type=int, default=0,
                     help="use only the first N contracts (route-comparison runs, not for publishing)")
+    ap.add_argument("--max-tokens", type=int, default=0,
+                    help="cap generation on models that set none, bounding OpenRouter's per-request "
+                         "credit reservation so concurrency does not trip a 402")
     ap.add_argument("--out", default=None,
                     help="write raw records here and skip merge/publish — for comparing two routes "
                          "without one overwriting the other in runs.json")
@@ -88,6 +105,10 @@ def main() -> None:
         routes[c["route"]] = routes.get(c["route"], 0) + 1
     print(f"sweeping {len(models)} models x {len(config.SEED_CONTRACTS)} contracts x {args.runs} run(s) "
           f"at {args.workers} workers; routes: {routes}")
+
+    if args.max_tokens:
+        apply_max_tokens(models, args.max_tokens)
+        print(f"capped generation at {args.max_tokens} tokens for models without their own limit")
 
     if args.contracts:
         # Trim the corpus in place; run_models reads SEED_CONTRACTS at call time.

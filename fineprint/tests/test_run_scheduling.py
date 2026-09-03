@@ -45,3 +45,17 @@ def test_sweep_calls_the_provider_without_direct_routing_by_default(monkeypatch)
                                                   "confident_wrong": 0})
     R._run_one(_models(1)[0], "C0", "prompt", truth={})
     assert seen["direct"] is False
+
+
+def test_sweep_can_cap_max_tokens_on_every_model(monkeypatch):
+    """OpenRouter reserves each in-flight request against the model's max output. Models that send
+    no max_tokens reserve their whole window, so a few dozen concurrent calls can exceed the
+    account balance and 402 — 'would exceed your available credits given your current in-flight
+    requests'. Capping bounds the reservation without truncating this schema (~5-7k tokens)."""
+    from fineprint.sweep import apply_max_tokens
+    models = [{"id": "a"}, {"id": "b", "max_tokens": 2000}]
+
+    apply_max_tokens(models, 16000)
+
+    assert models[0]["max_tokens"] == 16000
+    assert models[1]["max_tokens"] == 2000, "an explicit per-model cap must win"
