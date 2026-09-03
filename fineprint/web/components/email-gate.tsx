@@ -57,11 +57,23 @@ export function EmailGate({ open, onClose, onSubmitted, context }:
     <div role="dialog" aria-modal="true" aria-label="Run your own contract"
       className="fixed inset-0 z-40 flex items-center justify-center p-5 bg-[rgba(9,20,28,.55)] backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-[min(440px,100%)] rounded-2xl bg-surface border border-line shadow-2xl overflow-hidden">
+      <div className="relative w-[min(440px,100%)] rounded-2xl bg-surface border border-line shadow-2xl overflow-hidden">
+        {/* The framed form fills the modal, so without this there is no visible way out — and
+            if the handoff ever fails you are left staring at the form's own success screen. */}
+        <button type="button" onClick={onClose} aria-label="Close"
+          className="absolute top-2.5 right-2.5 z-10 size-7 rounded-full grid place-items-center
+                     text-[15px] leading-none text-faint bg-surface/80 backdrop-blur
+                     hover:text-text hover:bg-surface transition-colors">
+          &times;
+        </button>
         <iframe
           src={src}
           title="Run your own contract"
-          className="w-full h-[560px] max-h-[78vh] block border-0 bg-surface"
+          // The framed form's natural content height measured 637px at this modal's width (664px
+          // narrower, where the copy wraps), so 680 clears it without an inner scrollbar. The
+          // max-h is the overlay's own p-5 subtracted, so a short viewport clips rather than
+          // pushing the modal off screen.
+          className="w-full h-[680px] max-h-[calc(100vh-2.5rem)] block border-0 bg-surface"
           // The frame is cross-origin, so it is already isolated; this keeps it to what the
           // form actually needs and denies navigation of the top window.
           sandbox="allow-scripts allow-forms allow-same-origin"
