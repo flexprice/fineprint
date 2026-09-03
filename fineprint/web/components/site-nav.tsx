@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const REPO_URL = "https://github.com/flexprice/fineprint";
+export const FLEXPRICE_URL = "https://flexprice.io";
+export const DEMO_URL = "https://calendly.com/team_flexprice/30min";
 
 export function GitHubIcon({ size = 16 }: { size?: number }) {
   return (
@@ -24,14 +26,24 @@ const LINKS: [string, string][] = [
 
 export function Brand({ size = 21 }: { size?: number }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 shrink-0">
-      <span className="wordmark" style={{ fontSize: size }}>FinePrint</span>
-      <span className="text-faint text-[12px]">by</span>
-      {/* eslint-disable @next/next/no-img-element */}
-      <img src="/icons/flexprice-wordmark-dark.svg" alt="Flexprice" className="fp-logo-light" style={{ height: 16 }} />
-      <img src="/icons/flexprice-wordmark-light.svg" alt="" aria-hidden className="fp-logo-dark" style={{ height: 16 }} />
-      {/* eslint-enable @next/next/no-img-element */}
-    </Link>
+    <div className="flex items-center gap-2.5 shrink-0">
+      <Link href="/" className="flex items-center gap-2.5 min-w-0">
+        <span className="wordmark" style={{ fontSize: size }}>FinePrint</span>
+        <span className="text-faint text-[12px]">by</span>
+      </Link>
+      <a
+        href={FLEXPRICE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center shrink-0"
+        aria-label="Flexprice"
+      >
+        {/* eslint-disable @next/next/no-img-element */}
+        <img src="/icons/flexprice-wordmark-dark.svg" alt="" className="fp-logo-light" style={{ height: 16 }} />
+        <img src="/icons/flexprice-wordmark-light.svg" alt="" aria-hidden className="fp-logo-dark" style={{ height: 16 }} />
+        {/* eslint-enable @next/next/no-img-element */}
+      </a>
+    </div>
   );
 }
 
@@ -73,7 +85,10 @@ export function SiteNav() {
           ))}
         </nav>
         <div className="flex items-center gap-2 lg:gap-2.5 justify-end">
-          <ThemeToggle />
+          {/* Desktop only — theme toggle crowds the compact mobile header */}
+          <div className="hidden lg:flex">
+            <ThemeToggle />
+          </div>
           {/* lg+ — full GitHub label. Wrapper avoids .btn overriding Tailwind visibility. */}
           <div className="hidden lg:flex">
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
