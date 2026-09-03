@@ -25,9 +25,10 @@ export function ContractViewer({
   mode: "sample" | "upload"; file: File | null; onFile: (f: File | null) => void;
   loading: boolean; running: boolean; source: string;
 }) {
-  // In upload mode the drop zone owns this panel outright: a sample preview that resolves
-  // late must never paint a contract over it.
-  const hasPages = mode !== "upload" && pages.length > 0;
+  // In upload mode the drop zone owns this panel until results land — a sample preview that
+  // resolves late must never paint a contract over it. Once revealed, though, the pages ARE
+  // the user's own uploaded document (rendered by /extract), so they must show.
+  const hasPages = pages.length > 0 && (mode !== "upload" || revealed);
   const headerLeft = mode === "upload" && !hasPages ? "Your document" : source;
   const headerRight = running ? "scanning…" : revealed ? `${fields.length} fields cited` : hasPages ? "scroll to read ↓" : "";
 
