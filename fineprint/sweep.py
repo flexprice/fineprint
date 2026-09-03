@@ -58,6 +58,11 @@ def main() -> None:
     ap.add_argument("--direct", action="store_true", help="one-time first-party direct routing")
     ap.add_argument("--publish", action="store_true", help="rebuild and upload the board")
     ap.add_argument("--force", action="store_true", help="run even if preflight finds bad ids")
+    ap.add_argument("--contracts", type=int, default=0,
+                    help="use only the first N contracts (route-comparison runs, not for publishing)")
+    ap.add_argument("--out", default=None,
+                    help="write raw records here and skip merge/publish — for comparing two routes "
+                         "without one overwriting the other in runs.json")
     args = ap.parse_args()
 
     bootstrap.main()
@@ -84,14 +89,26 @@ def main() -> None:
     print(f"sweeping {len(models)} models x {len(config.SEED_CONTRACTS)} contracts x {args.runs} run(s) "
           f"at {args.workers} workers; routes: {routes}")
 
+    if args.contracts:
+        # Trim the corpus in place; run_models reads SEED_CONTRACTS at call time.
+        config.SEED_CONTRACTS[:] = config.SEED_CONTRACTS[:args.contracts]
+        import fineprint.run as _run
+        _run.SEED_CONTRACTS = config.SEED_CONTRACTS
+        print(f"limited to the first {len(config.SEED_CONTRACTS)} contracts")
+
     if args.publish and store.enabled():
         _backup("sweep")
 
     t0 = time.time()
     records = run_models(models, n_runs=args.runs, workers=args.workers, direct=args.direct)
-    merge_into_results(records, n_runs=args.runs)
     ok = sum(r["ok"] for r in records)
     print(f"sweep done in {int(time.time()-t0)}s — {ok}/{len(records)} calls ok")
+
+    if args.out:   # comparison run: keep the records intact, touch no shared state
+        Path(args.out).write_text(json.dumps({"direct": args.direct, "runs": records}, indent=1))
+        print(f"wrote {len(records)} records -> {args.out} (runs.json and the board untouched)")
+        return
+    merge_into_results(records, n_runs=args.runs)
 
     if args.publish:
         pricing.refresh()

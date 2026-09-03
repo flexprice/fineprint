@@ -31,7 +31,13 @@ def _ids(route: str) -> set[str] | None:
     url, env = _CATALOGUE[route]
     key = os.environ.get(env, "").strip()
     req = urllib.request.Request(url)
-    if key:
+    if key and route == "anthropic":
+        # Anthropic's catalogue is native-API, not the OpenAI-compatible surface: it authenticates
+        # with x-api-key and requires a version header. A Bearer token here silently 401s, which
+        # reads as UNKNOWN and hides whether the model ids are real.
+        req.add_header("x-api-key", key)
+        req.add_header("anthropic-version", "2023-06-01")
+    elif key:
         req.add_header("Authorization", f"Bearer {key}")
     try:
         with urllib.request.urlopen(req, timeout=30) as r:

@@ -185,7 +185,23 @@ def test_direct_falls_back_to_openrouter_when_that_labs_key_is_missing(monkeypat
     assert P.route_for(_m("openai", "openai/gpt-5.5"), direct=True) == "openai"
 
 
-def test_wire_id_is_the_openrouter_slug_or_the_bare_model_name(monkeypatch):
+def test_wire_id_is_the_openrouter_slug_or_the_bare_model_name():
+    m = _m("openai", "openai/gpt-5.5")
+    assert P._api_model(m, "openrouter") == "openai/gpt-5.5"
+    assert P._api_model(m, "openai") == "gpt-5.5"
+
+
+def test_anthropic_direct_ids_use_hyphens_not_dots():
+    """OpenRouter says anthropic/claude-fable-5.1; Anthropic's own API serves claude-fable-5-1.
+    Sending the dotted form direct 404s every call — which is how this exact model would have
+    landed a third 0%-reliability row on the board."""
     m = _m("anthropic", "anthropic/claude-fable-5.1")
     assert P._api_model(m, "openrouter") == "anthropic/claude-fable-5.1"
-    assert P._api_model(m, "anthropic") == "claude-fable-5.1"
+    assert P._api_model(m, "anthropic") == "claude-fable-5-1"
+    assert P._api_model(_m("anthropic", "anthropic/claude-opus-4.8"), "anthropic") == "claude-opus-4-8"
+
+
+def test_other_labs_direct_ids_are_left_alone():
+    """Verified against the live catalogues: OpenAI and Gemini serve the dotted names as-is."""
+    assert P._api_model(_m("google", "google/gemini-3.5-flash"), "google") == "gemini-3.5-flash"
+    assert P._api_model(_m("openai", "openai/gpt-5.6-luna"), "openai") == "gpt-5.6-luna"

@@ -25,10 +25,11 @@ def test_checks_the_id_that_will_actually_go_on_the_wire_per_route(monkeypatch):
     """Direct routing sends the bare name, OpenRouter sends the slug — preflight must check
     whichever one this run will really send, not a fixed choice."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-a")
-    monkeypatch.setattr(PF, "_ids", lambda route: {"claude-fable-5.1"})
+    # Anthropic's real catalogue hyphenates the version; OpenRouter's dots it.
+    monkeypatch.setattr(PF, "_ids", lambda route: {"claude-fable-5-1"})
     m = _m("claude-fable-5.1", "anthropic", "anthropic/claude-fable-5.1")
 
     assert PF.check([m], direct=True)[0] == {"id": "claude-fable-5.1", "route": "anthropic",
-                                             "wire": "claude-fable-5.1", "status": "ok"}
+                                             "wire": "claude-fable-5-1", "status": "ok"}
     # same model, default routing: sends the slug, which is NOT in this catalogue
     assert PF.check([m], direct=False)[0]["status"] == "MISSING"

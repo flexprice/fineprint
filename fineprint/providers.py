@@ -106,7 +106,15 @@ def _extract_json(text: str) -> dict:
 
 
 def _api_model(model: dict, route: str = "openrouter") -> str:
-    """The id to send on the wire: the OpenRouter slug via OpenRouter, the bare model name direct."""
+    """The id to send on the wire: the OpenRouter slug via OpenRouter, the lab's own name direct.
+
+    The two namespaces are not the same string. OpenRouter lists ``anthropic/claude-fable-5.1``;
+    Anthropic's own API serves ``claude-fable-5-1``. Sending the dotted form direct 404s every call
+    for that model — verified against both live catalogues, which is also why OpenAI and Gemini are
+    left alone: they serve the dotted names as-is.
+    """
+    if route == "anthropic":
+        return model["id"].replace(".", "-")
     if route != "openrouter":
         return model["id"]
     return model["openrouter_id"] if model.get("openrouter_id") else model["id"]
