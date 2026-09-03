@@ -23,17 +23,19 @@ export default function DocumentLoader() {
 
   return (
     <div className="flex items-center justify-center h-full px-6">
-      {/* The animation fills its box, so the box needs a size — 800×200 source, hence 4/1.
-          It carries the whole message on its own; the aria-label is what names the state for
-          anyone who can't see it. */}
-      <Lottie
-        src={animation}
-        loop={!still}
-        autoplay={!still}
-        className="w-full max-w-[260px] aspect-[4/1]"
-        role="img"
-        aria-label="Rendering the document"
-      />
+      {/* Ratio on a wrapper we own, not on the Lottie itself — lottie-react's .lottie-display
+          class sets a height, and an explicit height beats aspect-ratio. 800×200 source, so 4/1.
+          It carries the whole message; the aria-label names the state for anyone who can't see it. */}
+      <div className="w-full max-w-[280px] aspect-[4/1]">
+        <Lottie
+          src={animation}
+          loop={!still}
+          autoplay={!still}
+          className="w-full h-full"
+          role="img"
+          aria-label="Rendering the document"
+        />
+      </div>
     </div>
   );
 }

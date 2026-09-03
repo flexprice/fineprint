@@ -6,9 +6,17 @@
 // with the ContractViewer so hovering a field lights up its citation box, and vice-versa.
 // The body is a fixed height and the status bar is always mounted, so none of those four
 // states — nor flipping Fields/JSON — changes how tall the panel is.
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { CAT_COLOR, PANEL_H } from "@/lib/categories";
 import type { ExtractResult, Field } from "@/lib/playground-api";
+
+// Lazy: the OCR-scan animation is ~314 KB and only ever shows mid-run, so it stays out of the
+// initial bundle. Empty fallback — the body is a fixed height, so nothing moves either way.
+const ExtractionLoader = dynamic(() => import("@/components/extraction-loader"), {
+  ssr: false,
+  loading: () => <div className="h-full" />,
+});
 
 function groupByCategory(fields: Field[]): [string, { f: Field; i: number }[]][] {
   const order: string[] = [];
@@ -66,18 +74,8 @@ export function OutputPanel({ result, revealed, running, model, hot, setHot }: {
           skeleton, the empty state, the field list and the raw JSON are all the same size. */}
       <div className="flex-1 min-h-0" key={running ? "run" : !show ? "idle" : tab}>
         {running ? (
-          // Enough rows to fill the shell (extras clip) and a category bar every fourth, so the
-          // skeleton has the same shape as the grouped field list it is standing in for.
-          <div className="fp-fade h-full overflow-hidden p-3 space-y-2.5">
-            {Array.from({ length: 18 }, (_, r) => (
-              r % 5 === 0
-                ? <span key={r} className="fp-shimmer block h-2 w-[64px] rounded mt-3.5 mb-1.5" />
-                : <div key={r} className="flex items-center gap-3 px-1">
-                    <span className="fp-shimmer size-2.5 rounded-[3px] shrink-0" />
-                    <span className="fp-shimmer h-3 rounded" style={{ width: `${28 + (r % 3) * 8}%` }} />
-                    <span className="fp-shimmer h-3 rounded flex-1" style={{ maxWidth: `${40 + (r % 2) * 18}%` }} />
-                  </div>
-            ))}
+          <div className="fp-fade h-full">
+            <ExtractionLoader />
           </div>
         ) : !show ? (
           <div className="fp-fade h-full flex flex-col items-center justify-center text-center gap-3 px-6 text-faint">
