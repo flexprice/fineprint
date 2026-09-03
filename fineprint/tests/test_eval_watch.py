@@ -74,7 +74,7 @@ def test_evaluate_exits_policy_blocked_when_every_call_hits_the_guardrail(monkey
     monkeypatch.setattr(E, "resolve", lambda spec: model)
     err = ("NotFoundError: Error code: 404 - {'error': {'message': 'No endpoints available matching "
            "your guardrail restrictions and data policy. Configure: https://openrouter.ai/set")
-    monkeypatch.setattr(E, "run_models", lambda models, n_runs, workers, audit: [{"ok": False, "error": err}])
+    monkeypatch.setattr(E, "run_models", lambda models, n_runs, workers, audit, **kw: [{"ok": False, "error": err}])
     monkeypatch.setattr(E, "merge_into_results", lambda records, n_runs: None)
     with pytest.raises(SystemExit) as ei:
         E.evaluate("lab/vision-exp", runs=1)
@@ -87,7 +87,7 @@ def test_evaluate_exits_all_failed_for_ordinary_errors(monkeypatch):
     model = {"id": "flaky", "label": "Flaky", "openrouter_id": "lab/flaky"}
     monkeypatch.setattr(E, "resolve", lambda spec: model)
     monkeypatch.setattr(E, "run_models",
-                        lambda models, n_runs, workers, audit: [{"ok": False, "error": "TimeoutError: slow"}])
+                        lambda models, n_runs, workers, audit, **kw: [{"ok": False, "error": "TimeoutError: slow"}])
     monkeypatch.setattr(E, "merge_into_results", lambda records, n_runs: None)
     with pytest.raises(SystemExit) as ei:
         E.evaluate("lab/flaky", runs=1)

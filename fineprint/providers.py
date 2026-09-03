@@ -7,6 +7,7 @@ to the right model id, degrades gracefully when a provider does not support stri
 model that would reject them. Run modules from the repo root so ``pipeline`` / ``fineprint`` resolve.
 """
 import json
+import os
 import re
 import time
 import urllib.request
@@ -39,6 +40,32 @@ _SCHEMA_HINT = (
 )
 
 
+# First-party labs that can be billed directly instead of through OpenRouter, as
+# ``brand -> (env var holding the key, OpenAI-compatible base_url)``. Every one of these exposes an
+# OpenAI-shaped endpoint, so the same client and call path work unchanged.
+#
+# This exists for ONE job: the re-baseline, where the first-party models are most of the spend and
+# the temp keys cover them. It is deliberately opt-in per call (see ``route_for``) and never read
+# from ambient config, because every model added after the re-baseline goes through OpenRouter —
+# and a board whose rows were measured through different routes is the same class of bug as one
+# whose rows were measured on different contracts.
+_DIRECT_LABS = {
+    "openai":    ("OPENAI_API_KEY",    None),
+    "anthropic": ("ANTHROPIC_API_KEY", "https://api.anthropic.com/v1/"),
+    "google":    ("GEMINI_API_KEY",    "https://generativelanguage.googleapis.com/v1beta/openai/"),
+}
+
+
+def route_for(model: dict, direct: bool = False) -> str:
+    """Which API this model should be called through. OpenRouter unless the caller explicitly asks
+    for direct routing AND we hold a key for that lab — a missing key degrades to OpenRouter rather
+    than failing every call for that model."""
+    if not direct:
+        return "openrouter"
+    env = _DIRECT_LABS.get(model.get("brand"), (None, None))[0]
+    return model["brand"] if env and os.environ.get(env, "").strip() else "openrouter"
+
+
 def _client(provider: str) -> OpenAI:
     if provider not in _CLIENTS:
         if provider == "openrouter":
@@ -46,6 +73,10 @@ def _client(provider: str) -> OpenAI:
                 api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1",
                 max_retries=3, timeout=360,
                 default_headers={"HTTP-Referer": "https://fineprint.bench", "X-Title": "FinePrint"})
+        elif provider in _DIRECT_LABS:
+            env, base_url = _DIRECT_LABS[provider]
+            _CLIENTS[provider] = OpenAI(api_key=os.environ.get(env, "").strip(),
+                                        base_url=base_url, max_retries=3, timeout=360)
         else:
             _CLIENTS[provider] = OpenAI(api_key=OPENAI_API_KEY, max_retries=3, timeout=360)
     return _CLIENTS[provider]
@@ -74,9 +105,11 @@ def _extract_json(text: str) -> dict:
         raise
 
 
-def _api_model(model: dict) -> str:
-    """The id to send on the wire: the OpenRouter slug when routing through OpenRouter."""
-    return model["openrouter_id"] if model.get("provider") == "openrouter" and model.get("openrouter_id") else model["id"]
+def _api_model(model: dict, route: str = "openrouter") -> str:
+    """The id to send on the wire: the OpenRouter slug via OpenRouter, the bare model name direct."""
+    if route != "openrouter":
+        return model["id"]
+    return model["openrouter_id"] if model.get("openrouter_id") else model["id"]
 
 
 _CATALOG: dict | None = None
@@ -139,15 +172,19 @@ def _plan_attempts(base: dict, user: str, caps: set[str] | None) -> list[dict]:
     return attempts
 
 
-def call(model: dict, user: str):
+def call(model: dict, user: str, direct: bool = False):
     """Run one extraction. Returns (fields, usage_dict, latency_s).
 
     Raises on hard API error or unparseable output — the caller records the failure so a single
     bad model never stalls the sweep.
+
+    ``direct`` is the one-time re-baseline escape hatch (see ``route_for``); leaving it False — the
+    default everywhere, including the watch loop — routes through OpenRouter.
     """
-    client = _client(model.get("provider", "openai"))
+    route = route_for(model, direct)
+    client = _client(route)
     caps = supported_params(model)
-    base = dict(model=_api_model(model),
+    base = dict(model=_api_model(model, route),
                 messages=[{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}])
 
     # Send reasoning controls only when the model actually carries them (curated effort, or the

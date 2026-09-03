@@ -140,3 +140,52 @@ def test_call_falls_through_when_first_attempt_errors(mock_client):
     fields, _, _ = P.call(model, "USER")
     assert len(fields) == 1                       # recovered on the second attempt
     assert len(mock_client) == 2
+
+
+# ── one-time direct-provider routing ─────────────────────────────────────────
+# The re-baseline may bill first-party labs directly, but EVERY model added afterwards must go
+# through OpenRouter or the board splits into two incomparable measurement regimes again. So
+# direct routing is opt-in per call and never ambient: the default is OpenRouter, always.
+_ALL_KEYS = {"OPENAI_API_KEY": "sk-o", "ANTHROPIC_API_KEY": "sk-a", "GEMINI_API_KEY": "sk-g"}
+
+
+def _m(brand, orid):
+    return {"id": orid.split("/", 1)[1], "brand": brand, "provider": "openrouter", "openrouter_id": orid}
+
+
+def test_default_route_is_openrouter_even_with_every_direct_key_present(monkeypatch):
+    for k, v in _ALL_KEYS.items():
+        monkeypatch.setenv(k, v)
+    for brand, orid in [("openai", "openai/gpt-5.5"), ("anthropic", "anthropic/claude-fable-5.1"),
+                        ("google", "google/gemini-3.5-flash"), ("deepseek", "deepseek/deepseek-v3.2")]:
+        assert P.route_for(_m(brand, orid)) == "openrouter"
+
+
+def test_direct_opt_in_routes_first_party_to_their_own_api(monkeypatch):
+    for k, v in _ALL_KEYS.items():
+        monkeypatch.setenv(k, v)
+    assert P.route_for(_m("openai", "openai/gpt-5.5"), direct=True) == "openai"
+    assert P.route_for(_m("anthropic", "anthropic/claude-fable-5.1"), direct=True) == "anthropic"
+    assert P.route_for(_m("google", "google/gemini-3.5-flash"), direct=True) == "google"
+
+
+def test_direct_opt_in_still_sends_third_party_models_via_openrouter(monkeypatch):
+    for k, v in _ALL_KEYS.items():
+        monkeypatch.setenv(k, v)
+    assert P.route_for(_m("deepseek", "deepseek/deepseek-v3.2"), direct=True) == "openrouter"
+    assert P.route_for(_m("xai", "x-ai/grok-4.6"), direct=True) == "openrouter"
+
+
+def test_direct_falls_back_to_openrouter_when_that_labs_key_is_missing(monkeypatch):
+    """A missing key must degrade to OpenRouter, not fail every call — that is how a whole model
+    ends up with 2 successful runs out of 174 and still publishes."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-o")
+    assert P.route_for(_m("anthropic", "anthropic/claude-fable-5.1"), direct=True) == "openrouter"
+    assert P.route_for(_m("openai", "openai/gpt-5.5"), direct=True) == "openai"
+
+
+def test_wire_id_is_the_openrouter_slug_or_the_bare_model_name(monkeypatch):
+    m = _m("anthropic", "anthropic/claude-fable-5.1")
+    assert P._api_model(m, "openrouter") == "anthropic/claude-fable-5.1"
+    assert P._api_model(m, "anthropic") == "claude-fable-5.1"
