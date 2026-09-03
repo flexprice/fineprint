@@ -5,6 +5,7 @@
 // box lights up its row in the OutputPanel (shared `hot`), and vice-versa. While a run is in
 // flight, a scanner sweep animates over the document so a 30–80s extraction reads as "working".
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import type { Page, Field } from "@/lib/playground-api";
 import { CAT_COLOR, PANEL_H } from "@/lib/categories";
 
@@ -25,11 +26,44 @@ export function ContractViewer({
   mode: "sample" | "upload"; file: File | null; onFile: (f: File | null) => void;
   loading: boolean; running: boolean; source: string;
 }) {
-  // In upload mode the drop zone owns this panel outright: a sample preview that resolves
-  // late must never paint a contract over it.
-  const hasPages = mode !== "upload" && pages.length > 0;
+  // In upload mode the drop zone owns this panel until results land — a sample preview that
+  // resolves late must never paint a contract over it. Once revealed, though, the pages ARE
+  // the user's own uploaded document (rendered by /extract), so they must show.
+  const hasPages = pages.length > 0 && (mode !== "upload" || revealed);
   const headerLeft = mode === "upload" && !hasPages ? "Your document" : source;
   const headerRight = running ? "scanning…" : revealed ? `${fields.length} fields cited` : hasPages ? "scroll to read ↓" : "";
+
+  // Drag-and-drop. The <input> is hidden so it has no hit area of its own — without these
+  // handlers a dropped file falls through to the browser, which navigates away to the PDF and
+  // loses whatever you had on the page.
+  const [dragging, setDragging] = useState(false);
+  const [dropErr, setDropErr] = useState("");
+
+  function accept(f: File | null) {
+    setDropErr("");
+    if (!f) return;
+    // Some browsers hand over an empty type for a dragged file, so fall back to the extension.
+    if (!(f.type === "application/pdf" || /\.pdf$/i.test(f.name))) {
+      setDropErr(`${f.name} isn't a PDF.`); return;
+    }
+    if (f.size > 10 * 1024 * 1024) {          // the server rejects over this with a 413
+      setDropErr("That file is over 10 MB."); return;
+    }
+    onFile(f);
+  }
+
+  // A file dropped anywhere OUTSIDE the zone still navigates the tab to it. While the upload
+  // pane is showing, swallow that so a near-miss is a no-op instead of losing the page.
+  useEffect(() => {
+    if (mode !== "upload") return;
+    const swallow = (e: DragEvent) => e.preventDefault();
+    window.addEventListener("dragover", swallow);
+    window.addEventListener("drop", swallow);
+    return () => {
+      window.removeEventListener("dragover", swallow);
+      window.removeEventListener("drop", swallow);
+    };
+  }, [mode]);
 
   return (
     <div className={`panel rounded-2xl overflow-hidden flex flex-col ${PANEL_H}`}>
@@ -74,14 +108,27 @@ export function ContractViewer({
         ) : running ? (
           <ScanSkeleton label="Running OCR on your document…" />
         ) : mode === "upload" ? (
-          <label className="flex flex-col items-center justify-center text-center gap-2 h-full px-6 cursor-pointer text-muted">
+          <label
+            onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            // dragleave also fires crossing into a child, so only drop the state when the
+            // pointer has actually left the zone.
+            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false); }}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); accept(e.dataTransfer.files?.[0] ?? null); }}
+            className={`flex flex-col items-center justify-center text-center gap-2 h-full px-6 cursor-pointer transition-colors ${
+              dragging ? "bg-accent/5 text-text" : "text-muted"}`}>
             <input type="file" accept="application/pdf" hidden
-              onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
-            <div className="size-11 rounded-xl border border-dashed border-line flex items-center justify-center text-[19px] text-faint">↑</div>
-            {file
-              ? <b className="text-text text-[14px]">{file.name}</b>
-              : <span className="text-[13.5px]"><b className="text-text">Drop a PDF</b>, or click to browse · ≤ 10 MB</span>}
-            <span className="text-[11.5px] text-faint">Processed to extract terms, then discarded — your file is not stored.</span>
+              onChange={(e) => accept(e.target.files?.[0] ?? null)} />
+            <div className={`size-11 rounded-xl border border-dashed flex items-center justify-center text-[19px] transition-colors ${
+              dragging ? "border-accent text-accent" : "border-line text-faint"}`}>↑</div>
+            {dragging
+              ? <b className="text-text text-[14px]">Drop to upload</b>
+              : file
+                ? <b className="text-text text-[14px]">{file.name}</b>
+                : <span className="text-[13.5px]"><b className="text-text">Drop a PDF</b>, or click to browse · ≤ 10 MB</span>}
+            {dropErr
+              ? <span className="text-[11.5px] text-warning">{dropErr}</span>
+              : <span className="text-[11.5px] text-faint">Processed to extract terms, then discarded — your file is not stored.</span>}
           </label>
         ) : (
           loading ? (

@@ -1,39 +1,84 @@
 "use client";
-import { useState } from "react";
-import { submitLead } from "@/lib/playground-api";
+// The gate in front of running your OWN contract. The form itself is hosted on Zite and framed
+// here; it collects the lead, calls FinePrint's /lead server-side (which is what posts to Slack
+// and records the row), and hands the resulting session token back over postMessage. That token
+// is what POST /extract requires for the upload path.
+//
+// Trust boundary: event.origin is the whole of it. Anything that isn't exactly GATE_ORIGIN is
+// ignored, because a token accepted from any other frame would be an unauthenticated bypass of
+// this gate. Never widen this to a prefix match or to "*".
+import { useEffect, useState } from "react";
 
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const GATE_ORIGIN = process.env.NEXT_PUBLIC_FINEPRINT_GATE_ORIGIN ?? "https://6rrf1mjptc.zite.so";
+
+type GateMessage = { source: "fineprint-gate"; ok: boolean; sessionToken?: unknown; reason?: unknown };
+
+function isGateMessage(d: unknown): d is GateMessage {
+  return !!d && typeof d === "object" && (d as { source?: unknown }).source === "fineprint-gate";
+}
 
 export function EmailGate({ open, onClose, onSubmitted, context }:
   { open: boolean; onClose: () => void; onSubmitted: (t: string) => void; context: Record<string, unknown> }) {
-  const [name, setName] = useState(""); const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [err, setErr] = useState("");
+  // The framed form reads ?model= and forwards it to /lead, so the Slack line names the model
+  // instead of reading "ran a contract on None". Model ids are public — fine in a URL.
+  const model = typeof context.model === "string" ? context.model : "";
+  const src = model ? `${GATE_ORIGIN}/?model=${encodeURIComponent(model)}` : `${GATE_ORIGIN}/`;
+
+  useEffect(() => {
+    if (!open) return;               // only listen while the gate is actually up
+    setErr("");
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== GATE_ORIGIN) return;          // the entire trust boundary — see above
+      if (!isGateMessage(e.data)) return;
+      if (e.data.ok && typeof e.data.sessionToken === "string" && e.data.sessionToken) {
+        onSubmitted(e.data.sessionToken);
+        return;
+      }
+      setErr(typeof e.data.reason === "string" && e.data.reason
+        ? e.data.reason
+        : "That didn't go through. Try again.");
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [open, onSubmitted]);
+
+  // Esc closes, matching the click-outside affordance below.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
-  const ready = name.trim().length > 0 && EMAIL_RE.test(email.trim());
-  async function go() {
-    if (!ready) { setErr("Enter your name and a valid work email."); return; }
-    setBusy(true); setErr("");
-    try { const { session_token } = await submitLead(name.trim(), email.trim(), context); onSubmitted(session_token); }
-    catch (e) { setErr(e instanceof Error ? e.message : "try again"); } finally { setBusy(false); }
-  }
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-5 bg-[rgba(9,20,28,.55)] backdrop-blur-sm"
+    <div role="dialog" aria-modal="true" aria-label="Run your own contract"
+      className="fixed inset-0 z-40 flex items-center justify-center p-5 bg-[rgba(9,20,28,.55)] backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-[min(440px,100%)] rounded-2xl bg-surface border border-line p-7 shadow-2xl">
-        <h3 className="text-xl font-semibold tracking-tight">See how models read your contract</h3>
-        <p className="mt-1.5 text-[14px] text-muted">Tell us who you are and we&rsquo;ll run extraction on your own document.</p>
-        <label className="block font-mono text-[10.5px] uppercase tracking-wide text-faint mt-4 mb-1.5">Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ada Lovelace" autoFocus
-          className="w-full rounded-lg border border-line bg-bg px-3 py-2.5 text-[14px]" />
-        <label className="block font-mono text-[10.5px] uppercase tracking-wide text-faint mt-3 mb-1.5">Work email</label>
-        <input value={email} type="email" onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com"
-          onKeyDown={(e) => { if (e.key === "Enter" && ready) go(); }}
-          className="w-full rounded-lg border border-line bg-bg px-3 py-2.5 text-[14px]" />
-        {err && <p className="mt-2 text-[12.5px] text-warning">{err}</p>}
-        <button disabled={busy || !ready} onClick={go}
-          className="mt-4 w-full rounded-xl bg-primary text-bg py-3 text-[14px] font-bold disabled:opacity-50 disabled:cursor-not-allowed">
-          {busy ? "Running…" : "Run extraction"}</button>
-        <p className="mt-3 text-[11.5px] text-faint text-center">We&rsquo;ll only use this to follow up about FinePrint. Your file is not stored.</p>
+      <div className="relative w-[min(440px,100%)] rounded-2xl bg-surface border border-line shadow-2xl overflow-hidden">
+        {/* The framed form fills the modal, so without this there is no visible way out — and
+            if the handoff ever fails you are left staring at the form's own success screen. */}
+        <button type="button" onClick={onClose} aria-label="Close"
+          className="absolute top-2.5 right-2.5 z-10 size-7 rounded-full grid place-items-center
+                     text-[15px] leading-none text-faint bg-surface/80 backdrop-blur
+                     hover:text-text hover:bg-surface transition-colors">
+          &times;
+        </button>
+        <iframe
+          src={src}
+          title="Run your own contract"
+          // The framed form's natural content height measured 637px at this modal's width (664px
+          // narrower, where the copy wraps), so 680 clears it without an inner scrollbar. The
+          // max-h is the overlay's own p-5 subtracted, so a short viewport clips rather than
+          // pushing the modal off screen.
+          className="w-full h-[680px] max-h-[calc(100vh-2.5rem)] block border-0 bg-surface"
+          // The frame is cross-origin, so it is already isolated; this keeps it to what the
+          // form actually needs and denies navigation of the top window.
+          sandbox="allow-scripts allow-forms allow-same-origin"
+        />
+        {err && <p className="px-6 pb-4 -mt-1 text-[12.5px] text-warning text-center">{err}</p>}
       </div>
     </div>
   );
