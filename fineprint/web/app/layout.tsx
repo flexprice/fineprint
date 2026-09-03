@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Homemade_Apple } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 // Geist carries everything. There is deliberately no mono face loaded — labels and
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
+        <Analytics />
       </body>
     </html>
   );
