@@ -209,29 +209,90 @@ function Scatter() {
 
 /* ── price spread (log dot plot) ──────────────────────────────────────────── */
 function PriceSpread() {
-  const W = 640, H = 92, P = { l: 12, r: 12 };
+  const narrow = useNarrow();
+  const W = 640, H = 118, P = { l: 12, r: 12 };
+  const axisY = 52;
+  const [hover, setHover] = useState<string | null>(null);
   // Free/stealth models have no listed price — leave them off the cost axis.
   const priced = models.filter((m) => m.cost_1k != null);
   const costs = priced.map((m) => Math.max(m.cost_1k!, 0.5));
   const lo = Math.min(...costs), hi = Math.max(...costs);
   const x = (v: number) => P.l + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * (W - P.l - P.r);
   const ticks = [1, 5, 10, 50, 100, 300].filter((t) => t >= lo && t <= hi);
+  const active = hover ? priced.find((m) => m.id === hover) ?? null : null;
+  // Draw hovered last so a dense stack never occludes the annotation target.
+  const ordered = [...priced].sort((a, b) => Number(a.id === hover) - Number(b.id === hover));
+  const cyOf = (m: ModelRow, i: number) => axisY - ((i % 2) ? 9 : -9);
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-      <line x1={P.l} x2={W - P.r} y1={38} y2={38} stroke="var(--line-2)" />
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full h-auto select-none touch-manipulation"
+      role="img"
+      aria-label="Cost to read 1,000 contracts on a log scale"
+      onMouseLeave={() => setHover(null)}
+    >
+      <line x1={P.l} x2={W - P.r} y1={axisY} y2={axisY} stroke="var(--line-2)" />
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={x(t)} x2={x(t)} y1={34} y2={42} stroke="var(--line-2)" />
-          <text x={x(t)} y={62} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--faint)">${t}</text>
+          <line x1={x(t)} x2={x(t)} y1={axisY - 4} y2={axisY + 4} stroke="var(--line-2)" />
+          <text x={x(t)} y={axisY + 24} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--faint)">${t}</text>
         </g>
       ))}
-      {priced.map((m, i) => (
-        <circle key={m.id} cx={x(Math.max(m.cost_1k!, 0.5))} cy={38 - (i % 2 ? 9 : -9)} r={m.new ? 4.5 : 3.5}
-          fill={hue(m)} stroke="var(--bg)" strokeWidth={1.5} opacity={0.9}>
-          <title>{`${short(m)}: ${money(m.cost_1k)}/1k`}</title>
-        </circle>
-      ))}
-      <text x={P.l} y={84} fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">cost per 1,000 contracts (log)</text>
+      {ordered.map((m) => {
+        const i = priced.indexOf(m);
+        const cx = x(Math.max(m.cost_1k!, 0.5));
+        const cy = cyOf(m, i);
+        const on = m.id === hover;
+        const dim = hover !== null && !on;
+        return (
+          <g key={m.id} opacity={dim ? 0.28 : 0.95} style={{ transition: "opacity .12s" }}>
+            {on && <circle cx={cx} cy={cy} r={9} fill="var(--accent)" opacity={0.18} />}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={on ? 5.5 : m.new ? 4.5 : 3.5}
+              fill={on ? "var(--accent)" : hue(m)}
+              stroke="var(--bg)"
+              strokeWidth={1.5}
+            />
+            {/* Native <title> never fired reliably on these ~4px dots — match Scatter hit targets. */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={narrow ? 16 : 12}
+              fill="transparent"
+              style={{ cursor: "pointer" }}
+              onMouseEnter={() => setHover(m.id)}
+              onFocus={() => setHover(m.id)}
+              onClick={() => setHover(m.id)}
+              tabIndex={0}
+            />
+          </g>
+        );
+      })}
+      <text x={P.l} y={H - 8} fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">
+        cost per 1,000 contracts (log)
+      </text>
+
+      {active && (() => {
+        const i = priced.indexOf(active);
+        const cx = x(Math.max(active.cost_1k!, 0.5));
+        const cy = cyOf(active, i);
+        const label = `${short(active)} · ${money(active.cost_1k)}/1k`;
+        const tw = Math.min(220, 28 + label.length * 6.2);
+        const th = 28;
+        const tx = Math.min(Math.max(cx - tw / 2, P.l), W - P.r - tw);
+        const ty = cy < axisY ? 6 : H - th - 22;
+        return (
+          <g pointerEvents="none">
+            <rect x={tx} y={ty} width={tw} height={th} rx={7} fill="var(--surface)" stroke="var(--line-2)" />
+            <text x={tx + 10} y={ty + 18} fontSize="11.5" fontWeight="600" fill="var(--text)">
+              {label}
+            </text>
+          </g>
+        );
+      })()}
     </svg>
   );
 }

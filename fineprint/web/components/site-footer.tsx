@@ -1,16 +1,34 @@
 import Link from "next/link";
-import { Brand, GitHubIcon, REPO_URL } from "@/components/site-nav";
+import { FLEXPRICE_URL, GitHubIcon, REPO_URL } from "@/components/site-nav";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line mt-24 overflow-hidden">
+    <footer className="border-t border-line overflow-hidden">
       <div className="shell pt-16 pb-10">
         <div className="flex flex-wrap items-start justify-between gap-x-16 gap-y-8">
-          <div>
-            <Brand />
-            <p className="mt-4 text-sm leading-relaxed text-muted max-w-[44ch]">
-              The document-extraction benchmark, by Flexprice. Every new model, scored on real
-              contracts turned into structured billing data.
+          <div className="max-w-[44ch]">
+            <p className="text-sm leading-relaxed text-muted">
+              <span className="wordmark inline text-[1em] leading-[1] text-text align-baseline">
+                FinePrint
+              </span>{" "}
+              is the document-extraction benchmark by{" "}
+              <a
+                href={FLEXPRICE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text font-medium hover:underline underline-offset-2"
+              >
+                Flexprice
+              </a>
+              . Every new model, scored on real contracts turned into structured billing data.
+            </p>
+            <div
+              className="my-4 border-t border-dotted border-line-2"
+              aria-hidden
+            />
+            <p className="text-sm leading-relaxed text-muted">
+              FinePrint is open source. Clone the repo and run your own eval on whichever model you
+              prefer. Same harness as the leaderboard.
             </p>
           </div>
           {/* Two columns so the nav does not tower over the short left block and

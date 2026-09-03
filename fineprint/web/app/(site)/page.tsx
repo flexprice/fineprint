@@ -7,6 +7,7 @@ import { Analytics } from "@/components/analytics";
 import { WhatsInside } from "@/components/whats-inside";
 import { ProblemStatement } from "@/components/problem-statement";
 import { TeamNote } from "@/components/team-note";
+import { FlexpriceCta } from "@/components/flexprice-cta";
 import { LabMarquee } from "@/components/lab-marquee";
 import { HeroCli } from "@/components/hero-cli";
 import { ProviderIcon } from "@/components/provider-icon";
@@ -47,7 +48,7 @@ export default function Home() {
             <h1 className="display text-[clamp(2.2rem,4.6vw,3.5rem)] max-w-[20ch] fp-up" style={{ animationDelay: ".07s" }}>
               Can your favorite model read the fine print?
             </h1>
-            <p className="mt-7 text-[19.5px] leading-[1.62] max-w-[40ch] text-muted fp-up" style={{ animationDelay: ".12s" }}>
+            <p className="mt-5 sm:mt-7 text-[15.5px] sm:text-[19.5px] leading-[1.55] sm:leading-[1.62] max-w-[40ch] text-muted fp-up" style={{ animationDelay: ".12s" }}>
               Signed contracts bury their billing terms in pages of prose. FinePrint runs every new model
               over real ones and checks each field it returns against a human&rsquo;s answer.
             </p>
@@ -153,6 +154,8 @@ export default function Home() {
       <Analytics />
 
       <TeamNote />
+
+      <FlexpriceCta />
     </>
   );
 }
