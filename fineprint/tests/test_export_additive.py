@@ -70,3 +70,40 @@ def test_add_model_returns_none_without_runs(tmp_path, monkeypatch):
     monkeypatch.setattr(export, "load_runs", lambda p: [])
     assert export.add_model("gamma") is None
     assert len(json.loads(board_path.read_text())["rows"]) == 1   # board untouched
+
+
+def test_add_model_refuses_a_row_whose_calls_mostly_failed(tmp_path, monkeypatch):
+    """A model that errored on almost every call must not reach the board.
+
+    Regression guard for the incident where an OpenRouter 402 (insufficient credits) failed 172 of
+    174 calls, and the surviving 2 were published as a real score at rank #30 — accuracy computed
+    from two documents, ranked against everyone else's 22-document average.
+    """
+    board_path = _board(tmp_path, [{"id": "alpha", "accuracy": 90.0, "rank": 1}])
+    monkeypatch.setattr(export, "WEB_DATA", board_path)
+    monkeypatch.setattr(export, "all_models", lambda: [{"id": "gamma", "label": "Gamma"}])
+    monkeypatch.setattr(export.pricing, "load", lambda: {})
+    monkeypatch.setattr(export, "load_runs", lambda p: [{"model": "gamma"}])
+    monkeypatch.setattr(export, "SEED_CONTRACTS", [("C1", "c1")])
+    monkeypatch.setattr(export, "aggregate",
+                        lambda runs, models, contracts: ([{"id": "gamma", "accuracy": 61.5,
+                                                           "reliability": 1.1, "calls": 174}], {}))
+
+    assert export.add_model("gamma") is None
+    assert [r["id"] for r in json.loads(board_path.read_text())["rows"]] == ["alpha"]
+
+
+def test_add_model_publishes_a_row_with_healthy_reliability(tmp_path, monkeypatch):
+    board_path = _board(tmp_path, [{"id": "alpha", "accuracy": 90.0, "rank": 1}])
+    monkeypatch.setattr(export, "WEB_DATA", board_path)
+    monkeypatch.setattr(export, "all_models", lambda: [{"id": "gamma", "label": "Gamma"}])
+    monkeypatch.setattr(export.pricing, "load", lambda: {})
+    monkeypatch.setattr(export, "load_runs", lambda p: [{"model": "gamma"}])
+    monkeypatch.setattr(export, "SEED_CONTRACTS", [("C1", "c1")])
+    monkeypatch.setattr(export, "aggregate",
+                        lambda runs, models, contracts: ([{"id": "gamma", "accuracy": 61.5,
+                                                           "reliability": 98.3, "calls": 174}], {}))
+
+    out = export.add_model("gamma")
+    assert out is not None
+    assert [r["id"] for r in out["rows"]] == ["alpha", "gamma"]

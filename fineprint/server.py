@@ -23,6 +23,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
@@ -34,7 +35,30 @@ app = FastAPI(title="FinePrint", docs_url="/docs", redoc_url=None)
 
 app.add_middleware(CORSMiddleware, allow_origins=SITE_ORIGINS,
                    allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    """Answer a crash in the same shape as a handled error — and WITH the CORS header.
+
+    Starlette's stack is ServerErrorMiddleware -> CORSMiddleware -> router, so an uncaught
+    exception is turned into a 500 by the OUTERMOST middleware and never passes back through the
+    CORS wrapper. The browser then blocks the response and ``fetch`` rejects with a bare
+    "Failed to fetch": the real status is invisible to the client, and every backend crash looks
+    identical from the outside. (An OpenRouter 402 for exhausted credits hid behind this for a
+    day.) Setting the header here restores the status to the caller. The detail stays generic on
+    purpose — this endpoint is public; the traceback goes to the logs, where it belongs, because
+    ServerErrorMiddleware still re-raises after we answer.
+    """
+    origin = request.headers.get("origin", "")
+    headers = {"access-control-allow-origin": origin, "vary": "Origin"} if origin in SITE_ORIGINS else {}
+    return JSONResponse({"detail": "the benchmark service hit an internal error — please retry"},
+                        status_code=500, headers=headers)
 _limiter = Limiter(max_hits=int(os.environ.get("FINEPRINT_PLAYGROUND_RPM", "12")), window_s=60)
+# The upload flow is the only public endpoint that spends money per call — live Datalab OCR plus a
+# model call. The general per-minute limit is sized for the cheap sample path; at 12/min one IP
+# could drive hundreds of paid runs an hour. Uploads get their own, far smaller hourly budget.
+_upload_limiter = Limiter(max_hits=int(os.environ.get("FINEPRINT_UPLOADS_PER_HOUR", "3")), window_s=3600)
 
 _TOKEN = os.environ.get("FINEPRINT_API_TOKEN", "").strip()
 # GCS object names for each piece of mutable state (local paths come from config/watch, env-driven).
@@ -296,6 +320,10 @@ async def extract(request: Request, file: UploadFile = File(None),
     # upload path — gated
     if not leads.valid_session_token(session_token or ""):
         raise HTTPException(401, "enter your work email to run your own contract")
+    # Checked after the token gate (a rejected caller must not burn someone's quota) and before the
+    # file is read or any OCR is billed.
+    if not _upload_limiter.allow(_client_id(request), time.time()):
+        raise HTTPException(429, "upload limit reached — try again in an hour")
     pdf = await file.read()
     if len(pdf) > 10 * 1024 * 1024:
         raise HTTPException(413, "PDF too large (max 10 MB)")

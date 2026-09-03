@@ -8,12 +8,11 @@ def test_valid_email_rejects_junk():
     assert not valid_email("nope")
     assert not valid_email("a@")
 
-def test_record_lead_notifies_and_returns_working_token():
+def test_record_lead_stores_and_returns_working_token():
     sent = {}
     tok = record_lead("dev@acme.com", "Ada Lovelace", {"sample": "SaaS", "model": "GPT-5.5"},
-                      notify_fn=lambda text: sent.setdefault("t", text),
                       store_append=lambda row: sent.setdefault("row", row))
-    assert "acme.com" in sent["t"] and sent["row"]["name"] == "Ada Lovelace"
+    assert sent["row"]["email"] == "dev@acme.com" and sent["row"]["name"] == "Ada Lovelace"
     assert "file" not in sent["row"]                      # never store file contents
     assert valid_session_token(tok)
 
@@ -49,3 +48,32 @@ def test_valid_session_token_rejects_junk():
     assert not valid_session_token("bad")
     assert not valid_session_token("no-dot-at-all")
     assert not valid_session_token("not-base64!!!.deadbeef")
+
+def test_token_forged_with_the_published_default_secret_is_rejected():
+    """The signing secret must never fall back to a value that ships in the open-source repo.
+
+    `_SECRET` used to default to the literal b"fineprint-playground", and the deployed service
+    never set FINEPRINT_LEAD_SECRET — so anyone could mint a token that passed the email gate and
+    spend the project's OCR + model credits. Verified against production: a token signed with the
+    published default reached the 10 MB size check (413) instead of being turned away (401).
+    """
+    import base64, hashlib, hmac
+    email = "attacker@example.com"
+    sig = hmac.new(b"fineprint-playground", email.encode(), hashlib.sha256).hexdigest()[:32]
+    forged = base64.urlsafe_b64encode(email.encode()).decode().rstrip("=") + "." + sig
+
+    assert not valid_session_token(forged)
+
+def test_record_lead_never_contacts_slack(monkeypatch):
+    """Leads no longer post to Slack (a hosted lead-capture form replaces it). Regression guard:
+    record_lead must not call notify.post_slack at all, even when SLACK_WEBHOOK_URL is set."""
+    from fineprint import notify
+    monkeypatch.setenv("SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/fake")
+    def boom(*a, **k):
+        raise AssertionError("record_lead must not contact Slack")
+    monkeypatch.setattr(notify, "post_slack", boom)
+
+    tok = record_lead("dev@acme.com", "Ada Lovelace", {"sample": "SaaS", "model": "GPT-5.5"},
+                      store_append=lambda row: None)
+
+    assert valid_session_token(tok)

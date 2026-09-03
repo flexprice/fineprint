@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FLEXPRICE_URL, GitHubIcon, REPO_URL } from "@/components/site-nav";
+import { CONTACT_URL, FLEXPRICE_URL, GitHubIcon, REPO_URL } from "@/components/site-nav";
 
 export function SiteFooter() {
   return (
@@ -39,6 +39,7 @@ export function SiteFooter() {
             <Link href="/compare" className="hover:text-text transition-colors">Compare</Link>
             <Link href="/#inside" className="hover:text-text transition-colors">How we measure</Link>
             <Link href="/methodology" className="hover:text-text transition-colors">Methodology</Link>
+            <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer" className="hover:text-text transition-colors">Contact</a>
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 hover:text-text transition-colors">
               <GitHubIcon size={15} /> GitHub

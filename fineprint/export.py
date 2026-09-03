@@ -6,12 +6,21 @@ contract identities — so nothing private leaves the harness. Raw ``runs.json``
     python3 -m fineprint.export
 """
 import json
+import os
 
 from statistics import mean
 
 from fineprint.config import all_models, SEED_CONTRACTS, N_RUNS, RESULTS, WEB_DATA, BASELINE_ID
 from fineprint.aggregate import aggregate, load_runs, pct
 from fineprint import pricing
+
+# A model whose calls mostly FAILED still aggregates into a row: ``aggregate`` scores whatever
+# handful of calls survived and gates only on there being at least one. That is a failed
+# measurement, not a bad model — but the board ranks on accuracy alone and says nothing about
+# sample size, so it lands next to models measured over the full corpus. (An OpenRouter 402 once
+# failed 172 of 174 calls; the 2 survivors published as a real score at rank #30.) Publish only
+# rows measured over enough of the corpus to mean anything.
+MIN_RELIABILITY = float(os.environ.get("FINEPRINT_MIN_RELIABILITY", "50"))
 
 
 def _contract_matrix(runs: list[dict], rows: list[dict]) -> dict:
@@ -89,6 +98,10 @@ def add_model(model_id: str) -> dict | None:
     rows, _ = aggregate(runs, models, SEED_CONTRACTS)
     new = next((r for r in rows if r["id"] == model_id), None)
     if not new:
+        return None
+    if new.get("reliability", 100.0) < MIN_RELIABILITY:
+        print(f"skipped {model_id} — only {new.get('reliability')}% of {new.get('calls')} calls succeeded "
+              f"(min {MIN_RELIABILITY}%); board unchanged")
         return None
 
     merged = existing + [new]
