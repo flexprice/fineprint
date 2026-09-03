@@ -205,3 +205,32 @@ def test_other_labs_direct_ids_are_left_alone():
     """Verified against the live catalogues: OpenAI and Gemini serve the dotted names as-is."""
     assert P._api_model(_m("google", "google/gemini-3.5-flash"), "google") == "gemini-3.5-flash"
     assert P._api_model(_m("openai", "openai/gpt-5.6-luna"), "openai") == "gpt-5.6-luna"
+
+
+def test_retries_keep_the_max_tokens_cap(monkeypatch):
+    """After a failed attempt the fallback ladder strips reasoning controls — but it must NOT drop
+    max_tokens. Without the cap the retry asks for the model's whole window (65536 tokens), and
+    OpenRouter rejects on the credit reservation: 'requires more credits, or fewer max_tokens'.
+    That turned a recoverable first failure into a guaranteed 402 on every retry."""
+    sent = []
+    class FakeCompletions:
+        def create(self, **kw):
+            sent.append(kw)
+            if len(sent) == 1:
+                raise RuntimeError("first attempt fails")
+            msg = types.SimpleNamespace(content='{"fields":[{"field":"f","value":"v",'
+                                                '"confidence":"HIGH","line_ids":[],'
+                                                '"reasoning":"r","doubt":null}]}')
+            usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1,
+                                          completion_tokens_details=None)
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)], usage=usage)
+    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(P, "_client", lambda route: client)
+    monkeypatch.setattr(P, "supported_params", lambda m: None)
+
+    P.call({"id": "m", "brand": "x", "openrouter_id": "lab/m",
+            "effort": "low", "max_tokens": 16000}, "prompt")
+
+    assert len(sent) >= 2, "expected a retry"
+    assert sent[1].get("max_tokens") == 16000, "the cap was stripped from the retry"
+    assert "reasoning_effort" not in sent[1], "reasoning controls should still be stripped"

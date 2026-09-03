@@ -224,9 +224,12 @@ def call(model: dict, user: str, direct: bool = False):
             return fields, usage, latency
         except Exception as e:  # noqa: BLE001 — fall through to the next, less strict, attempt
             last_err = e
-            # A provider that rejects reasoning controls on one attempt will reject them on the next,
-            # so strip them from every remaining attempt before retrying.
+            # A provider that rejects reasoning controls on one attempt will reject them on the
+            # next, so strip those before retrying. max_tokens STAYS: it is near-universally
+            # supported, and it is what bounds the credit OpenRouter reserves per in-flight
+            # request. Dropping it made every retry ask for the model's full window (65536
+            # tokens), which OpenRouter refuses outright — "requires more credits, or fewer
+            # max_tokens" — turning one recoverable failure into a guaranteed 402 on all retries.
             for a in attempts[i + 1:]:
                 a.pop("reasoning_effort", None)
-                a.pop("max_tokens", None)
     raise last_err  # type: ignore[misc]
