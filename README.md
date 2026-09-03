@@ -110,8 +110,8 @@ distribution (not just a mean) so we can report run-to-run **σ**, **p50/p90** l
 ## Quickstart
 
 ```bash
-git clone https://github.com/ayushgupta4897/FinePrint.git
-cd FinePrint
+git clone https://github.com/flexprice/fineprint.git
+cd fineprint
 pip install -r requirements.txt
 cp .env.example .env          # add OPENROUTER_API_KEY (every lab routes through one key)
 ```
