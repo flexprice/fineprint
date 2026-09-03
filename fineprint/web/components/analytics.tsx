@@ -1,8 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { data, models, money, fmtValue, ModelRow } from "@/lib/data";
 import { ProviderIcon } from "@/components/provider-icon";
+
+function useNarrow(query = "(max-width: 640px)") {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [query]);
+  return narrow;
+}
 
 /* ── icons — one per view, so the grid scans by shape as well as by title ──── */
 const I = {
@@ -23,7 +35,7 @@ function Card({ title, sub, wide, icon, children }: {
   title: string; sub: string; wide?: boolean; icon: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <div className={`panel rounded-2xl p-5 sm:p-6 flex flex-col ${wide ? "md:col-span-2" : ""}`}>
+    <div className={`panel rounded-2xl p-5 sm:p-6 flex flex-col min-w-0 ${wide ? "md:col-span-2" : ""}`}>
       <div className="flex items-start gap-3 mb-5">
         <span className="spec-icon shrink-0">{icon}</span>
         <div className="min-w-0">
@@ -33,7 +45,7 @@ function Card({ title, sub, wide, icon, children }: {
       </div>
       {/* flex-1 lets a chart opt into filling the leftover height of its grid row,
           which grid stretch gives the panel but not its contents. */}
-      <div className="flex-1 flex flex-col">{children}</div>
+      <div className="flex-1 flex flex-col min-w-0">{children}</div>
     </div>
   );
 }
@@ -50,12 +62,15 @@ function Bars({ rows, val, fmt, max, invert }: {
       {rows.map((m) => {
         const w = Math.max(2, (val(m) / max) * 100);
         return (
-          <div key={m.id} className="grid grid-cols-[minmax(0,148px)_1fr_auto] items-center gap-3">
+          <div
+            key={m.id}
+            className="grid grid-cols-[minmax(0,148px)_1fr_auto] items-center gap-3 max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1.5"
+          >
             <div className="flex items-center gap-2 min-w-0">
               <ProviderIcon brand={m.brand} size={14} />
               <span className="truncate text-[12.5px]" title={short(m)}>{short(m)}</span>
             </div>
-            <span className="h-[7px] rounded-full bg-surface-2 overflow-hidden">
+            <span className="h-[7px] rounded-full bg-surface-2 overflow-hidden max-sm:order-last max-sm:col-span-2 max-sm:h-[8px]">
               <span className="block h-full rounded-full" style={{ width: `${w}%`, background: hue(m), opacity: invert ? 0.5 : 1 }} />
             </span>
             <span className="tnum text-[12.5px] text-muted w-14 text-right">{fmt(m)}</span>
@@ -77,8 +92,8 @@ function Heatmap() {
     return `color-mix(in srgb, var(--accent) ${Math.round(t * 82 + 6)}%, var(--surface))`;
   };
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[520px]">
+    <div className="fp-chart-scroll max-sm:-mx-1 max-sm:px-1">
+      <div className="min-w-[560px] md:min-w-0">
         <div className="grid gap-1 mb-1" style={{ gridTemplateColumns: `150px repeat(${c.labels.length}, 1fr)` }}>
           <span />
           {c.labels.map((l, i) => (
@@ -110,7 +125,11 @@ function Heatmap() {
 
 /* ── speed × accuracy scatter ─────────────────────────────────────────────── */
 function Scatter() {
-  const W = 640, H = 300, P = { t: 14, r: 14, b: 34, l: 36 };
+  const narrow = useNarrow();
+  // Taller plot on phone so dots stay tappable (same idea as the cost quadrant).
+  const W = narrow ? 520 : 640;
+  const H = narrow ? 360 : 300;
+  const P = { t: 14, r: 14, b: 36, l: narrow ? 34 : 36 };
   const [hover, setHover] = useState<string | null>(null);
   const acc = models.map((m) => m.accuracy);
   const lo = Math.max(1, Math.min(...models.map((m) => m.p50)) * 0.85);
@@ -125,7 +144,7 @@ function Scatter() {
   const ordered = [...models].sort((a, b) => Number(a.id === hover) - Number(b.id === hover));
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none" role="img"
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none touch-manipulation" role="img"
       aria-label="Median latency against accuracy for every model"
       onMouseLeave={() => setHover(null)}>
       {yt.map((t) => (
@@ -140,7 +159,7 @@ function Scatter() {
           <text x={x(t)} y={H - P.b + 15} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" fill="var(--faint)">{t}s</text>
         </g>
       ))}
-      <text x={(P.l + W - P.r) / 2} y={H - 3} textAnchor="middle" fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">lower is faster · median latency (log)</text>
+      <text x={(P.l + W - P.r) / 2} y={H - 4} textAnchor="middle" fontSize="10.5" fontFamily="var(--font-mono)" fill="var(--muted)">lower is faster · median latency (log)</text>
 
       {/* crosshair to the axes, so a hovered point can be read off the scales */}
       {active && (
@@ -161,8 +180,9 @@ function Scatter() {
             <circle cx={x(m.p50)} cy={y(m.accuracy)} r={on ? 6 : m.new ? 5 : 4}
               fill={on ? "var(--accent)" : hue(m)} stroke="var(--bg)" strokeWidth={1.5} />
             {/* generous invisible hit area — 4px dots are near-impossible to hover reliably */}
-            <circle cx={x(m.p50)} cy={y(m.accuracy)} r={12} fill="transparent" style={{ cursor: "pointer" }}
-              onMouseEnter={() => setHover(m.id)} onFocus={() => setHover(m.id)} tabIndex={-1} />
+            <circle cx={x(m.p50)} cy={y(m.accuracy)} r={narrow ? 16 : 12} fill="transparent" style={{ cursor: "pointer" }}
+              onMouseEnter={() => setHover(m.id)} onFocus={() => setHover(m.id)}
+              onClick={() => setHover(m.id)} tabIndex={0} />
           </g>
         );
       })}
@@ -223,25 +243,27 @@ function Dumbbell({ rows }: { rows: ModelRow[] }) {
   const hi = Math.max(...rows.map((m) => m.p90)) * 1.15;
   const pos = (v: number) => (Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * 100;
   return (
-    <div className="flex flex-col gap-2.5 h-full justify-between">
-      {rows.map((m) => (
-        <div key={m.id} className="grid grid-cols-[minmax(0,140px)_1fr] items-center gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <ProviderIcon brand={m.brand} size={13} />
-            <span className="truncate text-[12px]" title={short(m)}>{short(m)}</span>
+    <div className="fp-chart-scroll max-sm:-mx-1 max-sm:px-1">
+      <div className="flex flex-col gap-2.5 h-full justify-between max-sm:min-w-[300px]">
+        {rows.map((m) => (
+          <div key={m.id} className="grid grid-cols-[minmax(0,140px)_1fr] items-center gap-3 max-sm:grid-cols-[minmax(0,112px)_1fr] max-sm:gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <ProviderIcon brand={m.brand} size={13} />
+              <span className="truncate text-[12px]" title={short(m)}>{short(m)}</span>
+            </div>
+            <div className="relative h-4 min-w-0">
+              <div className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full" style={{
+                left: `${pos(m.p50)}%`, width: `${Math.max(0, pos(m.p90) - pos(m.p50))}%`, background: "var(--line-2)",
+              }} />
+              <span className="absolute top-1/2 size-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full" style={{ left: `${pos(m.p50)}%`, background: hue(m) }}>
+                <span className="sr-only">p50 {m.p50}s</span>
+              </span>
+              <span className="absolute top-1/2 size-2 -translate-y-1/2 -translate-x-1/2 rounded-full border" style={{ left: `${pos(m.p90)}%`, background: "var(--bg)", borderColor: "var(--faint)" }} />
+              <span className="absolute -top-0.5 tnum text-[10.5px] text-faint" style={{ left: `${pos(m.p90)}%`, marginLeft: 8, transform: pos(m.p90) > 80 ? "translateX(-100%)" : undefined }}>{m.p90}s</span>
+            </div>
           </div>
-          <div className="relative h-4">
-            <div className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full" style={{
-              left: `${pos(m.p50)}%`, width: `${Math.max(0, pos(m.p90) - pos(m.p50))}%`, background: "var(--line-2)",
-            }} />
-            <span className="absolute top-1/2 size-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full" style={{ left: `${pos(m.p50)}%`, background: hue(m) }}>
-              <span className="sr-only">p50 {m.p50}s</span>
-            </span>
-            <span className="absolute top-1/2 size-2 -translate-y-1/2 -translate-x-1/2 rounded-full border" style={{ left: `${pos(m.p90)}%`, background: "var(--bg)", borderColor: "var(--faint)" }} />
-            <span className="absolute -top-0.5 tnum text-[10.5px] text-faint" style={{ left: `${pos(m.p90)}%`, marginLeft: 8, transform: pos(m.p90) > 80 ? "translateX(-100%)" : undefined }}>{m.p90}s</span>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -259,16 +281,21 @@ function ByLab() {
   return (
     <div className="flex flex-col gap-2.5">
       {labs.map((l) => (
-        <div key={l.brand} className="grid grid-cols-[minmax(0,116px)_1fr_auto] items-center gap-3">
+        <div
+          key={l.brand}
+          className="grid grid-cols-[minmax(0,116px)_1fr_auto] items-center gap-3 max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1.5"
+        >
           <div className="flex items-center gap-2 min-w-0">
             <ProviderIcon brand={l.brand} size={14} />
             <span className="truncate text-[12.5px] capitalize">{l.brand}</span>
             <span className="font-mono text-[10px] text-faint">×{l.n}</span>
           </div>
-          <span className="relative h-[7px] rounded-full bg-surface-2 overflow-hidden">
+          <span className="relative h-[7px] rounded-full bg-surface-2 overflow-hidden max-sm:order-last max-sm:col-span-2 max-sm:h-[8px]">
             <span className="block h-full rounded-full" style={{ width: `${(l.acc / max) * 100}%`, background: "var(--accent)", opacity: 0.85 }} />
           </span>
-          <span className="tnum text-[12.5px] text-muted w-24 text-right">{l.acc.toFixed(1)}% avg · {l.best.toFixed(0)} best</span>
+          <span className="tnum text-[12.5px] text-muted w-24 text-right max-sm:w-auto max-sm:text-[11.5px]">
+            {l.acc.toFixed(1)}% avg · {l.best.toFixed(0)} best
+          </span>
         </div>
       ))}
     </div>

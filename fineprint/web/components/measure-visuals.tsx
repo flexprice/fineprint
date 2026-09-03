@@ -54,15 +54,17 @@ export function DocumentCycle() {
 export function PrivateVault() {
   return (
     <div className="fp-measure-slot" aria-hidden>
-      <div className="fp-measure-visual-inner fp-vault">
-        <svg viewBox="0 0 24 24" className="fp-vault-lock" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-          <rect x="4" y="10" width="16" height="10" rx="2" />
-          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-        </svg>
-        <div className="fp-vault-lines">
-          {Array.from({ length: 8 }, (_, i) => (
-            <span key={i} className="fp-vault-line" style={{ animationDelay: `${i * 0.28}s` }} />
-          ))}
+      <div className="fp-measure-visual-inner">
+        <div className="fp-vault">
+          <svg viewBox="0 0 24 24" className="fp-vault-lock" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <rect x="4" y="10" width="16" height="10" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+          </svg>
+          <div className="fp-vault-lines">
+            {Array.from({ length: 8 }, (_, i) => (
+              <span key={i} className="fp-vault-line" style={{ animationDelay: `${i * 0.28}s` }} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

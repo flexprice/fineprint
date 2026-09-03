@@ -140,8 +140,8 @@ export default function Home() {
             pick and how verbose its output is.
           </p>
         )}
-        <div className="panel rounded-2xl p-5 sm:p-7 mt-8">
-          <div className="flex items-center justify-end gap-4 text-[12px] text-muted mb-3">
+        <div className="panel rounded-2xl p-3 sm:p-7 mt-8">
+          <div className="flex items-center justify-end gap-4 text-[12px] text-muted mb-3 px-1 sm:px-0">
             <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ background: "var(--accent)" }} /> new</span>
             <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full" style={{ background: "var(--muted)" }} /> prior</span>
             <span className="hidden sm:flex items-center gap-1.5"><span className="w-4 border-t-2" style={{ borderColor: "var(--accent)" }} /> value frontier</span>
