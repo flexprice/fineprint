@@ -107,6 +107,9 @@ def main() -> None:
     if args.out:   # comparison run: keep the records intact, touch no shared state
         Path(args.out).write_text(json.dumps({"direct": args.direct, "runs": records}, indent=1))
         print(f"wrote {len(records)} records -> {args.out} (runs.json and the board untouched)")
+        if store.enabled():   # the job's filesystem dies with the container
+            store.upload(f"compare/{Path(args.out).name}", Path(args.out))
+            print(f"uploaded -> gs://{store.BUCKET}/compare/{Path(args.out).name}")
         return
     merge_into_results(records, n_runs=args.runs)
 
