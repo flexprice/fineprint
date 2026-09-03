@@ -37,7 +37,7 @@ _STATE = {
 def _sync_up() -> None:
     for obj, local in _STATE.items():
         if Path(local).exists():
-            store.upload(obj, Path(local))
+            store.upload(Path(local), obj)
 
 
 def _backup(tag: str) -> None:
@@ -46,7 +46,7 @@ def _backup(tag: str) -> None:
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     for obj, local in _STATE.items():
         if Path(local).exists():
-            store.upload(f"{obj}.bak-{tag}-{stamp}", Path(local))
+            store.upload(Path(local), f"{obj}.bak-{tag}-{stamp}")
     print(f"backed up state -> *.bak-{tag}-{stamp}")
 
 
@@ -108,7 +108,7 @@ def main() -> None:
         Path(args.out).write_text(json.dumps({"direct": args.direct, "runs": records}, indent=1))
         print(f"wrote {len(records)} records -> {args.out} (runs.json and the board untouched)")
         if store.enabled():   # the job's filesystem dies with the container
-            store.upload(f"compare/{Path(args.out).name}", Path(args.out))
+            store.upload(Path(args.out), f"compare/{Path(args.out).name}")
             print(f"uploaded -> gs://{store.BUCKET}/compare/{Path(args.out).name}")
         return
     merge_into_results(records, n_runs=args.runs)
