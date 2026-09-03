@@ -87,3 +87,92 @@ def test_lead_rate_limited_after_repeated_calls(monkeypatch):
     assert client.post("/lead", json=body).status_code == 200
     r = client.post("/lead", json=body)
     assert r.status_code == 429
+
+
+# A crash must still be READABLE by the browser. Starlette's stack is
+# ServerErrorMiddleware -> CORSMiddleware -> router, so an uncaught exception is turned into a 500
+# by the OUTERMOST middleware and never passes back through the CORS wrapper. The response then
+# has no access-control-allow-origin, the browser blocks it, and fetch() rejects with
+# "Failed to fetch" — the real status and message are invisible to the client. That is how an
+# OpenRouter 402 (insufficient credits) surfaced on the live site as a bare network error.
+_ORIGIN = "https://fineprint.flexprice.io"
+_noraise = TestClient(srv.app, raise_server_exceptions=False)
+
+
+def test_unhandled_exception_returns_500_with_cors_headers(monkeypatch):
+    def boom(sid, model):
+        raise RuntimeError("Error code: 402 - Insufficient credits")
+    monkeypatch.setattr(srv, "_load_sample_result", boom)
+
+    r = _noraise.post("/extract", json={"sample_id": "guidewire", "model": "gpt-5.5"},
+                      headers={"Origin": _ORIGIN})
+
+    assert r.status_code == 500
+    assert r.headers.get("access-control-allow-origin") == _ORIGIN
+
+
+def test_unhandled_exception_body_is_json_with_a_detail(monkeypatch):
+    """The client reads `detail` off the error body (web/lib/playground-api.ts), so a crash has to
+    answer in the same shape as a handled HTTPException or it renders as a generic failure."""
+    def boom(sid, model):
+        raise RuntimeError("kaboom")
+    monkeypatch.setattr(srv, "_load_sample_result", boom)
+
+    r = _noraise.post("/extract", json={"sample_id": "guidewire", "model": "gpt-5.5"},
+                      headers={"Origin": _ORIGIN})
+
+    assert r.json()["detail"]
+
+
+def test_handled_http_exception_still_carries_cors_headers():
+    r = _noraise.post("/extract", data={"model": "gpt-5.5", "session_token": "bad"},
+                      files={"file": ("c.pdf", b"%PDF-1.4", "application/pdf")},
+                      headers={"Origin": _ORIGIN})
+    assert r.status_code == 401
+    assert r.headers.get("access-control-allow-origin") == _ORIGIN
+
+
+def test_upload_flow_has_a_tighter_per_ip_cap_than_the_general_limiter(monkeypatch):
+    """Each upload costs real Datalab OCR + a model call, so it needs a far tighter budget than
+    the shared 12/min: one IP could otherwise drive hundreds of paid runs an hour. The cap is
+    checked AFTER the token gate (a bad token shouldn't burn quota) and BEFORE any OCR spend."""
+    from fineprint import leads
+    from fineprint.ratelimit import Limiter
+
+    monkeypatch.setattr(srv, "_limiter", Limiter(max_hits=100, window_s=60))
+    monkeypatch.setattr(srv, "_upload_limiter", Limiter(max_hits=2, window_s=3600))
+    monkeypatch.setattr(srv, "_resolve_model", lambda m: {"id": "gpt-5.5", "label": "GPT-5.5"})
+    spent = []
+    monkeypatch.setattr(srv, "_extract_upload",
+                        lambda pdf, m: spent.append(1) or {"fields": [], "pages": [],
+                                                           "model": "GPT-5.5", "latency": 0.1})
+    tok = leads.issue_session_token("dev@acme.com")
+
+    def upload():
+        return client.post("/extract", data={"model": "gpt-5.5", "session_token": tok},
+                           files={"file": ("c.pdf", b"%PDF-1.4 tiny", "application/pdf")})
+
+    assert upload().status_code == 200
+    assert upload().status_code == 200
+    third = upload()
+
+    assert third.status_code == 429
+    assert len(spent) == 2, "the throttled upload must not reach the paid OCR path"
+
+
+def test_upload_cap_is_not_consumed_by_a_rejected_token(monkeypatch):
+    from fineprint.ratelimit import Limiter
+    monkeypatch.setattr(srv, "_limiter", Limiter(max_hits=100, window_s=60))
+    monkeypatch.setattr(srv, "_upload_limiter", Limiter(max_hits=1, window_s=3600))
+    monkeypatch.setattr(srv, "_resolve_model", lambda m: {"id": "gpt-5.5", "label": "GPT-5.5"})
+    monkeypatch.setattr(srv, "_extract_upload", lambda pdf, m: {"fields": [], "pages": [],
+                                                               "model": "GPT-5.5", "latency": 0.1})
+    bad = client.post("/extract", data={"model": "gpt-5.5", "session_token": "forged"},
+                      files={"file": ("c.pdf", b"%PDF-1.4", "application/pdf")})
+    assert bad.status_code == 401
+
+    from fineprint import leads
+    ok = client.post("/extract", data={"model": "gpt-5.5",
+                                       "session_token": leads.issue_session_token("d@acme.com")},
+                     files={"file": ("c.pdf", b"%PDF-1.4", "application/pdf")})
+    assert ok.status_code == 200, "the 401 must not have eaten the single upload slot"

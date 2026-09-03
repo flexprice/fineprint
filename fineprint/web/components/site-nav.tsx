@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export const REPO_URL = "https://github.com/flexprice/fineprint";
 export const FLEXPRICE_URL = "https://flexprice.io";
 export const DEMO_URL = "https://calendly.com/team_flexprice/30min";
+export const CONTACT_URL = "https://6rrf1mjptc.zite.so/";
 
 export function GitHubIcon({ size = 16 }: { size?: number }) {
   return (

@@ -72,6 +72,15 @@ put_secret fineprint-api-token      "$FINEPRINT_API_TOKEN"
 [ -n "${SLACK_WEBHOOK_URL:-}" ]     && put_secret fineprint-slack-webhook "$SLACK_WEBHOOK_URL"
 [ -n "${VERCEL_DEPLOY_HOOK_URL:-}" ] && put_secret fineprint-vercel-hook  "$VERCEL_DEPLOY_HOOK_URL"
 [ -n "${CHANDRA_OCR_API_KEY:-}" ]    && put_secret fineprint-chandra-ocr-key "$CHANDRA_OCR_API_KEY"
+# Signs the playground session tokens that gate "bring your own contract" uploads. Minted once and
+# reused on every later deploy — regenerating it would invalidate tokens already handed out. Without
+# it the service falls back to a random per-process key (see fineprint/leads.py), so every restart
+# logs users back out of the upload gate.
+if ! gcloud secrets describe fineprint-lead-secret --project "$PROJECT" >/dev/null 2>&1; then
+  put_secret fineprint-lead-secret "${FINEPRINT_LEAD_SECRET:-$(openssl rand -hex 32)}"
+elif [ -n "${FINEPRINT_LEAD_SECRET:-}" ]; then
+  put_secret fineprint-lead-secret "$FINEPRINT_LEAD_SECRET"
+fi
 
 echo "▸ deploy Cloud Run (build from source via Cloud Build)"
 ENVS="FINEPRINT_BUCKET=$BUCKET,FINEPRINT_N_RUNS=$N_RUNS"
@@ -84,6 +93,7 @@ ENVS="$ENVS,FINEPRINT_ROSTER=/tmp/fp/state/roster.json,FINEPRINT_SEEN_FILE=/tmp/
 ENVS="$ENVS,FINEPRINT_PLAYGROUND_RPM=12,FINEPRINT_SAMPLE_DIR=/tmp/fp/playground/samples"
 
 SECRETS="OPENROUTER_API_KEY=fineprint-openrouter-key:latest,FINEPRINT_API_TOKEN=fineprint-api-token:latest"
+SECRETS="$SECRETS,FINEPRINT_LEAD_SECRET=fineprint-lead-secret:latest"
 [ -n "${SLACK_WEBHOOK_URL:-}" ]     && SECRETS="$SECRETS,SLACK_WEBHOOK_URL=fineprint-slack-webhook:latest"
 [ -n "${VERCEL_DEPLOY_HOOK_URL:-}" ] && SECRETS="$SECRETS,VERCEL_DEPLOY_HOOK_URL=fineprint-vercel-hook:latest"
 [ -n "${CHANDRA_OCR_API_KEY:-}" ]    && SECRETS="$SECRETS,CHANDRA_OCR_API_KEY=fineprint-chandra-ocr-key:latest"

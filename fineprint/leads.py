@@ -1,22 +1,27 @@
-"""Capture playground leads: validate, announce to Slack, append to a stored list, mint a token."""
+"""Capture playground leads: validate, append to a stored list, mint a token.
+
+Leads are captured by a hosted external form (not this module) — this only validates the email,
+records the row for our own reference, and mints the token that gates the upload path.
+"""
 import base64
 import hashlib
 import hmac
-import json
 import os
 import re
+import secrets
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-_SECRET = os.environ.get("FINEPRINT_LEAD_SECRET", "fineprint-playground").encode()
+# Signing key for playground session tokens. NEVER fall back to a literal: this file is public, so a
+# published default is a forgeable gate — anyone could mint a token, skip the email capture, and
+# spend the project's OCR + model credits on an upload. Unset (local dev, tests) now means a random
+# per-process key: tokens still work within a run, and none can be forged from outside.
+# DEPLOYMENTS MUST SET ``FINEPRINT_LEAD_SECRET`` — otherwise every restart invalidates the tokens
+# already handed out, and a multi-instance service can't validate its own.
+_SECRET = (os.environ.get("FINEPRINT_LEAD_SECRET") or secrets.token_hex(32)).encode()
 
 
 def valid_email(email: str) -> bool:
     return bool(_EMAIL.match((email or "").strip()))
-
-
-def _default_notify(text: str) -> None:
-    from fineprint import notify
-    notify.post_slack(os.environ.get("SLACK_WEBHOOK_URL", ""), text)
 
 
 def _default_store_append(row: dict) -> None:
@@ -27,7 +32,7 @@ def _default_store_append(row: dict) -> None:
     store.upload_json("playground/leads.json", existing)
 
 
-def record_lead(email, name, context: dict, notify_fn=None, store_append=None) -> str:
+def record_lead(email, name, context: dict, store_append=None) -> str:
     email = (email or "").strip()
     if not valid_email(email):
         raise ValueError("invalid email")
@@ -37,8 +42,6 @@ def record_lead(email, name, context: dict, notify_fn=None, store_append=None) -
     row = {"email": email, "name": name,
            "sample": context.get("sample"), "model": context.get("model"),
            "kind": context.get("kind", "upload")}          # NEVER include file contents
-    (notify_fn or _default_notify)(
-        f"New FinePrint lead: *{name}* <{email}> ran a {row['sample'] or 'contract'} on {row['model']}")
     (store_append or _default_store_append)(row)
     return issue_session_token(email)
 
