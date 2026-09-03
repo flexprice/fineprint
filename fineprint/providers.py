@@ -201,7 +201,10 @@ def call(model: dict, user: str, direct: bool = False):
     if model.get("effort") and (caps is None or "reasoning_effort" in caps):
         base["reasoning_effort"] = model["effort"]
     if model.get("max_tokens") and (caps is None or "max_tokens" in caps):
-        base["max_tokens"] = model["max_tokens"]
+        # OpenAI's newer models reject the classic name outright ("Unsupported parameter:
+        # 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead").
+        # OpenRouter still accepts it and translates, so the split is by route, not by model.
+        base["max_completion_tokens" if route == "openai" else "max_tokens"] = model["max_tokens"]
 
     # Strict json_schema -> json_object -> prompt-only, but only the attempts this model supports, so
     # attempt-1 isn't a guaranteed-empty (and, for a slow reasoner, timeout-burning) call.

@@ -234,3 +234,51 @@ def test_retries_keep_the_max_tokens_cap(monkeypatch):
     assert len(sent) >= 2, "expected a retry"
     assert sent[1].get("max_tokens") == 16000, "the cap was stripped from the retry"
     assert "reasoning_effort" not in sent[1], "reasoning controls should still be stripped"
+
+
+def test_openai_direct_uses_max_completion_tokens(monkeypatch):
+    """OpenAI's newer models reject max_tokens outright: 'Unsupported parameter: max_tokens is not
+    supported with this model. Use max_completion_tokens instead.' OpenRouter accepts the old name
+    and translates, so this only bites on the direct route."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-o")
+    sent = []
+    class FakeCompletions:
+        def create(self, **kw):
+            sent.append(kw)
+            msg = types.SimpleNamespace(content='{"fields":[{"field":"f","value":"v",'
+                                                '"confidence":"HIGH","line_ids":[],'
+                                                '"reasoning":"r","doubt":null}]}')
+            usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1,
+                                          completion_tokens_details=None)
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)], usage=usage)
+    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(P, "_client", lambda route: client)
+    monkeypatch.setattr(P, "supported_params", lambda m: None)
+
+    P.call({"id": "gpt-5.5", "brand": "openai", "openrouter_id": "openai/gpt-5.5",
+            "max_tokens": 16000}, "prompt", direct=True)
+
+    assert sent[0].get("max_completion_tokens") == 16000
+    assert "max_tokens" not in sent[0]
+
+
+def test_openrouter_keeps_the_classic_max_tokens_name(monkeypatch):
+    sent = []
+    class FakeCompletions:
+        def create(self, **kw):
+            sent.append(kw)
+            msg = types.SimpleNamespace(content='{"fields":[{"field":"f","value":"v",'
+                                                '"confidence":"HIGH","line_ids":[],'
+                                                '"reasoning":"r","doubt":null}]}')
+            usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1,
+                                          completion_tokens_details=None)
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)], usage=usage)
+    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(P, "_client", lambda route: client)
+    monkeypatch.setattr(P, "supported_params", lambda m: None)
+
+    P.call({"id": "gpt-5.5", "brand": "openai", "openrouter_id": "openai/gpt-5.5",
+            "max_tokens": 16000}, "prompt")
+
+    assert sent[0].get("max_tokens") == 16000
+    assert "max_completion_tokens" not in sent[0]
