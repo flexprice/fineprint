@@ -1,6 +1,6 @@
 // fineprint/web/components/playground.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import samples from "@/lib/playground-samples.json";
 import sample from "@/lib/sample.json";
 import { runExtract, fetchSamplePages, fetchAvailableSamples,
@@ -35,6 +35,18 @@ const sourceOf = (id: string) => {
   return s ? `${s.type} · ${s.source}` : "Contract";
 };
 
+// The backend caches extractions, so a repeat run can come back in about a second while
+// still reporting the latency of the real model call. Revealing instantly under a "read in
+// 44.2s" label reads as fake, so hold the running state until the wall clock matches the
+// number we are about to put on screen — but never longer than this. A slow model's true
+// latency is most of a minute, and nobody should be made to sit through it to see the demo.
+const MAX_HOLD_MS = 10_000;
+function holdForReportedLatency(startedAt: number, latencySeconds: number) {
+  const target = Math.min(Math.max(latencySeconds, 0) * 1000, MAX_HOLD_MS);
+  const remaining = target - (performance.now() - startedAt);
+  return remaining > 0 ? new Promise((r) => setTimeout(r, remaining)) : Promise.resolve();
+}
+
 export function Playground() {
   const [mode, setMode] = useState<"sample" | "upload">("sample");
   const [sampleId, setSampleId] = useState(DEFAULT_SAMPLE_ID);
@@ -50,6 +62,10 @@ export function Playground() {
   const [err, setErr] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [gate, setGate] = useState(false);
+  // Bumped on every pick. Previews and extractions capture it and drop their results if the
+  // user has since chosen something else — otherwise a slow sample preview lands on top of
+  // whatever is on screen now (most visibly: a contract painted over the upload drop zone).
+  const reqId = useRef(0);
   // Always show every sample chip from the catalog. Guidewire works fully offline; the rest
   // need the playground API for page previews / extraction (empty preview if the API is down).
   const catalog = samples as SampleMeta[];
@@ -58,52 +74,71 @@ export function Playground() {
     // Warm the availability probe so a live backend can serve previews; chips don't wait on it.
     fetchAvailableSamples().catch(() => {});
     if (!isGuidewireDefault) {
+      const req = reqId.current;
       fetchSamplePages(DEFAULT_SAMPLE_ID)
-        .then(setPages)
-        .catch(() => setPages([]))
-        .finally(() => setLoadingPages(false));
+        .then((p) => { if (reqId.current === req) setPages(p); })
+        .catch(() => { if (reqId.current === req) setPages([]); })
+        .finally(() => { if (reqId.current === req) setLoadingPages(false); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: default sample is a constant
   }, []);
 
   function pickSample(id: string) {
+    const req = ++reqId.current;
     setMode("sample"); setSampleId(id); setRevealed(false); setHot(null); setErr(""); setStatus("");
-    if (id === GUIDEWIRE_ID) { setPages(GUIDEWIRE.pages); setResult(GUIDEWIRE); return; }
+    if (id === GUIDEWIRE_ID) { setPages(GUIDEWIRE.pages); setResult(GUIDEWIRE); setLoadingPages(false); return; }
     setResult(null); setPages([]); setLoadingPages(true);
     fetchSamplePages(id)
-      .then((p) => setPages(p))
-      .catch(() => setPages([]))          // preview may not be prepped yet; Run will still extract
-      .finally(() => setLoadingPages(false));
+      .then((p) => { if (reqId.current === req) setPages(p); })
+      .catch(() => { if (reqId.current === req) setPages([]); })  // preview may not be prepped yet; Run will still extract
+      .finally(() => { if (reqId.current === req) setLoadingPages(false); });
   }
 
   function pickUpload() {
+    // The bump is what keeps a sample preview that is still in flight from resolving a second
+    // later and painting that contract over the drop zone.
+    ++reqId.current;
     setMode("upload"); setRevealed(false); setHot(null); setErr(""); setStatus("");
-    setResult(null); setPages([]);
+    setResult(null); setPages([]); setLoadingPages(false);
   }
 
   async function run(tokenOverride?: string) {
     setErr("");
     if (mode === "sample") {
-      // Guidewire on the default model is the offline path: nothing to fetch, just reveal.
-      if (sampleId === GUIDEWIRE_ID && model === DEFAULT_MODEL) {
-        setResult(GUIDEWIRE); setPages(GUIDEWIRE.pages); setRevealed(true); return;
-      }
+      const req = reqId.current;
+      const startedAt = performance.now();
       setStatus("running");
       try {
-        const res = await runExtract({ sampleId, model });
+        // Guidewire on the default model is the offline path: nothing to fetch, but it still
+        // sits out its own reported latency so the number on screen is the wait you felt.
+        const res = sampleId === GUIDEWIRE_ID && model === DEFAULT_MODEL
+          ? GUIDEWIRE
+          : await runExtract({ sampleId, model });
+        await holdForReportedLatency(startedAt, res.latency);
+        if (reqId.current !== req) return;
         setResult(res); setPages(res.pages); setRevealed(true); setStatus("");
-      } catch (e) { setErr(e instanceof Error ? e.message : "extraction failed"); setStatus("error"); }
+      } catch (e) {
+        if (reqId.current !== req) return;
+        setErr(e instanceof Error ? e.message : "extraction failed"); setStatus("error");
+      }
       return;
     }
     // upload — gated on a work email
     if (!file) { setErr("Choose a PDF first."); return; }
     const activeToken = tokenOverride ?? token;
     if (!activeToken) { setGate(true); return; }
+    const req = reqId.current;
+    const startedAt = performance.now();
     setStatus("running");
     try {
       const res = await runExtract({ file, model, sessionToken: activeToken });
+      await holdForReportedLatency(startedAt, res.latency);
+      if (reqId.current !== req) return;
       setResult(res); setPages(res.pages); setRevealed(true); setStatus("");
-    } catch (e) { setErr(e instanceof Error ? e.message : "extraction failed"); setStatus("error"); }
+    } catch (e) {
+      if (reqId.current !== req) return;
+      setErr(e instanceof Error ? e.message : "extraction failed"); setStatus("error");
+    }
   }
 
   const running = status === "running";
