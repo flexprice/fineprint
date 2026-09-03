@@ -38,8 +38,9 @@ const sourceOf = (id: string) => {
 // The backend caches extractions, so a repeat run can come back in about a second while
 // still reporting the latency of the real model call. Revealing instantly under a "read in
 // 44.2s" label reads as fake, so hold the running state until the wall clock matches the
-// number we are about to put on screen. Capped so a bad latency can never wedge the UI.
-const MAX_HOLD_MS = 90_000;
+// number we are about to put on screen — but never longer than this. A slow model's true
+// latency is most of a minute, and nobody should be made to sit through it to see the demo.
+const MAX_HOLD_MS = 10_000;
 function holdForReportedLatency(startedAt: number, latencySeconds: number) {
   const target = Math.min(Math.max(latencySeconds, 0) * 1000, MAX_HOLD_MS);
   const remaining = target - (performance.now() - startedAt);
