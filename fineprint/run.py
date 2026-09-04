@@ -78,14 +78,24 @@ def _prep():
 
 
 def run_models(models: list[dict], n_runs: int = N_RUNS, workers: int = MAX_WORKERS,
-               audit: bool = False, log=print, direct: bool = False) -> list[dict]:
+               audit: bool = False, log=print, direct: bool = False,
+               checkpoint=None, checkpoint_every: int = 50, done: set | None = None) -> list[dict]:
     """Execute models x contracts x n_runs and return the raw run records (no I/O).
 
     ``audit=True`` also writes per-field expected/predicted tables to the private results/audit/.
     ``direct=True`` is the one-time re-baseline routing escape hatch — see providers.route_for.
+
+    ``checkpoint`` is called with the results so far every ``checkpoint_every`` completions. A sweep
+    over the whole catalog runs for hours; without this, one crash, cancel, or timeout throws away
+    every call already paid for. ``done`` holds (model_id, contract) pairs already recorded, so a
+    resumed run does not buy the same answer twice.
     """
     prompts, truths = _prep()
     tasks = _task_order(models, SEED_CONTRACTS, n_runs)
+    if done:
+        before = len(tasks)
+        tasks = [(m, disp) for m, disp in tasks if (m["id"], disp) not in done]
+        log(f"resuming: skipping {before - len(tasks)} call(s) already recorded")
     log(f"FinePrint: {len(models)} model(s) x {len(SEED_CONTRACTS)} contracts x {n_runs} runs "
         f"= {len(tasks)} calls")
     results, t0 = [], time.time()
@@ -96,6 +106,11 @@ def run_models(models: list[dict], n_runs: int = N_RUNS, workers: int = MAX_WORK
             r = fut.result(); results.append(r)
             tag = f"{r['correct']}/{r['scored']} {r['latency']}s" if r["ok"] else r.get("error", "ERR")
             log(f"  [{i}/{len(tasks)}] {r['model']:26} {r['contract']:20} {tag}")
+            if checkpoint and i % checkpoint_every == 0:
+                try:
+                    checkpoint(results)
+                except Exception as e:            # noqa: BLE001 — a failed save must not kill the sweep
+                    log(f"  checkpoint failed ({type(e).__name__}: {e}) — continuing")
     if audit:
         _write_audit(results)          # consumes and strips each rec's _audit key
     ok = sum(r["ok"] for r in results)

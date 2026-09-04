@@ -59,3 +59,39 @@ def test_sweep_can_cap_max_tokens_on_every_model(monkeypatch):
 
     assert models[0]["max_tokens"] == 16000
     assert models[1]["max_tokens"] == 2000, "an explicit per-model cap must win"
+
+
+def test_run_models_checkpoints_partial_results(monkeypatch):
+    """A multi-hour sweep that only writes at the end loses everything to one crash or cancel.
+    Checkpointing hands the caller the results so far, periodically, mid-run."""
+    monkeypatch.setattr(R, "_prep", lambda: ({f"C{i}": "p" for i in range(4)},
+                                             {f"C{i}": {} for i in range(4)}))
+    monkeypatch.setattr(R, "SEED_CONTRACTS", [(f"C{i}", f"c{i}") for i in range(4)])
+    monkeypatch.setattr(R, "_run_one",
+                        lambda m, disp, u, t, audit=False, direct=False: {
+                            "model": m["id"], "contract": disp, "ok": True,
+                            "correct": 1, "scored": 1, "latency": 0.1})
+    seen = []
+    R.run_models(_models(2), n_runs=1, workers=2, log=lambda *a: None,
+                 checkpoint=lambda recs: seen.append(len(recs)), checkpoint_every=3)
+
+    assert seen, "checkpoint was never invoked"
+    assert seen[-1] <= 8 and max(seen) >= 3, f"unexpected checkpoint sizes: {seen}"
+
+
+def test_run_models_skips_already_completed_pairs(monkeypatch):
+    """Resume: a (model, contract) already recorded must not be paid for twice."""
+    monkeypatch.setattr(R, "_prep", lambda: ({f"C{i}": "p" for i in range(3)},
+                                             {f"C{i}": {} for i in range(3)}))
+    monkeypatch.setattr(R, "SEED_CONTRACTS", [(f"C{i}", f"c{i}") for i in range(3)])
+    called = []
+    monkeypatch.setattr(R, "_run_one",
+                        lambda m, disp, u, t, audit=False, direct=False: called.append((m["id"], disp))
+                        or {"model": m["id"], "contract": disp, "ok": True,
+                            "correct": 1, "scored": 1, "latency": 0.1})
+
+    R.run_models(_models(2), n_runs=1, workers=2, log=lambda *a: None,
+                 done={("m0", "C0"), ("m1", "C2")})
+
+    assert ("m0", "C0") not in called and ("m1", "C2") not in called
+    assert len(called) == 4, f"expected 6-2=4 calls, got {len(called)}"

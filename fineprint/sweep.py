@@ -48,6 +48,32 @@ def apply_max_tokens(models: list[dict], cap: int) -> None:
         m.setdefault("max_tokens", cap)
 
 
+PARTIAL = "state/runs.partial.json"
+
+
+def _save_partial(records: list[dict]) -> None:
+    """Persist mid-sweep progress so a crash, cancel or timeout does not discard paid-for calls."""
+    p = Path(config.RESULTS).with_suffix(".partial.json")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"runs": records}))
+    if store.enabled():
+        store.upload(p, PARTIAL)
+    print(f"  checkpoint: {len(records)} records saved")
+
+
+def _load_partial() -> list[dict]:
+    """Records from an interrupted sweep, if any — so a rerun does not buy the same answers twice."""
+    p = Path(config.RESULTS).with_suffix(".partial.json")
+    if store.enabled():
+        store.download(PARTIAL, p)
+    if not p.exists():
+        return []
+    try:
+        return json.loads(p.read_text()).get("runs", [])
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
 def _sync_up() -> None:
     for obj, local in _STATE.items():
         if Path(local).exists():
@@ -72,6 +98,8 @@ def main() -> None:
     ap.add_argument("--direct", action="store_true", help="one-time first-party direct routing")
     ap.add_argument("--publish", action="store_true", help="rebuild and upload the board")
     ap.add_argument("--force", action="store_true", help="run even if preflight finds bad ids")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue an interrupted sweep from its last checkpoint")
     ap.add_argument("--contracts", type=int, default=0,
                     help="use only the first N contracts (route-comparison runs, not for publishing)")
     ap.add_argument("--max-tokens", type=int, default=0,
@@ -120,8 +148,15 @@ def main() -> None:
     if args.publish and store.enabled():
         _backup("sweep")
 
+    prior = _load_partial() if args.resume else []
+    done = {(r["model"], r["contract"]) for r in prior}
+    if prior:
+        print(f"resuming from checkpoint: {len(prior)} record(s) already banked")
+
     t0 = time.time()
-    records = run_models(models, n_runs=args.runs, workers=args.workers, direct=args.direct)
+    records = run_models(models, n_runs=args.runs, workers=args.workers, direct=args.direct,
+                         checkpoint=_save_partial, checkpoint_every=25, done=done)
+    records = prior + records
     ok = sum(r["ok"] for r in records)
     print(f"sweep done in {int(time.time()-t0)}s — {ok}/{len(records)} calls ok")
 
