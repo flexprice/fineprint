@@ -157,3 +157,48 @@ def test_build_drops_a_model_that_covers_too_little_of_the_corpus(tmp_path, monk
     ids = [r["id"] for r in export.build()["rows"]]
 
     assert ids == ["full"], "a model covering 2 of 10 contracts must not be published"
+
+
+def test_build_counts_coverage_from_successful_calls_only(tmp_path, monkeypatch):
+    """A model that ATTEMPTED all 40 contracts but succeeded on 2 is not 100% covered — it is
+    unmeasured. Counting attempts let a 5%-reliability row publish at rank #7."""
+    corpus = [(f"C{i}", f"c{i}") for i in range(10)]
+    runs = _runs_for("solid", [c for c, _ in corpus])
+    for i in range(10):                      # attempted everything, succeeded twice
+        runs.append({"model": "ghost", "contract": f"C{i}", "ok": i < 2, "correct": 8, "scored": 10,
+                     "high": 0, "confident_wrong": 0, "latency": 1.0, "in": 10, "out": 10,
+                     "reasoning": 0})
+    results = tmp_path / "runs.json"
+    results.write_text(json.dumps({"n_runs": 1, "runs": runs}))
+    monkeypatch.setattr(export, "RESULTS", results)
+    monkeypatch.setattr(export, "WEB_DATA", tmp_path / "data.json")
+    monkeypatch.setattr(export, "SEED_CONTRACTS", corpus)
+    monkeypatch.setattr(export, "all_models", lambda: [
+        {"id": "solid", "label": "S", "family": "F", "price_in": 1, "price_out": 1},
+        {"id": "ghost", "label": "G", "family": "F", "price_in": 1, "price_out": 1}])
+    monkeypatch.setattr(export.pricing, "load", lambda: {})
+
+    assert [r["id"] for r in export.build()["rows"]] == ["solid"]
+
+
+def test_build_drops_a_model_whose_calls_mostly_failed(tmp_path, monkeypatch):
+    """MIN_RELIABILITY guarded add_model but never build(), so a full rebuild republished exactly
+    the rows the gate exists to stop."""
+    corpus = [(f"C{i}", f"c{i}") for i in range(10)]
+    runs = _runs_for("solid", [c for c, _ in corpus])
+    for i in range(10):                      # covered everywhere, but half its retries failed
+        runs.append({"model": "flaky", "contract": f"C{i}", "ok": True, "correct": 8, "scored": 10,
+                     "high": 0, "confident_wrong": 0, "latency": 1.0, "in": 10, "out": 10,
+                     "reasoning": 0})
+        runs += [{"model": "flaky", "contract": f"C{i}", "ok": False, "error": "x"} for _ in range(4)]
+    results = tmp_path / "runs.json"
+    results.write_text(json.dumps({"n_runs": 1, "runs": runs}))
+    monkeypatch.setattr(export, "RESULTS", results)
+    monkeypatch.setattr(export, "WEB_DATA", tmp_path / "data.json")
+    monkeypatch.setattr(export, "SEED_CONTRACTS", corpus)
+    monkeypatch.setattr(export, "all_models", lambda: [
+        {"id": "solid", "label": "S", "family": "F", "price_in": 1, "price_out": 1},
+        {"id": "flaky", "label": "K", "family": "F", "price_in": 1, "price_out": 1}])
+    monkeypatch.setattr(export.pricing, "load", lambda: {})
+
+    assert [r["id"] for r in export.build()["rows"]] == ["solid"]

@@ -59,14 +59,29 @@ def build() -> dict:
     # than the row beside it.
     corpus = {c[0] for c in SEED_CONTRACTS}
     runs = [r for r in runs if r["contract"] in corpus]
-    covered = {}
+    # Coverage counts contracts a model actually ANSWERED, not ones it was asked about: a model
+    # that attempted all 40 and succeeded on 2 is unmeasured, not fully covered.
+    covered, attempts, wins = {}, {}, {}
     for r in runs:
-        covered.setdefault(r["model"], set()).add(r["contract"])
-    thin = {m for m, cs in covered.items() if 100.0 * len(cs) / max(len(corpus), 1) < MIN_COVERAGE}
-    for m in sorted(thin):
-        print(f"skipped {m} — measured on {len(covered[m])} of {len(corpus)} contracts "
-              f"(min {MIN_COVERAGE}% coverage)")
-    runs = [r for r in runs if r["model"] not in thin]
+        attempts[r["model"]] = attempts.get(r["model"], 0) + 1
+        if r["ok"]:
+            wins[r["model"]] = wins.get(r["model"], 0) + 1
+            covered.setdefault(r["model"], set()).add(r["contract"])
+    drop = set()
+    for m in sorted(attempts):
+        cov = 100.0 * len(covered.get(m, ())) / max(len(corpus), 1)
+        rel = 100.0 * wins.get(m, 0) / attempts[m]
+        if cov < MIN_COVERAGE:
+            drop.add(m)
+            print(f"skipped {m} — answered {len(covered.get(m, ()))} of {len(corpus)} contracts "
+                  f"(min {MIN_COVERAGE}% coverage)")
+        elif rel < MIN_RELIABILITY:
+            # The same guard add_model applies. A full rebuild must not republish the very rows
+            # the additive path refuses.
+            drop.add(m)
+            print(f"skipped {m} — only {rel:.1f}% of {attempts[m]} calls succeeded "
+                  f"(min {MIN_RELIABILITY}%)")
+    runs = [r for r in runs if r["model"] not in drop]
     rows, stats = aggregate(runs, priced, SEED_CONTRACTS)
     baseline = next((r for r in rows if r["id"] == BASELINE_ID), None)
     newest = next((r for r in rows if r["new"]), rows[0] if rows else None)
