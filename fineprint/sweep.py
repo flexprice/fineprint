@@ -74,6 +74,17 @@ def _load_partial() -> list[dict]:
         return []
 
 
+def apply_effort(models: list[dict], effort: str) -> None:
+    """Force a reasoning effort across the models in this run.
+
+    Effort is normally a per-model curated choice, and the published board keeps it that way. This
+    exists for A/B diagnostics: measuring the same model at two efforts on the same corpus is the
+    only way to tell a capability gap from a configuration artifact.
+    """
+    for m in models:
+        m["effort"] = effort
+
+
 def _sync_up() -> None:
     for obj, local in _STATE.items():
         if Path(local).exists():
@@ -102,6 +113,9 @@ def main() -> None:
                     help="continue an interrupted sweep from its last checkpoint")
     ap.add_argument("--contracts", type=int, default=0,
                     help="use only the first N contracts (route-comparison runs, not for publishing)")
+    ap.add_argument("--effort", default=None,
+                    help="force reasoning effort for this run (diagnostic A/B; the board keeps the "
+                         "curated per-model value)")
     ap.add_argument("--max-tokens", type=int, default=0,
                     help="cap generation on models that set none, bounding OpenRouter's per-request "
                          "credit reservation so concurrency does not trip a 402")
@@ -133,6 +147,10 @@ def main() -> None:
         routes[c["route"]] = routes.get(c["route"], 0) + 1
     print(f"sweeping {len(models)} models x {len(config.SEED_CONTRACTS)} contracts x {args.runs} run(s) "
           f"at {args.workers} workers; routes: {routes}")
+
+    if args.effort:
+        apply_effort(models, args.effort)
+        print(f"forcing reasoning_effort={args.effort} for this run")
 
     if args.max_tokens:
         apply_max_tokens(models, args.max_tokens)

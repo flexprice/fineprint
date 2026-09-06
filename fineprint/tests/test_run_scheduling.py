@@ -95,3 +95,14 @@ def test_run_models_skips_already_completed_pairs(monkeypatch):
 
     assert ("m0", "C0") not in called and ("m1", "C2") not in called
     assert len(called) == 4, f"expected 6-2=4 calls, got {len(called)}"
+
+
+def test_sweep_can_override_reasoning_effort():
+    """A/B a model's reasoning effort without editing the shared roster: the published row runs at
+    the curated effort, while a diagnostic run can ask the same model for a different one."""
+    from fineprint.sweep import apply_effort
+    models = [{"id": "a", "effort": "high"}, {"id": "b"}]
+
+    apply_effort(models, "medium")
+
+    assert models[0]["effort"] == "medium" and models[1]["effort"] == "medium"
