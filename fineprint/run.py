@@ -16,6 +16,7 @@ import pickle
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import zip_longest
 
 from fineprint.config import (all_models, SEED_CONTRACTS, N_RUNS, MAX_WORKERS,
                               OCR_DIR, RESULTS, AUDIT_DIR, OVERRIDES_DIR)
@@ -26,10 +27,23 @@ _RULES = ((OVERRIDES_DIR / "default.md").read_text() + "\n\n" +
           (OVERRIDES_DIR / "base_client.md").read_text())
 
 
-def _run_one(model, disp, user, truth, audit=False):
+def _task_order(models: list[dict], contracts: list, n_runs: int) -> list[tuple]:
+    """Every (model, contract, run) task, interleaved round-robin across models.
+
+    Ordering matters because the pool runs the first ``workers`` tasks concurrently. Model-major
+    order points all of them at one endpoint, which inflates the latency we publish (a 30-worker
+    sweep measured gpt-5.5 at ~181s against its true ~74s p50) and invites provider throttling.
+    Interleaved, N workers spread over M models leave only N/M calls per endpoint in flight — so
+    the sweep runs at full throughput while each model is timed as if it were alone.
+    """
+    per_model = [[(m, disp) for disp, _ in contracts for _ in range(n_runs)] for m in models]
+    return [t for wave in zip_longest(*per_model) for t in wave if t is not None]
+
+
+def _run_one(model, disp, user, truth, audit=False, direct=False):
     rec = {"model": model["id"], "contract": disp, "ok": False}
     try:
-        fields, usage, latency = call(model, user)
+        fields, usage, latency = call(model, user, direct=direct)
         rec.update(ok=True, latency=round(latency, 2), **usage, **score(fields, truth))
         if audit:
             rec["_audit"] = score_detail(fields, truth)  # stripped before runs.json; written to results/audit/
@@ -64,22 +78,39 @@ def _prep():
 
 
 def run_models(models: list[dict], n_runs: int = N_RUNS, workers: int = MAX_WORKERS,
-               audit: bool = False, log=print) -> list[dict]:
+               audit: bool = False, log=print, direct: bool = False,
+               checkpoint=None, checkpoint_every: int = 50, done: set | None = None) -> list[dict]:
     """Execute models x contracts x n_runs and return the raw run records (no I/O).
 
     ``audit=True`` also writes per-field expected/predicted tables to the private results/audit/.
+    ``direct=True`` is the one-time re-baseline routing escape hatch — see providers.route_for.
+
+    ``checkpoint`` is called with the results so far every ``checkpoint_every`` completions. A sweep
+    over the whole catalog runs for hours; without this, one crash, cancel, or timeout throws away
+    every call already paid for. ``done`` holds (model_id, contract) pairs already recorded, so a
+    resumed run does not buy the same answer twice.
     """
     prompts, truths = _prep()
-    tasks = [(m, disp) for m in models for disp, _ in SEED_CONTRACTS for _ in range(n_runs)]
+    tasks = _task_order(models, SEED_CONTRACTS, n_runs)
+    if done:
+        before = len(tasks)
+        tasks = [(m, disp) for m, disp in tasks if (m["id"], disp) not in done]
+        log(f"resuming: skipping {before - len(tasks)} call(s) already recorded")
     log(f"FinePrint: {len(models)} model(s) x {len(SEED_CONTRACTS)} contracts x {n_runs} runs "
         f"= {len(tasks)} calls")
     results, t0 = [], time.time()
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = [ex.submit(_run_one, m, disp, prompts[disp], truths[disp], audit) for m, disp in tasks]
+        futs = [ex.submit(_run_one, m, disp, prompts[disp], truths[disp], audit, direct)
+                for m, disp in tasks]
         for i, fut in enumerate(as_completed(futs), 1):
             r = fut.result(); results.append(r)
             tag = f"{r['correct']}/{r['scored']} {r['latency']}s" if r["ok"] else r.get("error", "ERR")
             log(f"  [{i}/{len(tasks)}] {r['model']:26} {r['contract']:20} {tag}")
+            if checkpoint and i % checkpoint_every == 0:
+                try:
+                    checkpoint(results)
+                except Exception as e:            # noqa: BLE001 — a failed save must not kill the sweep
+                    log(f"  checkpoint failed ({type(e).__name__}: {e}) — continuing")
     if audit:
         _write_audit(results)          # consumes and strips each rec's _audit key
     ok = sum(r["ok"] for r in results)

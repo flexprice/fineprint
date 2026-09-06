@@ -140,3 +140,145 @@ def test_call_falls_through_when_first_attempt_errors(mock_client):
     fields, _, _ = P.call(model, "USER")
     assert len(fields) == 1                       # recovered on the second attempt
     assert len(mock_client) == 2
+
+
+# ── one-time direct-provider routing ─────────────────────────────────────────
+# The re-baseline may bill first-party labs directly, but EVERY model added afterwards must go
+# through OpenRouter or the board splits into two incomparable measurement regimes again. So
+# direct routing is opt-in per call and never ambient: the default is OpenRouter, always.
+_ALL_KEYS = {"OPENAI_API_KEY": "sk-o", "ANTHROPIC_API_KEY": "sk-a", "GEMINI_API_KEY": "sk-g"}
+
+
+def _m(brand, orid):
+    return {"id": orid.split("/", 1)[1], "brand": brand, "provider": "openrouter", "openrouter_id": orid}
+
+
+def test_default_route_is_openrouter_even_with_every_direct_key_present(monkeypatch):
+    for k, v in _ALL_KEYS.items():
+        monkeypatch.setenv(k, v)
+    for brand, orid in [("openai", "openai/gpt-5.5"), ("anthropic", "anthropic/claude-fable-5.1"),
+                        ("google", "google/gemini-3.5-flash"), ("deepseek", "deepseek/deepseek-v3.2")]:
+        assert P.route_for(_m(brand, orid)) == "openrouter"
+
+
+def test_direct_opt_in_routes_first_party_to_their_own_api(monkeypatch):
+    for k, v in _ALL_KEYS.items():
+        monkeypatch.setenv(k, v)
+    assert P.route_for(_m("openai", "openai/gpt-5.5"), direct=True) == "openai"
+    assert P.route_for(_m("anthropic", "anthropic/claude-fable-5.1"), direct=True) == "anthropic"
+    assert P.route_for(_m("google", "google/gemini-3.5-flash"), direct=True) == "google"
+
+
+def test_direct_opt_in_still_sends_third_party_models_via_openrouter(monkeypatch):
+    for k, v in _ALL_KEYS.items():
+        monkeypatch.setenv(k, v)
+    assert P.route_for(_m("deepseek", "deepseek/deepseek-v3.2"), direct=True) == "openrouter"
+    assert P.route_for(_m("xai", "x-ai/grok-4.6"), direct=True) == "openrouter"
+
+
+def test_direct_falls_back_to_openrouter_when_that_labs_key_is_missing(monkeypatch):
+    """A missing key must degrade to OpenRouter, not fail every call — that is how a whole model
+    ends up with 2 successful runs out of 174 and still publishes."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-o")
+    assert P.route_for(_m("anthropic", "anthropic/claude-fable-5.1"), direct=True) == "openrouter"
+    assert P.route_for(_m("openai", "openai/gpt-5.5"), direct=True) == "openai"
+
+
+def test_wire_id_is_the_openrouter_slug_or_the_bare_model_name():
+    m = _m("openai", "openai/gpt-5.5")
+    assert P._api_model(m, "openrouter") == "openai/gpt-5.5"
+    assert P._api_model(m, "openai") == "gpt-5.5"
+
+
+def test_anthropic_direct_ids_use_hyphens_not_dots():
+    """OpenRouter says anthropic/claude-fable-5.1; Anthropic's own API serves claude-fable-5-1.
+    Sending the dotted form direct 404s every call — which is how this exact model would have
+    landed a third 0%-reliability row on the board."""
+    m = _m("anthropic", "anthropic/claude-fable-5.1")
+    assert P._api_model(m, "openrouter") == "anthropic/claude-fable-5.1"
+    assert P._api_model(m, "anthropic") == "claude-fable-5-1"
+    assert P._api_model(_m("anthropic", "anthropic/claude-opus-4.8"), "anthropic") == "claude-opus-4-8"
+
+
+def test_other_labs_direct_ids_are_left_alone():
+    """Verified against the live catalogues: OpenAI and Gemini serve the dotted names as-is."""
+    assert P._api_model(_m("google", "google/gemini-3.5-flash"), "google") == "gemini-3.5-flash"
+    assert P._api_model(_m("openai", "openai/gpt-5.6-luna"), "openai") == "gpt-5.6-luna"
+
+
+def test_retries_keep_the_max_tokens_cap(monkeypatch):
+    """After a failed attempt the fallback ladder strips reasoning controls — but it must NOT drop
+    max_tokens. Without the cap the retry asks for the model's whole window (65536 tokens), and
+    OpenRouter rejects on the credit reservation: 'requires more credits, or fewer max_tokens'.
+    That turned a recoverable first failure into a guaranteed 402 on every retry."""
+    sent = []
+    class FakeCompletions:
+        def create(self, **kw):
+            sent.append(kw)
+            if len(sent) == 1:
+                raise RuntimeError("first attempt fails")
+            msg = types.SimpleNamespace(content='{"fields":[{"field":"f","value":"v",'
+                                                '"confidence":"HIGH","line_ids":[],'
+                                                '"reasoning":"r","doubt":null}]}')
+            usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1,
+                                          completion_tokens_details=None)
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)], usage=usage)
+    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(P, "_client", lambda route: client)
+    monkeypatch.setattr(P, "supported_params", lambda m: None)
+
+    P.call({"id": "m", "brand": "x", "openrouter_id": "lab/m",
+            "effort": "low", "max_tokens": 16000}, "prompt")
+
+    assert len(sent) >= 2, "expected a retry"
+    assert sent[1].get("max_tokens") == 16000, "the cap was stripped from the retry"
+    assert "reasoning_effort" not in sent[1], "reasoning controls should still be stripped"
+
+
+def test_openai_direct_uses_max_completion_tokens(monkeypatch):
+    """OpenAI's newer models reject max_tokens outright: 'Unsupported parameter: max_tokens is not
+    supported with this model. Use max_completion_tokens instead.' OpenRouter accepts the old name
+    and translates, so this only bites on the direct route."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-o")
+    sent = []
+    class FakeCompletions:
+        def create(self, **kw):
+            sent.append(kw)
+            msg = types.SimpleNamespace(content='{"fields":[{"field":"f","value":"v",'
+                                                '"confidence":"HIGH","line_ids":[],'
+                                                '"reasoning":"r","doubt":null}]}')
+            usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1,
+                                          completion_tokens_details=None)
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)], usage=usage)
+    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(P, "_client", lambda route: client)
+    monkeypatch.setattr(P, "supported_params", lambda m: None)
+
+    P.call({"id": "gpt-5.5", "brand": "openai", "openrouter_id": "openai/gpt-5.5",
+            "max_tokens": 16000}, "prompt", direct=True)
+
+    assert sent[0].get("max_completion_tokens") == 16000
+    assert "max_tokens" not in sent[0]
+
+
+def test_openrouter_keeps_the_classic_max_tokens_name(monkeypatch):
+    sent = []
+    class FakeCompletions:
+        def create(self, **kw):
+            sent.append(kw)
+            msg = types.SimpleNamespace(content='{"fields":[{"field":"f","value":"v",'
+                                                '"confidence":"HIGH","line_ids":[],'
+                                                '"reasoning":"r","doubt":null}]}')
+            usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1,
+                                          completion_tokens_details=None)
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=msg)], usage=usage)
+    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(P, "_client", lambda route: client)
+    monkeypatch.setattr(P, "supported_params", lambda m: None)
+
+    P.call({"id": "gpt-5.5", "brand": "openai", "openrouter_id": "openai/gpt-5.5",
+            "max_tokens": 16000}, "prompt")
+
+    assert sent[0].get("max_tokens") == 16000
+    assert "max_completion_tokens" not in sent[0]

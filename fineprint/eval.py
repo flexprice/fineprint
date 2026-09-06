@@ -84,10 +84,13 @@ def resolve(spec: str) -> dict:
 
 
 def evaluate(spec: str, runs: int = N_RUNS, workers: int = MAX_WORKERS,
-             publish: bool = True, dump: bool = False) -> None:
+             publish: bool = True, dump: bool = False, direct: bool = False) -> None:
+    """``direct`` bills first-party labs through their own APIs instead of OpenRouter. It exists
+    for the one-time re-baseline only — the watch loop never sets it, so every model that ships
+    from here on is measured through OpenRouter and stays comparable to the board."""
     model = resolve(spec)
     print(f"\n=== FinePrint · {model['label']} ({model['openrouter_id']}) ===")
-    records = run_models([model], n_runs=runs, workers=workers, audit=dump)
+    records = run_models([model], n_runs=runs, workers=workers, audit=dump, direct=direct)
     merge_into_results(records, n_runs=runs)
 
     if not any(r["ok"] for r in records):

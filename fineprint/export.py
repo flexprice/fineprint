@@ -21,6 +21,11 @@ from fineprint import pricing
 # failed 172 of 174 calls; the 2 survivors published as a real score at rank #30.) Publish only
 # rows measured over enough of the corpus to mean anything.
 MIN_RELIABILITY = float(os.environ.get("FINEPRINT_MIN_RELIABILITY", "50"))
+# Reliability catches calls that FAILED. It cannot catch a model that was never *run* on most of
+# the corpus — 6 leftover contracts out of 40, all succeeding, reads as 100% reliable and means
+# nothing next to a model swept over all 40. Coverage is the other half of that guard: publish a
+# model only if it was actually measured on enough of the declared corpus.
+MIN_COVERAGE = float(os.environ.get("FINEPRINT_MIN_COVERAGE", "80"))
 
 
 def _contract_matrix(runs: list[dict], rows: list[dict]) -> dict:
@@ -48,6 +53,35 @@ def build() -> dict:
               for m in all_models()]
     raw = json.loads(RESULTS.read_text())
     runs, n_runs = raw["runs"], raw.get("n_runs", N_RUNS)   # report the ACTUAL runs/contract, not the config default
+    # The board's corpus is what SEED_CONTRACTS declares. runs.json accumulates whatever has ever
+    # been run — probe sweeps over a wider set, leftovers from an older corpus — and aggregate()
+    # does not filter by contract, so without this a model gets scored on a different document set
+    # than the row beside it.
+    corpus = {c[0] for c in SEED_CONTRACTS}
+    runs = [r for r in runs if r["contract"] in corpus]
+    # Coverage counts contracts a model actually ANSWERED, not ones it was asked about: a model
+    # that attempted all 40 and succeeded on 2 is unmeasured, not fully covered.
+    covered, attempts, wins = {}, {}, {}
+    for r in runs:
+        attempts[r["model"]] = attempts.get(r["model"], 0) + 1
+        if r["ok"]:
+            wins[r["model"]] = wins.get(r["model"], 0) + 1
+            covered.setdefault(r["model"], set()).add(r["contract"])
+    drop = set()
+    for m in sorted(attempts):
+        cov = 100.0 * len(covered.get(m, ())) / max(len(corpus), 1)
+        rel = 100.0 * wins.get(m, 0) / attempts[m]
+        if cov < MIN_COVERAGE:
+            drop.add(m)
+            print(f"skipped {m} — answered {len(covered.get(m, ()))} of {len(corpus)} contracts "
+                  f"(min {MIN_COVERAGE}% coverage)")
+        elif rel < MIN_RELIABILITY:
+            # The same guard add_model applies. A full rebuild must not republish the very rows
+            # the additive path refuses.
+            drop.add(m)
+            print(f"skipped {m} — only {rel:.1f}% of {attempts[m]} calls succeeded "
+                  f"(min {MIN_RELIABILITY}%)")
+    runs = [r for r in runs if r["model"] not in drop]
     rows, stats = aggregate(runs, priced, SEED_CONTRACTS)
     baseline = next((r for r in rows if r["id"] == BASELINE_ID), None)
     newest = next((r for r in rows if r["new"]), rows[0] if rows else None)

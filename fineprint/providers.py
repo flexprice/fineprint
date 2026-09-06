@@ -7,6 +7,7 @@ to the right model id, degrades gracefully when a provider does not support stri
 model that would reject them. Run modules from the repo root so ``pipeline`` / ``fineprint`` resolve.
 """
 import json
+import os
 import re
 import time
 import urllib.request
@@ -39,6 +40,32 @@ _SCHEMA_HINT = (
 )
 
 
+# First-party labs that can be billed directly instead of through OpenRouter, as
+# ``brand -> (env var holding the key, OpenAI-compatible base_url)``. Every one of these exposes an
+# OpenAI-shaped endpoint, so the same client and call path work unchanged.
+#
+# This exists for ONE job: the re-baseline, where the first-party models are most of the spend and
+# the temp keys cover them. It is deliberately opt-in per call (see ``route_for``) and never read
+# from ambient config, because every model added after the re-baseline goes through OpenRouter —
+# and a board whose rows were measured through different routes is the same class of bug as one
+# whose rows were measured on different contracts.
+_DIRECT_LABS = {
+    "openai":    ("OPENAI_API_KEY",    None),
+    "anthropic": ("ANTHROPIC_API_KEY", "https://api.anthropic.com/v1/"),
+    "google":    ("GEMINI_API_KEY",    "https://generativelanguage.googleapis.com/v1beta/openai/"),
+}
+
+
+def route_for(model: dict, direct: bool = False) -> str:
+    """Which API this model should be called through. OpenRouter unless the caller explicitly asks
+    for direct routing AND we hold a key for that lab — a missing key degrades to OpenRouter rather
+    than failing every call for that model."""
+    if not direct:
+        return "openrouter"
+    env = _DIRECT_LABS.get(model.get("brand"), (None, None))[0]
+    return model["brand"] if env and os.environ.get(env, "").strip() else "openrouter"
+
+
 def _client(provider: str) -> OpenAI:
     if provider not in _CLIENTS:
         if provider == "openrouter":
@@ -46,6 +73,10 @@ def _client(provider: str) -> OpenAI:
                 api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1",
                 max_retries=3, timeout=360,
                 default_headers={"HTTP-Referer": "https://fineprint.bench", "X-Title": "FinePrint"})
+        elif provider in _DIRECT_LABS:
+            env, base_url = _DIRECT_LABS[provider]
+            _CLIENTS[provider] = OpenAI(api_key=os.environ.get(env, "").strip(),
+                                        base_url=base_url, max_retries=3, timeout=360)
         else:
             _CLIENTS[provider] = OpenAI(api_key=OPENAI_API_KEY, max_retries=3, timeout=360)
     return _CLIENTS[provider]
@@ -74,9 +105,19 @@ def _extract_json(text: str) -> dict:
         raise
 
 
-def _api_model(model: dict) -> str:
-    """The id to send on the wire: the OpenRouter slug when routing through OpenRouter."""
-    return model["openrouter_id"] if model.get("provider") == "openrouter" and model.get("openrouter_id") else model["id"]
+def _api_model(model: dict, route: str = "openrouter") -> str:
+    """The id to send on the wire: the OpenRouter slug via OpenRouter, the lab's own name direct.
+
+    The two namespaces are not the same string. OpenRouter lists ``anthropic/claude-fable-5.1``;
+    Anthropic's own API serves ``claude-fable-5-1``. Sending the dotted form direct 404s every call
+    for that model — verified against both live catalogues, which is also why OpenAI and Gemini are
+    left alone: they serve the dotted names as-is.
+    """
+    if route == "anthropic":
+        return model["id"].replace(".", "-")
+    if route != "openrouter":
+        return model["id"]
+    return model["openrouter_id"] if model.get("openrouter_id") else model["id"]
 
 
 _CATALOG: dict | None = None
@@ -139,15 +180,19 @@ def _plan_attempts(base: dict, user: str, caps: set[str] | None) -> list[dict]:
     return attempts
 
 
-def call(model: dict, user: str):
+def call(model: dict, user: str, direct: bool = False):
     """Run one extraction. Returns (fields, usage_dict, latency_s).
 
     Raises on hard API error or unparseable output — the caller records the failure so a single
     bad model never stalls the sweep.
+
+    ``direct`` is the one-time re-baseline escape hatch (see ``route_for``); leaving it False — the
+    default everywhere, including the watch loop — routes through OpenRouter.
     """
-    client = _client(model.get("provider", "openai"))
+    route = route_for(model, direct)
+    client = _client(route)
     caps = supported_params(model)
-    base = dict(model=_api_model(model),
+    base = dict(model=_api_model(model, route),
                 messages=[{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}])
 
     # Send reasoning controls only when the model actually carries them (curated effort, or the
@@ -156,7 +201,10 @@ def call(model: dict, user: str):
     if model.get("effort") and (caps is None or "reasoning_effort" in caps):
         base["reasoning_effort"] = model["effort"]
     if model.get("max_tokens") and (caps is None or "max_tokens" in caps):
-        base["max_tokens"] = model["max_tokens"]
+        # OpenAI's newer models reject the classic name outright ("Unsupported parameter:
+        # 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead").
+        # OpenRouter still accepts it and translates, so the split is by route, not by model.
+        base["max_completion_tokens" if route == "openai" else "max_tokens"] = model["max_tokens"]
 
     # Strict json_schema -> json_object -> prompt-only, but only the attempts this model supports, so
     # attempt-1 isn't a guaranteed-empty (and, for a slow reasoner, timeout-burning) call.
@@ -179,9 +227,12 @@ def call(model: dict, user: str):
             return fields, usage, latency
         except Exception as e:  # noqa: BLE001 — fall through to the next, less strict, attempt
             last_err = e
-            # A provider that rejects reasoning controls on one attempt will reject them on the next,
-            # so strip them from every remaining attempt before retrying.
+            # A provider that rejects reasoning controls on one attempt will reject them on the
+            # next, so strip those before retrying. max_tokens STAYS: it is near-universally
+            # supported, and it is what bounds the credit OpenRouter reserves per in-flight
+            # request. Dropping it made every retry ask for the model's full window (65536
+            # tokens), which OpenRouter refuses outright — "requires more credits, or fewer
+            # max_tokens" — turning one recoverable failure into a guaranteed 402 on all retries.
             for a in attempts[i + 1:]:
                 a.pop("reasoning_effort", None)
-                a.pop("max_tokens", None)
     raise last_err  # type: ignore[misc]
