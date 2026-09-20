@@ -49,3 +49,4 @@ yarn-error.log*
 # deploy: never commit private seed mapping
 deploy/private/
 fineprint/seed_contracts.json
+fineprint/oss/.cache/
