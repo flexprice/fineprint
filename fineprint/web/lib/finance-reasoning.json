@@ -1,0 +1,114 @@
+{
+ "updated": "2026-09-21",
+ "items": 238,
+ "effort": "low",
+ "seed": 20260920,
+ "priced_as_of": "2026-09-21",
+ "models": [
+  {
+   "id": "gpt-5.6-sol",
+   "label": "GPT-5.6 Sol",
+   "brand": "openai",
+   "rank": 1,
+   "accuracy": 91.6,
+   "ci": [
+    87.4,
+    94.5
+   ],
+   "n": 238,
+   "unscored": 0,
+   "cost_total": 0.755,
+   "latency": 3.6
+  },
+  {
+   "id": "gpt-6-astra",
+   "label": "GPT-6 Astra",
+   "brand": "openai",
+   "rank": 1,
+   "accuracy": 91.6,
+   "ci": [
+    87.4,
+    94.5
+   ],
+   "n": 238,
+   "unscored": 0,
+   "cost_total": 2.854,
+   "latency": 4.4
+  },
+  {
+   "id": "gpt-5.5",
+   "label": "GPT-5.5",
+   "brand": "openai",
+   "rank": 3,
+   "accuracy": 90.8,
+   "ci": [
+    86.4,
+    93.8
+   ],
+   "n": 238,
+   "unscored": 0,
+   "cost_total": 2.984,
+   "latency": 3.6
+  },
+  {
+   "id": "gpt-5.6-terra",
+   "label": "GPT-5.6 Terra",
+   "brand": "openai",
+   "rank": 4,
+   "accuracy": 89.1,
+   "ci": [
+    84.5,
+    92.4
+   ],
+   "n": 238,
+   "unscored": 0,
+   "cost_total": 0.973,
+   "latency": 3.0
+  },
+  {
+   "id": "gpt-5.6-luna",
+   "label": "GPT-5.6 Luna",
+   "brand": "openai",
+   "rank": 5,
+   "accuracy": 86.6,
+   "ci": [
+    81.6,
+    90.3
+   ],
+   "n": 238,
+   "unscored": 1,
+   "cost_total": 0.126,
+   "latency": 2.6
+  },
+  {
+   "id": "gpt-5.4-mini",
+   "label": "GPT-5.4 Mini",
+   "brand": "openai",
+   "rank": 6,
+   "accuracy": 80.7,
+   "ci": [
+    75.2,
+    85.2
+   ],
+   "n": 238,
+   "unscored": 0,
+   "cost_total": 0.507,
+   "latency": 2.2
+  },
+  {
+   "id": "gpt-5.4-nano",
+   "label": "GPT-5.4 Nano",
+   "brand": "openai",
+   "rank": 7,
+   "accuracy": 78.6,
+   "ci": [
+    72.9,
+    83.3
+   ],
+   "n": 238,
+   "unscored": 0,
+   "cost_total": 0.222,
+   "latency": 3.6
+  }
+ ]
+}
