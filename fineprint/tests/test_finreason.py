@@ -16,3 +16,8 @@ def test_grading_is_numeric_and_strict():
 def test_sample_is_fixed_and_nested():
     a, b = F.items(20), F.items(60)
     assert [x["id"] for x in a] == [x["id"] for x in b[:20]] and len(F.items()) == 238
+
+
+def test_cost_is_repriced_from_logged_tokens():
+    recs = [{"model": "gpt-5.6-sol", "id": "a", "source": "x", "right": True, "cost": 99.0, "in": 1_000_000, "out": 100_000, "latency": 1.0}]
+    assert F.summarize(recs)[0]["cost_total"] == 3.0            # 1M in at $2 + 0.1M out at $10, whatever was logged

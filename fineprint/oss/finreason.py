@@ -30,8 +30,9 @@ _SYSTEM = ("You are a careful financial analyst. Work the problem, then end your
            "ANSWER: <number>\nA bare number only: no units, currency signs, percent signs or thousands separators. If the question asks for\n"
            "True or False, give that word instead.")
 _NUM = re.compile(r"-?\d+(?:\.\d+)?(?:[eE]-?\d+)?")
-# USD per million tokens (in, out), equal to the roster in fineprint/config.py; an unlisted model is run but reported unpriced
-PRICES = {"gpt-5.6-luna": (0.10, 0.60), "gpt-5.6-terra": (1, 6), "gpt-5.6-sol": (5, 30), "gpt-5.5": (5, 30),
+# USD per million tokens (in, out): OpenRouter list prices, checked 2026-09-21. An unlisted model is run but reported unpriced.
+PRICED_AS_OF = "2026-09-21"
+PRICES = {"gpt-5.6-luna": (0.20, 1.20), "gpt-5.6-terra": (2, 12), "gpt-5.6-sol": (2, 10), "gpt-5.5": (5, 30),
           "gpt-6-astra": (10, 50), "gpt-5.4-mini": (0.75, 4.50), "gpt-5.4-nano": (0.20, 1.25)}
 _lock, _spent = threading.Lock(), [0.0]
 
@@ -113,6 +114,9 @@ def summarize(records: list) -> list:
         if not rs:
             continue
         k = sum(r["right"] for r in rs)
+        pin, pout = PRICES.get(model.split("/")[-1], PRICES.get(model, (0, 0)))
+        for r in rs:                                           # re-price from logged tokens: a price fix needs no re-run
+            r["cost"] = r["in"] / 1e6 * pin + r["out"] / 1e6 * pout
         rows.append({"model": model, "n": len(rs), "accuracy": round(100 * k / len(rs), 1), "ci95": wilson(k, len(rs)),
                      "unscored": sum(1 for r in records if r["model"] == model and r["right"] is None),
                      "cost_total": round(sum(r["cost"] for r in rs), 3), "cost_per_item": round(sum(r["cost"] for r in rs) / len(rs), 4),

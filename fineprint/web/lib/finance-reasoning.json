@@ -3,6 +3,7 @@
  "items": 238,
  "effort": "low",
  "seed": 20260920,
+ "priced_as_of": "2026-09-21",
  "models": [
   {
    "id": "gpt-5.6-sol",
@@ -16,7 +17,7 @@
    ],
    "n": 238,
    "unscored": 0,
-   "cost_total": 2.209,
+   "cost_total": 0.755,
    "latency": 3.6
   },
   {
@@ -61,7 +62,7 @@
    ],
    "n": 238,
    "unscored": 0,
-   "cost_total": 0.487,
+   "cost_total": 0.973,
    "latency": 3.0
   },
   {
@@ -76,7 +77,7 @@
    ],
    "n": 238,
    "unscored": 1,
-   "cost_total": 0.063,
+   "cost_total": 0.126,
    "latency": 2.6
   },
   {

@@ -7,7 +7,7 @@ type Row = {
   id: string; label: string; brand: string; rank: number; accuracy: number; ci: [number, number];
   n: number; unscored: number; cost_total: number; latency: number;
 };
-const board = raw as unknown as { updated: string; items: number; effort: string; models: Row[] };
+const board = raw as unknown as { updated: string; items: number; effort: string; priced_as_of: string; models: Row[] };
 
 export const metadata: Metadata = {
   title: "Finance reasoning — an open benchmark",
@@ -85,7 +85,7 @@ export default function Finance() {
           For FinePrint&rsquo;s own contract work see the{" "}
           <Link href="/#leaderboard" className="text-text underline underline-offset-2">extraction leaderboard</Link>.
         </p>
-        <p className="text-[12.5px] text-faint">Updated {board.updated}.</p>
+        <p className="text-[12.5px] text-faint">Updated {board.updated}. Costs are logged tokens at OpenRouter list prices as of {board.priced_as_of}.</p>
       </section>
     </main>
   );

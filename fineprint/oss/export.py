@@ -26,7 +26,7 @@ def build(run_dir: Path) -> dict:
         rank = next(i for i, x in enumerate(rows, 1) if x["accuracy"] == r["accuracy"])      # equal accuracy, equal rank
         models.append({"id": r["model"], "label": label, "brand": brand, "rank": rank, "accuracy": r["accuracy"], "ci": r["ci95"],
                        "n": r["n"], "unscored": r["unscored"], "cost_total": r["cost_total"], "latency": r["latency"]})
-    return {"updated": datetime.date.today().isoformat(), "items": total, "effort": "low", "seed": finreason.SEED, "models": models}
+    return {"updated": datetime.date.today().isoformat(), "items": total, "effort": "low", "seed": finreason.SEED, "priced_as_of": finreason.PRICED_AS_OF, "models": models}
 
 
 if __name__ == "__main__":
