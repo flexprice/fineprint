@@ -1621,7 +1621,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .fp-marquee-track {
   display: flex; width: max-content; gap: 2.75rem; align-items: center;
-  animation: fp-marquee 42s linear infinite;
+  animation: fp-marquee var(--fp-marquee-duration, 105s) linear infinite;
 }
 .fp-marquee-item {
   display: inline-flex; align-items: center; gap: 0.7rem; white-space: nowrap;

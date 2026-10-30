@@ -1,21 +1,37 @@
-// Lab marks. Eight labs render as their authentic full-color logo (public/icons/color/*.svg);
-// OpenAI and xAI are genuinely monochrome brands, so they render as a theme-adaptive currentColor
-// silhouette via CSS mask (dark on light, light on dark). brand id (registry) -> asset.
+// Lab marks. Most labs render as their authentic full-color logo (public/icons/color/); labs with a
+// single-color mark (OpenAI, xAI, IBM, ...) render as a theme-adaptive currentColor silhouette via
+// CSS mask (dark on light, light on dark). brand id (registry) -> asset; no extension means .svg.
 const COLOR: Record<string, string> = {
   anthropic: "anthropic", claude: "anthropic",
   google: "google", gemini: "google",
   meta: "meta", "meta-llama": "meta",
   mistral: "mistral", mistralai: "mistral",
-  deepseek: "deepseek", qwen: "qwen", xiaomi: "xiaomi", tencent: "tencent.png",
+  deepseek: "deepseek", qwen: "qwen", tencent: "tencent.png",
   cohere: "cohere", perplexity: "perplexity",
-  // moonshot / kimi: theme-split assets below (black K on light, light K on dark)
+  // moonshot / kimi, amazon and apodex: theme-split assets in THEMED below
   zhipu: "zhipu", "z-ai": "zhipu", glm: "zhipu",
-  amazon: "amazon", aws: "amazon", nova: "amazon",
   minimax: "minimax", nvidia: "nvidia", nemotron: "nvidia",
+  bytedance: "bytedance", "bytedance-seed": "bytedance", baidu: "baidu", microsoft: "microsoft",
+  inclusionai: "ling", meituan: "longcat", stepfun: "stepfun",
+  "aion-labs": "aionlabs", "arcee-ai": "arcee", fireworks: "fireworks", morph: "morph",
+  poolside: "poolside", sakana: "sakana", upstage: "upstage", venice: "venice", mancer: "mancer",
+  "anthracite-org": "anthracite.webp", thinkingmachines: "thinkingmachines.png",
 };
 const MONO: Record<string, string> = {
-  openai: "openai", xai: "xai", "x-ai": "xai", grok: "xai",
+  openai: "openai", xai: "xai", "x-ai": "xai", grok: "xai", xiaomi: "xiaomi", kwaipilot: "kwaipilot",
+  ibm: "ibm", "ibm-granite": "ibm", "dots-studio": "dots", inception: "inception.png",
+  "inference-net": "inference", liquid: "liquid", "nex-agi": "nex", nousresearch: "nousresearch",
+  perceptron: "perceptron", "prism-ml": "prismml.webp", rekaai: "reka", relace: "relace",
+  writer: "writer.png", openrouter: "openrouter", typesafe: "typesafe",
 };
+// Marks drawn for one background (Kimi's solid K, Amazon's dark wordmark, Apodex's tile), so each
+// theme gets its own asset: [light, dark].
+const THEMED: Record<string, [string, string]> = {
+  moonshot: ["moonshot", "moonshot-dark"], moonshotai: ["moonshot", "moonshot-dark"],
+  kimi: ["moonshot", "moonshot-dark"], apodex: ["apodex.webp", "apodex-dark.webp"],
+  amazon: ["amazon", "amazon-dark"], aws: ["amazon", "amazon-dark"], nova: ["amazon", "amazon-dark"],
+};
+const asset = (name: string) => (name.includes(".") ? name : `${name}.svg`);
 
 export function ProviderIcon({ brand, size = 17, className = "" }: { brand: string; size?: number; className?: string }) {
   const b = brand?.toLowerCase().trim().replace(/^~/, "");
@@ -34,15 +50,15 @@ export function ProviderIcon({ brand, size = 17, className = "" }: { brand: stri
       </span>
     );
   }
-  // Kimi's mark uses a solid K — black on light, light on dark — so it needs both assets.
-  if (b === "moonshot" || b === "moonshotai" || b === "kimi") {
+  const themed = THEMED[b];
+  if (themed) {
     return (
       <span className={`inline-grid shrink-0 ${className}`} style={{ width: size, height: size }} aria-hidden>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/color/moonshot.svg" alt="" width={size} height={size}
+        <img src={`/icons/color/${asset(themed[0])}`} alt="" width={size} height={size}
           className="fp-logo-light col-start-1 row-start-1" style={{ objectFit: "contain" }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/color/moonshot-dark.svg" alt="" width={size} height={size}
+        <img src={`/icons/color/${asset(themed[1])}`} alt="" width={size} height={size}
           className="fp-logo-dark col-start-1 row-start-1" style={{ objectFit: "contain" }} />
       </span>
     );
@@ -51,13 +67,13 @@ export function ProviderIcon({ brand, size = 17, className = "" }: { brand: stri
   if (color) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
-      <img src={`/icons/color/${color.includes(".") ? color : `${color}.svg`}`} alt="" aria-hidden width={size} height={size}
+      <img src={`/icons/color/${asset(color)}`} alt="" aria-hidden width={size} height={size}
         className={`inline-block shrink-0 ${className}`} style={{ objectFit: "contain" }} />
     );
   }
   const mono = MONO[b];
   if (mono) {
-    const url = `url(/icons/${mono}.svg)`;
+    const url = `url(/icons/${asset(mono)})`;
     return (
       <span
         aria-hidden
